@@ -740,8 +740,8 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
         </div>
         <Card style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>🏆 Mes badges</h3>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {BADGES.map(b => { const earned = earnedBadges.includes(b); return <div key={b.id} title={b.desc} style={{ textAlign: "center", padding: "10px 14px", borderRadius: 14, minWidth: 90, background: earned ? `${C.warning}20` : "#F0F0F8", opacity: earned ? 1 : 0.4, cursor: "default", position: "relative", transition: "all 0.2s" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
+            {BADGES.map(b => { const earned = earnedBadges.includes(b); return <div key={b.id} title={b.desc} style={{ textAlign: "center", padding: "10px 14px", borderRadius: 14, background: earned ? `${C.warning}20` : "#F0F0F8", opacity: earned ? 1 : 0.4, cursor: "default", position: "relative", transition: "all 0.2s" }}>
               <div style={{ fontSize: 28 }}>{b.icon}</div>
               <div style={{ fontSize: 10, fontWeight: 800, marginTop: 4, color: earned ? C.text : C.textMuted }}>{b.name}</div>
               <div style={{ fontSize: 9, color: earned ? C.secondary : C.textMuted, marginTop: 2, lineHeight: 1.3 }}>{earned ? "✅ Débloqué !" : b.desc}</div>
