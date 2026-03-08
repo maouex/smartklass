@@ -464,6 +464,8 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const [view, setView] = useState("home");
   const [activeActivity, setActiveActivity] = useState(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
+  const [openChapters, setOpenChapters] = useState({});
+  const toggleChapter = (key) => setOpenChapters(prev => ({ ...prev, [key]: !prev[key] }));
   const [currentStudent, setCurrentStudent] = useState(student);
 
   const myClass = data.classes.find(c => c.id === currentStudent.classId);
@@ -524,7 +526,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
 
       {view === "courses" && <div style={{ animation: "fadeIn 0.4s" }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14 }}>📖 Mes cours</h2>
-        {myCourses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); return <Card key={c.id} style={{ marginBottom: 10, padding: 18 }}><div style={{ display: "flex", gap: 12 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p>{c.chapters?.map((ch, i) => <div key={i} style={{ padding: "8px 12px", borderRadius: 10, background: "#F8F9FD", marginTop: 6, fontSize: 13 }}><strong>{ch.title}</strong><p style={{ margin: "2px 0 0", fontSize: 12, color: C.textLight }}>{(ch.content || "").slice(0, 120)}...</p></div>)}</div></div></Card>; })}
+        {myCourses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); return <Card key={c.id} style={{ marginBottom: 10, padding: 18 }}><div style={{ display: "flex", gap: 12 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p>{c.chapters?.map((ch, i) => { const key = `${c.id}-${i}`; const isOpen = !!openChapters[key]; return <div key={i} style={{ borderRadius: 10, background: "#F8F9FD", marginTop: 6, overflow: "hidden" }}><div onClick={() => toggleChapter(key)} style={{ padding: "10px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", userSelect: "none" }}><strong style={{ fontSize: 13 }}>{ch.title}</strong><span style={{ fontSize: 12, color: C.textLight, flexShrink: 0, marginLeft: 8 }}>{isOpen ? "▲ Réduire" : "▼ Lire"}</span></div>{isOpen && <div style={{ padding: "0 12px 12px", fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, borderTop: "1px solid #ECECF5" }}>{ch.content}</div>}</div>; })}</div></div></Card>; })}
       </div>}
 
       {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
