@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SmartKlass — Plateforme STMG</title>
-    <link rel="icon" href="/logo.png">
+    <link rel="icon" href="/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#6C5CE7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SmartKlass">
-    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="apple-touch-icon" href="/icons/icon-180x180.png">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -234,6 +236,18 @@ function Confirm({ message, onYes, onNo }) {
       )
     )
   );
+}
+
+function BadgeUnlock({ badge, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
+  return <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+    <div style={{ background: C.card, borderRadius: 28, padding: "36px 48px", textAlign: "center", boxShadow: "0 25px 60px rgba(108,92,231,0.45)", animation: "fadeIn 0.5s", border: `3px solid ${C.warning}60` }}>
+      <div style={{ fontSize: 64, marginBottom: 8, animation: "float 1s ease-in-out infinite" }}>{badge.icon}</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.warning, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Badge débloqué !</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>{badge.name}</div>
+      <div style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{badge.desc}</div>
+    </div>
+  </div>;
 }
 
 // ============================================================================
@@ -609,6 +623,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const [activeCourse, setActiveCourse] = useState(null);
   const [activeSubject, setActiveSubject] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(student);
+  const [newBadge, setNewBadge] = useState(null);
 
   const myClass = data.classes.find(c => c.id === currentStudent.classId);
   const classStudents = data.students.filter(s => s.classId === currentStudent.classId);
@@ -626,8 +641,14 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const handleTabChange = (tab) => { setView(tab); setActiveCourse(null); setActiveSubject(null); };
 
   const handleComplete = async (actId, score) => {
+    const prevBadgeIds = BADGES.filter(b => b.condition(myResults, currentStudent.streak, currentStudent.xp)).map(b => b.id);
     const result = await onActivityComplete(currentStudent.id, actId, score);
-    if (result && result.student) setCurrentStudent(result.student);
+    if (result && result.student) {
+      setCurrentStudent(result.student);
+      const updatedResults = [...myResults, { activityId: actId, score }];
+      const unlocked = BADGES.find(b => b.condition(updatedResults, result.student.streak, result.student.xp) && !prevBadgeIds.includes(b.id));
+      if (unlocked) setNewBadge(unlocked);
+    }
     setActiveActivity(null); setView("home");
   };
 
@@ -636,6 +657,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   }
 
   return <AnimatedBg>
+    {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
@@ -685,9 +707,12 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
                 </div>
                 {/* Liste des cours triés du plus récent au plus ancien */}
                 {myCourses.filter(c => c.subjectId === activeSubject.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(c => {
-                  const nbActs = data.activities.filter(a => a.courseId === c.id).length;
+                  const courseActs = data.activities.filter(a => a.courseId === c.id);
+                  const nbActs = courseActs.length;
+                  const doneActs = courseActs.filter(a => completedIds.includes(a.id)).length;
+                  const allDone = nbActs > 0 && doneActs === nbActs;
                   const nouveau = isNew(c.created_at);
-                  return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, padding: 18, cursor: "pointer", position: "relative" }}>
+                  return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, padding: 18, cursor: "pointer", position: "relative", border: allDone ? `2px solid ${C.secondary}40` : "2px solid transparent" }}>
                     {nouveau && <div style={{ position: "absolute", top: 12, right: 12, background: C.accent, color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>NOUVEAU</div>}
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                       <div style={{ flex: 1, paddingRight: nouveau ? 80 : 0 }}>
@@ -695,10 +720,11 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
                         <p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p>
                         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                           {c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chapitre{c.chapters.length > 1 ? "s" : ""}</Chip>}
-                          {nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}
+                          {nbActs > 0 && <Chip color={allDone ? C.secondary : C.accent}>{allDone ? "✅ " : ""}{doneActs}/{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}
                         </div>
+                        {nbActs > 0 && <ProgressBar value={doneActs} max={nbActs} color={allDone ? C.secondary : C.accent} height={4} style={{ marginTop: 8 }} />}
                       </div>
-                      <span style={{ fontSize: 22, color: C.primary, flexShrink: 0 }}>→</span>
+                      <span style={{ fontSize: 22, color: allDone ? C.secondary : C.primary, flexShrink: 0 }}>→</span>
                     </div>
                   </Card>;
                 })}
@@ -711,11 +737,14 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
                   {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).map(s => {
                     const count = myCourses.filter(c => c.subjectId === s.id).length;
                     const hasNew = myCourses.filter(c => c.subjectId === s.id).some(c => isNew(c.created_at));
+                    const subActs = myActivities.filter(a => a.subjectId === s.id);
+                    const subDone = subActs.filter(a => completedIds.includes(a.id)).length;
                     return <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", padding: "22px 16px", textAlign: "center", position: "relative" }}>
                       {hasNew && <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>NOUVEAU</div>}
                       <div style={{ fontSize: 42, marginBottom: 10 }}>{s.icon}</div>
                       <div style={{ fontWeight: 900, fontSize: 15, color: C.text, marginBottom: 4 }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: C.textLight, fontWeight: 600 }}>{count} cours</div>
+                      <div style={{ fontSize: 12, color: C.textLight, fontWeight: 600, marginBottom: subActs.length > 0 ? 6 : 0 }}>{count} cours</div>
+                      {subActs.length > 0 && <><div style={{ fontSize: 11, color: subDone === subActs.length ? C.secondary : C.textMuted, fontWeight: 700, marginBottom: 4 }}>{subDone}/{subActs.length} activités</div><ProgressBar value={subDone} max={subActs.length} color={s.color || C.primary} height={4} /></>}
                     </Card>;
                   })}
                   {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).length === 0 &&
@@ -761,6 +790,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
   const [activeClass, setActiveClass] = useState(null);
   const [notifData, setNotifData] = useState({ typeId: 'new_course', customBody: '', pwd: '', sending: false, result: null });
+  const [notifHistory, setNotifHistory] = useState([]);
+  const [showNotifHistory, setShowNotifHistory] = useState(false);
   const [activeCourse, setActiveCourse] = useState(null);
   const [editCourseData, setEditCourseData] = useState(null);
   const [jsonImport, setJsonImport] = useState("");
@@ -800,6 +831,13 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const deleteCourse = (id) => { setConfirmAction({ msg: "Supprimer ce cours ?", action: async () => { await api.del(`courses/${id}`); setActiveCourse(null); refreshData(); } }); };
   const updateCourse = async () => { if (!editCourseData) return; await api.put(`courses/${editCourseData.id}`, editCourseData); setModal(null); setActiveCourse(editCourseData); refreshData(); };
   const deleteActivity = (id) => { setConfirmAction({ msg: "Supprimer cette activité ?", action: async () => { await api.del(`activities/${id}`); refreshData(); } }); };
+  const updateActivity = async () => {
+    if (!editActivityData) return;
+    let dataContent = editActivityData.data;
+    if (typeof dataContent === 'string') { try { dataContent = JSON.parse(dataContent); } catch(e) { alert("❌ JSON invalide dans le contenu :\n" + e.message); return; } }
+    await api.put(`activities/${editActivityData.id}`, { ...editActivityData, data: dataContent });
+    setModal(null); setEditActivityData(null); refreshData();
+  };
   const [importSubjectId, setImportSubjectId] = useState("");
   const [importClassIds, setImportClassIds] = useState([]);
   const [importCourseId, setImportCourseId] = useState("");
@@ -807,6 +845,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [importStep, setImportStep] = useState("paste"); // paste | configure
   const [changePwdData, setChangePwdData] = useState({ current: "", next: "", confirm: "" });
   const [changePwdError, setChangePwdError] = useState("");
+  const [editActivityData, setEditActivityData] = useState(null);
 
   const importJsonParse = () => {
     let parsed;
@@ -889,7 +928,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0", fontWeight: 600 }}>{activeClass.year} — {classStudentCount} élève{classStudentCount > 1 ? "s" : ""}</p>
               </div>
               <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm">✏️ Modifier</Btn>
-              <Btn onClick={() => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setModal('sendNotif'); }} variant="secondary" size="sm">🔔 Notifier</Btn>
+              <Btn onClick={async () => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setShowNotifHistory(false); setModal('sendNotif'); try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }} variant="secondary" size="sm">🔔 Notifier</Btn>
             </div>
 
             {/* Sections par matière */}
@@ -1034,7 +1073,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {/* ACTIVITIES */}
       {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>🎮 Activités</h2><Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportCourseId(""); setModal("importJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn></div>
-        {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
+        {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
       </div>}
     </div>
 
@@ -1214,6 +1253,33 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       <Btn onClick={changeTeacherPassword} fullWidth style={{ marginTop: 8 }}>Valider</Btn>
     </Modal>
 
+    {/* MODAL — Modifier une activité */}
+    <Modal open={modal === "editActivity"} onClose={() => { setModal(null); setEditActivityData(null); }} title="✏️ Modifier l'activité" wide>
+      {editActivityData && <>
+        <Input label="Titre" value={editActivityData.title} onChange={v => setEditActivityData(d => ({ ...d, title: v }))} />
+        <Select label="Matière" value={editActivityData.subjectId} onChange={v => setEditActivityData(d => ({ ...d, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <div style={{ display: "flex", gap: 12 }}>
+          <Select label="Difficulté" value={String(editActivityData.difficulty)} onChange={v => setEditActivityData(d => ({ ...d, difficulty: parseInt(v) }))} options={[{ value: "1", label: "1 — Facile" }, { value: "2", label: "2 — Moyen" }, { value: "3", label: "3 — Difficile" }]} style={{ flex: 1 }} />
+          <Input label="XP récompense" value={String(editActivityData.xpReward)} onChange={v => setEditActivityData(d => ({ ...d, xpReward: parseInt(v) || 40 }))} type="number" style={{ flex: 1 }} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: (editActivityData.classIds || []).includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: (editActivityData.classIds || []).includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
+              <input type="checkbox" checked={(editActivityData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditActivityData(d => ({ ...d, classIds: [...(d.classIds||[]), c.id] })); else setEditActivityData(d => ({ ...d, classIds: (d.classIds||[]).filter(id => id !== c.id) })); }} style={{ display: "none" }} />
+              <span style={{ fontWeight: 600, color: (editActivityData.classIds || []).includes(c.id) ? C.primary : C.textLight }}>{(editActivityData.classIds || []).includes(c.id) ? "✅ " : ""}{c.name}</span>
+            </label>)}
+          </div>
+        </div>
+        <Select label="📖 Cours associé (optionnel)" value={editActivityData.courseId || ""} onChange={v => setEditActivityData(d => ({ ...d, courseId: v || null }))} options={[{ value: "", label: "— Aucun cours —" }, ...data.courses.filter(c => c.subjectId === editActivityData.subjectId).map(c => ({ value: c.id, label: c.title }))]} />
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Contenu (JSON) <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 400 }}>— modifier avec précaution</span></label>
+          <textarea value={typeof editActivityData.data === 'string' ? editActivityData.data : JSON.stringify(editActivityData.data, null, 2)} onChange={e => setEditActivityData(d => ({ ...d, data: e.target.value }))} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
+        </div>
+        <Btn onClick={updateActivity} fullWidth size="lg">Enregistrer les modifications</Btn>
+      </>}
+    </Modal>
+
     {/* MODAL — Envoyer une notification push */}
     <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="🔔 Envoyer une notification">
       <p style={{ color: C.textLight, fontSize: 13, marginBottom: 14, fontWeight: 600 }}>
@@ -1239,10 +1305,30 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         try {
           const res = await api.post('push-send', { classId: activeClass?.id, title: t.title, body, teacherPassword: notifData.pwd });
           setNotifData(d => ({ ...d, sending: false, result: res }));
+          if (res.success) { try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }
         } catch(e) { setNotifData(d => ({ ...d, sending: false, result: { success: false, error: 'Erreur serveur' } })); }
       }} fullWidth size="lg" disabled={notifData.sending || !notifData.pwd}>
         {notifData.sending ? '⏳ Envoi en cours...' : '🔔 Envoyer la notification'}
       </Btn>
+      {notifHistory.length > 0 && <div style={{ marginTop: 20 }}>
+        <button onClick={() => setShowNotifHistory(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 6, padding: "6px 0", marginBottom: 8 }}>
+          🕐 Historique ({notifHistory.length}) {showNotifHistory ? "▲" : "▼"}
+        </button>
+        {showNotifHistory && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {notifHistory.map((h, i) => <div key={i} style={{ padding: "10px 14px", borderRadius: 12, background: "#F8F9FD", border: "1px solid #E8E8F0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{h.title}</div>
+                {h.body && <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>{h.body}</div>}
+              </div>
+              <div style={{ flexShrink: 0, textAlign: "right" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.secondary }}>{h.sent_count} envoyé{h.sent_count !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 10, color: C.textMuted }}>{new Date(h.sent_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</div>
+              </div>
+            </div>
+          </div>)}
+        </div>}
+      </div>}
     </Modal>
 
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
