@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SmartKlass — Plateforme STMG</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="icon" href="/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -435,8 +435,7 @@ function LoginScreen({ onLogin, data }) {
   return <AnimatedBg>
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
-        <div style={{ fontSize: 56, marginBottom: 8, animation: "float 3s ease-in-out infinite" }}>📚</div>
-        <h1 style={{ fontSize: 42, fontWeight: 900, margin: "0 0 4px 0", background: C.g1, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: -1 }}>SmartKlass</h1>
+        <img src="/logo.png" alt="SmartKlass" style={{ width: 180, marginBottom: 4, animation: "float 3s ease-in-out infinite" }} />
         <p style={{ color: C.textLight, fontSize: 16, margin: "0 0 32px 0", fontWeight: 600 }}>Apprends, progresse, excelle ! 🚀</p>
         <Card style={{ padding: 32 }}>
           <div style={{ display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 24 }}>
@@ -492,7 +491,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   return <AnimatedBg>
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div><h1 style={{ fontSize: 26, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</h1><p style={{ color: C.textLight, fontSize: 14, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404" }}>🔥 {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
@@ -654,7 +653,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   return <AnimatedBg>
     <div style={{ maxWidth: 1050, margin: "0 auto", padding: "20px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div><h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, background: C.g1, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>📚 SmartKlass</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600 }}>Panel Professeur</p></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 48 }} /><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑 Mot de passe</button>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
