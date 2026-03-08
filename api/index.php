@@ -82,6 +82,21 @@ try {
                     $studentId = $body['studentId'] ?? '';
                     $db->prepare('UPDATE students SET password = NULL WHERE id = ?')->execute([$studentId]);
                     jsonResponse(['success' => true]);
+                } elseif ($type === 'change-teacher-password') {
+                    // Prof change son propre mot de passe
+                    $currentPassword = $body['currentPassword'] ?? '';
+                    $newPassword = $body['newPassword'] ?? '';
+                    if (strlen($newPassword) < 4) {
+                        jsonResponse(['success' => false, 'error' => 'Le nouveau mot de passe doit faire au moins 4 caractères.'], 400);
+                    }
+                    $stmt = $db->prepare("SELECT config_value FROM config WHERE config_key = 'teacher_password'");
+                    $stmt->execute();
+                    $stored = $stmt->fetchColumn();
+                    if ($currentPassword !== $stored) {
+                        jsonResponse(['success' => false, 'error' => 'Mot de passe actuel incorrect.'], 401);
+                    }
+                    $db->prepare("UPDATE config SET config_value = ? WHERE config_key = 'teacher_password'")->execute([$newPassword]);
+                    jsonResponse(['success' => true]);
                 }
             }
             break;
