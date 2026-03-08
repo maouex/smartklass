@@ -603,6 +603,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [importCourseId, setImportCourseId] = useState("");
   const [importParsed, setImportParsed] = useState(null);
   const [importStep, setImportStep] = useState("paste"); // paste | configure
+  const [changePwdData, setChangePwdData] = useState({ current: "", next: "", confirm: "" });
+  const [changePwdError, setChangePwdError] = useState("");
 
   const importJsonParse = () => {
     let parsed;
@@ -634,6 +636,15 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     } catch (e) { alert("❌ Erreur API :\n" + e.message); }
   };
 
+  const changeTeacherPassword = async () => {
+    setChangePwdError("");
+    if (changePwdData.next.length < 4) { setChangePwdError("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
+    if (changePwdData.next !== changePwdData.confirm) { setChangePwdError("Les deux mots de passe ne correspondent pas."); return; }
+    const res = await api.post('auth', { type: 'change-teacher-password', currentPassword: changePwdData.current, newPassword: changePwdData.next });
+    if (res.success) { setChangePwdData({ current: "", next: "", confirm: "" }); setModal(null); alert("✅ Mot de passe modifié avec succès !"); }
+    else setChangePwdError(res.error || "Erreur inconnue.");
+  };
+
   const getExportText = (classId) => { const students = classId === "all" ? data.students : data.students.filter(s => s.classId === classId); let text = `SmartKlass — Identifiants\n${"=".repeat(40)}\n\n`; const grouped = {}; students.forEach(s => { const cn = data.classes.find(c => c.id === s.classId)?.name || "?"; if (!grouped[cn]) grouped[cn] = []; grouped[cn].push(s); }); Object.entries(grouped).sort().forEach(([cn, sts]) => { text += `--- ${cn} ---\n`; sts.sort((a, b) => a.lastName.localeCompare(b.lastName)).forEach(s => { text += `${s.lastName} ${s.firstName} → ${s.identifier}\n`; }); text += "\n"; }); return text; };
   const getActivityStats = (actId) => { const act = data.activities.find(a => a.id === actId); if (!act) return null; const results = data.results.filter(r => r.activityId === actId); const targetStudents = data.students.filter(s => act.classIds && act.classIds.includes(s.classId)); const participation = targetStudents.length > 0 ? Math.round(results.length / targetStudents.length * 100) : 0; const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; const maxScore = results.length > 0 ? Math.max(...results.map(r => r.score)) : 0; const minScore = results.length > 0 ? Math.min(...results.map(r => r.score)) : 0; return { act, results, targetStudents, participation, avgScore, maxScore, minScore }; };
   const getStudentResults = (studentId) => { const student = data.students.find(s => s.id === studentId); if (!student) return null; const results = data.results.filter(r => r.studentId === studentId); const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; return { student, results, avgScore }; };
@@ -642,7 +653,10 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     <div style={{ maxWidth: 1050, margin: "0 auto", padding: "20px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
         <div><h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, background: C.g1, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>📚 SmartKlass</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600 }}>Panel Professeur</p></div>
-        <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑 Mot de passe</button>
+          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
+        </div>
       </div>
       <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }]} active={view} onChange={setView} />
 
@@ -851,6 +865,14 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
     <Modal open={modal === "activityStats"} onClose={() => setModal(null)} title="📊 Stats" wide>
       {modal === "activityStats" && modalData && (() => { const stats = getActivityStats(modalData); if (!stats) return <p>Introuvable</p>; return <><h3 style={{ fontWeight: 800, marginBottom: 12 }}>{stats.act.title}</h3><div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Participation</div><div style={{ fontWeight: 800, fontSize: 22, color: C.primary }}>{stats.participation}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Moyenne</div><div style={{ fontWeight: 800, fontSize: 22, color: stats.avgScore >= 70 ? C.secondary : C.accent }}>{stats.avgScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Max</div><div style={{ fontWeight: 800, fontSize: 22, color: C.secondary }}>{stats.maxScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Min</div><div style={{ fontWeight: 800, fontSize: 22, color: C.danger }}>{stats.minScore}%</div></div></div>{stats.results.length > 0 && <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Élève", "Score", "Date"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead><tbody>{stats.results.sort((a, b) => b.score - a.score).map(r => { const st = data.students.find(s => s.id === r.studentId); return <tr key={r.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", fontWeight: 600 }}>{st ? `${st.lastName} ${st.firstName}` : "?"}</td><td style={{ padding: "6px 8px" }}><span style={{ fontWeight: 700, color: r.score >= 70 ? C.secondary : C.danger }}>{r.score}%</span></td><td style={{ padding: "6px 8px", color: C.textLight }}>{new Date(r.completedAt).toLocaleDateString("fr-FR")}</td></tr>; })}</tbody></table>}</>; })()}
+    </Modal>
+
+    <Modal open={modal === "changeTeacherPwd"} onClose={() => setModal(null)} title="🔑 Changer le mot de passe">
+      <Input icon="🔒" label="Mot de passe actuel" value={changePwdData.current} onChange={v => setChangePwdData(d => ({ ...d, current: v }))} type="password" placeholder="Mot de passe actuel" />
+      <Input icon="🔑" label="Nouveau mot de passe" value={changePwdData.next} onChange={v => setChangePwdData(d => ({ ...d, next: v }))} type="password" placeholder="Minimum 4 caractères" />
+      <Input icon="🔑" label="Confirmer le nouveau mot de passe" value={changePwdData.confirm} onChange={v => setChangePwdData(d => ({ ...d, confirm: v }))} type="password" placeholder="Retape le nouveau mot de passe" />
+      {changePwdError && <p style={{ color: C.danger, fontWeight: 700, fontSize: 13, margin: "4px 0 0" }}>{changePwdError}</p>}
+      <Btn onClick={changeTeacherPassword} fullWidth style={{ marginTop: 8 }}>Valider</Btn>
     </Modal>
 
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
