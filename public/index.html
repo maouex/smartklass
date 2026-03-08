@@ -1150,8 +1150,8 @@ function InstallPrompt() {
         <div style={{ background: "#F8F9FD", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
           {[
             { icon: "1️⃣", text: <>Appuie sur le bouton <strong>Partager</strong> <span style={{ fontSize: 16 }}>⬆️</span> en bas de Safari</> },
-            { icon: "2️⃣", text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong></> },
-            { icon: "3️⃣", text: <>Appuie sur <strong>"Ajouter"</strong> en haut à droite</> },
+            { icon: "2️⃣", text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong> — l'icône avec un <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 5, border: "1.5px solid #2D3436", fontSize: 14, fontWeight: 900, lineHeight: 1, verticalAlign: "middle", marginLeft: 2 }}>+</span></> },
+            { icon: "3️⃣", text: <>Confirme en appuyant sur <strong>"Ajouter"</strong> en haut à droite</> },
           ].map((step, i) => <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
             <span style={{ fontSize: 16 }}>{step.icon}</span>
             <span style={{ fontSize: 14, color: "#2D3436", lineHeight: 1.5 }}>{step.text}</span>
