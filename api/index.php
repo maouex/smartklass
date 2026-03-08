@@ -543,6 +543,256 @@ try {
             }
             break;
 
+        // =====================================================================
+        // LIVE QUIZ — Sessions en direct (style Kahoot)
+        // =====================================================================
+        case 'live-quiz':
+
+            // ── GET /api/live-quiz?classId=X  (poll léger de détection élève) ──
+            if ($method === 'GET' && $id === null) {
+                $classId = $_GET['classId'] ?? null;
+                if (!$classId) jsonResponse(['error' => 'classId requis'], 400);
+                $stmt = $db->prepare(
+                    "SELECT ls.id, ls.status, ls.current_q, ls.updated_at, a.title AS activity_title
+                     FROM live_sessions ls
+                     JOIN activities a ON a.id = ls.activity_id
+                     WHERE ls.class_id = ? AND ls.status IN ('waiting','active','paused')
+                     LIMIT 1"
+                );
+                $stmt->execute([$classId]);
+                $row = $stmt->fetch();
+                if ($row) {
+                    jsonResponse(['session' => [
+                        'id'            => $row['id'],
+                        'status'        => $row['status'],
+                        'currentQ'      => (int)$row['current_q'],
+                        'activityTitle' => $row['activity_title'],
+                        'updatedAt'     => $row['updated_at'],
+                    ]]);
+                } else {
+                    jsonResponse(['session' => null]);
+                }
+            }
+
+            // ── GET /api/live-quiz/{sessionId}  (état complet pour prof + élève) ──
+            elseif ($method === 'GET' && $id !== null && $action === null) {
+                $sessionId = $id;
+                $studentId = $_GET['studentId'] ?? null;
+                $stmt = $db->prepare(
+                    "SELECT ls.*, a.data AS activity_data, a.title AS activity_title,
+                            (SELECT COUNT(*) FROM students WHERE class_id = ls.class_id) AS total_students
+                     FROM live_sessions ls
+                     JOIN activities a ON a.id = ls.activity_id
+                     WHERE ls.id = ?"
+                );
+                $stmt->execute([$sessionId]);
+                $session = $stmt->fetch();
+                if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
+
+                $questions = json_decode($session['activity_data'], true)['questions'] ?? [];
+                $totalQ    = count($questions);
+                $currentQ  = (int)$session['current_q'];
+                $status    = $session['status'];
+
+                // Question courante (sans réponse correcte sauf si paused)
+                $qData = null;
+                if ($currentQ < $totalQ) {
+                    $q = $questions[$currentQ];
+                    $qData = ['q' => $q['q'], 'choices' => $q['choices']];
+                    if ($status === 'paused') {
+                        $qData['answer']      = $q['answer'];
+                        $qData['explanation'] = $q['explanation'] ?? '';
+                    }
+                }
+
+                // Distribution des réponses pour la question courante
+                $distStmt = $db->prepare(
+                    "SELECT answer_idx, COUNT(*) AS cnt
+                     FROM live_responses
+                     WHERE session_id = ? AND question_idx = ?
+                     GROUP BY answer_idx"
+                );
+                $distStmt->execute([$sessionId, $currentQ]);
+                $distribution = [0, 0, 0, 0];
+                foreach ($distStmt->fetchAll() as $r) {
+                    $distribution[(int)$r['answer_idx']] = (int)$r['cnt'];
+                }
+
+                // Nb d'élèves ayant répondu à la question courante
+                $answeredStmt = $db->prepare(
+                    "SELECT COUNT(DISTINCT student_id) FROM live_responses
+                     WHERE session_id = ? AND question_idx = ?"
+                );
+                $answeredStmt->execute([$sessionId, $currentQ]);
+                $answeredCount = (int)$answeredStmt->fetchColumn();
+
+                // Classement
+                $lbStmt = $db->prepare(
+                    "SELECT s.id, s.first_name, s.last_name,
+                            SUM(lr.is_correct) AS score
+                     FROM live_responses lr
+                     JOIN students s ON s.id = lr.student_id
+                     WHERE lr.session_id = ?
+                     GROUP BY s.id
+                     ORDER BY score DESC
+                     LIMIT 15"
+                );
+                $lbStmt->execute([$sessionId]);
+                $leaderboard = array_map(function($r) {
+                    return [
+                        'studentId' => $r['id'],
+                        'firstName' => $r['first_name'],
+                        'lastName'  => $r['last_name'],
+                        'score'     => (int)$r['score'],
+                    ];
+                }, $lbStmt->fetchAll());
+
+                // L'élève a-t-il répondu à la question courante ?
+                $hasAnswered = false;
+                if ($studentId) {
+                    $haStmt = $db->prepare(
+                        "SELECT COUNT(*) FROM live_responses
+                         WHERE session_id = ? AND student_id = ? AND question_idx = ?"
+                    );
+                    $haStmt->execute([$sessionId, $studentId, $currentQ]);
+                    $hasAnswered = (bool)$haStmt->fetchColumn();
+                }
+
+                jsonResponse([
+                    'status'         => $status,
+                    'currentQ'       => $currentQ,
+                    'totalQuestions' => $totalQ,
+                    'activityTitle'  => $session['activity_title'],
+                    'question'       => $qData,
+                    'answeredCount'  => $answeredCount,
+                    'totalStudents'  => (int)$session['total_students'],
+                    'distribution'   => $distribution,
+                    'leaderboard'    => $leaderboard,
+                    'hasAnswered'    => $hasAnswered,
+                ]);
+            }
+
+            // ── POST /api/live-quiz  (créer une session — prof) ──
+            elseif ($method === 'POST' && $id === null) {
+                $body       = getJsonBody();
+                $activityId = $body['activityId'] ?? '';
+                $classId    = $body['classId'] ?? '';
+                if (!$activityId || !$classId) jsonResponse(['error' => 'activityId et classId requis'], 400);
+
+                // Vérifie que c'est un QCM
+                $actStmt = $db->prepare("SELECT type, data, title FROM activities WHERE id = ?");
+                $actStmt->execute([$activityId]);
+                $act = $actStmt->fetch();
+                if (!$act) jsonResponse(['error' => 'Activité introuvable'], 404);
+                if ($act['type'] !== 'qcm') jsonResponse(['error' => 'Seuls les QCM peuvent être lancés en live'], 400);
+
+                // Clôture les sessions actives existantes pour cette classe
+                $db->prepare(
+                    "UPDATE live_sessions SET status = 'finished'
+                     WHERE class_id = ? AND status IN ('waiting','active','paused')"
+                )->execute([$classId]);
+
+                $sessionId = generateId();
+                $totalQ = count(json_decode($act['data'], true)['questions'] ?? []);
+                $db->prepare(
+                    "INSERT INTO live_sessions (id, activity_id, class_id, status, current_q)
+                     VALUES (?, ?, ?, 'waiting', 0)"
+                )->execute([$sessionId, $activityId, $classId]);
+
+                jsonResponse([
+                    'sessionId'      => $sessionId,
+                    'status'         => 'waiting',
+                    'currentQ'       => 0,
+                    'totalQuestions' => $totalQ,
+                    'activityTitle'  => $act['title'],
+                ]);
+            }
+
+            // ── PUT /api/live-quiz/{sessionId}  (actions prof) ──
+            elseif ($method === 'PUT' && $id !== null && $action === null) {
+                $sessionId = $id;
+                $body      = getJsonBody();
+                $actionReq = $body['action'] ?? '';
+
+                $sessStmt = $db->prepare("SELECT ls.*, a.data AS activity_data FROM live_sessions ls JOIN activities a ON a.id = ls.activity_id WHERE ls.id = ?");
+                $sessStmt->execute([$sessionId]);
+                $session = $sessStmt->fetch();
+                if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
+
+                $totalQ   = count(json_decode($session['activity_data'], true)['questions'] ?? []);
+                $currentQ = (int)$session['current_q'];
+                $status   = $session['status'];
+
+                switch ($actionReq) {
+                    case 'start':
+                        if ($status !== 'waiting') jsonResponse(['error' => 'La session est déjà démarrée'], 400);
+                        $db->prepare("UPDATE live_sessions SET status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ]);
+                        break;
+                    case 'pause':
+                        if ($status !== 'active') jsonResponse(['error' => 'La session n\'est pas active'], 400);
+                        $db->prepare("UPDATE live_sessions SET status = 'paused' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'paused']);
+                        break;
+                    case 'resume':
+                        if ($status !== 'paused') jsonResponse(['error' => 'La session n\'est pas en pause'], 400);
+                        $db->prepare("UPDATE live_sessions SET status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'active']);
+                        break;
+                    case 'next':
+                        if (!in_array($status, ['active', 'paused'])) jsonResponse(['error' => 'Action impossible'], 400);
+                        if ($currentQ + 1 >= $totalQ) jsonResponse(['error' => 'Déjà à la dernière question, utilisez finish'], 400);
+                        $db->prepare("UPDATE live_sessions SET current_q = current_q + 1, status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ + 1]);
+                        break;
+                    case 'finish':
+                        $db->prepare("UPDATE live_sessions SET status = 'finished' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'finished']);
+                        break;
+                    default:
+                        jsonResponse(['error' => 'Action inconnue'], 400);
+                }
+            }
+
+            // ── POST /api/live-quiz/{sessionId}/answer  (réponse élève) ──
+            elseif ($method === 'POST' && $id !== null && $action === 'answer') {
+                $sessionId   = $id;
+                $body        = getJsonBody();
+                $studentId   = $body['studentId'] ?? '';
+                $questionIdx = $body['questionIdx'] ?? null;
+                $answerIdx   = $body['answerIdx'] ?? null;
+                if (!$studentId || $questionIdx === null || $answerIdx === null) {
+                    jsonResponse(['error' => 'studentId, questionIdx et answerIdx requis'], 400);
+                }
+
+                $sessStmt = $db->prepare("SELECT ls.status, a.data AS activity_data FROM live_sessions ls JOIN activities a ON a.id = ls.activity_id WHERE ls.id = ?");
+                $sessStmt->execute([$sessionId]);
+                $session = $sessStmt->fetch();
+                if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
+                if ($session['status'] !== 'active') jsonResponse(['error' => 'La session n\'est pas active'], 400);
+
+                $questions = json_decode($session['activity_data'], true)['questions'] ?? [];
+                $isCorrect = isset($questions[$questionIdx]) && (int)$questions[$questionIdx]['answer'] === (int)$answerIdx ? 1 : 0;
+
+                try {
+                    $db->prepare(
+                        "INSERT INTO live_responses (id, session_id, student_id, question_idx, answer_idx, is_correct)
+                         VALUES (?, ?, ?, ?, ?, ?)"
+                    )->execute([generateId(), $sessionId, $studentId, (int)$questionIdx, (int)$answerIdx, $isCorrect]);
+                    jsonResponse(['success' => true, 'isCorrect' => (bool)$isCorrect]);
+                } catch (PDOException $e) {
+                    if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() == 23000) {
+                        jsonResponse(['error' => 'already_answered'], 409);
+                    }
+                    throw $e;
+                }
+            }
+
+            else {
+                jsonResponse(['error' => 'Route live-quiz non reconnue'], 404);
+            }
+            break;
+
         default:
             jsonResponse(['error' => 'Route non trouvée', 'path' => $resource], 404);
     }
