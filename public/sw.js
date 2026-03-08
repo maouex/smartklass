@@ -19,8 +19,8 @@ self.addEventListener('push', event => {
   const title = data.title || 'SmartKlass';
   const options = {
     body: data.body || '',
-    icon: '/logo.png',
-    badge: '/logo.png',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-96x96.png',
     vibrate: [200, 100, 200],
     data: { url: '/' },
     requireInteraction: false,
