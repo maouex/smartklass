@@ -449,8 +449,9 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, animation: "float 1s ease-in-out infinite" }}>🎮</div><p style={{ fontWeight: 700, color: C.textLight }}>Initialisation du Live Quiz...</p></div>
   </div>;
 
-  const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, distribution, leaderboard } = liveData;
+  const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, joinedStudents, joinedCount, distribution, leaderboard } = liveData;
   const isLast = currentQ + 1 >= totalQuestions;
+  const allAnswered = joinedCount > 0 && answeredCount >= joinedCount;
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#1a1a2e", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: "#fff" }}>
     {/* Header */}
@@ -468,22 +469,33 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     </div>
 
     {/* Corps */}
-    <div style={{ flex: 1, overflow: "auto", padding: "16px 20px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, maxWidth: 1100, margin: "0 auto", width: "100%", alignContent: "start" }}>
+    <div style={{ flex: 1, overflow: "auto" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, maxWidth: 1100, margin: "0 auto", padding: "16px 20px", alignItems: "start" }}>
 
       {/* Colonne gauche */}
       <div>
-        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>⏳</div>
-          <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Quiz prêt à démarrer</h2>
-          <p style={{ opacity: 0.7, marginBottom: 24 }}>{totalStudents} élève(s) dans la classe</p>
-          <Btn onClick={() => action('start')} size="lg" disabled={loading}>▶ Démarrer la question 1</Btn>
+        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 40 }}>
+          <div style={{ fontSize: 56, marginBottom: 12 }}>⏳</div>
+          <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Quiz prêt à démarrer</h2>
+          <p style={{ opacity: 0.7, marginBottom: 20 }}>{joinedCount} / {totalStudents} élève(s) dans le salon</p>
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px auto", textAlign: "left" }}>
+            {joinedCount === 0
+              ? <p style={{ opacity: 0.5, fontSize: 13, textAlign: "center", margin: 0 }}>En attente que les élèves rejoignent...</p>
+              : <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(joinedStudents || []).map(s => <span key={s.id} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>
+                    {s.firstName} {s.lastName}
+                  </span>)}
+                </div>
+            }
+          </div>
+          <Btn onClick={() => action('start')} size="lg" disabled={loading || joinedCount === 0}>▶ Démarrer la question 1</Btn>
         </div>}
 
         {(status === 'active' || status === 'paused') && question && <div style={{ animation: "fadeIn 0.3s" }}>
           {/* Progression */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span style={{ fontWeight: 700, opacity: 0.8, fontSize: 14 }}>Question {currentQ + 1} / {totalQuestions}</span>
-            <span style={{ fontWeight: 700, color: answeredCount === totalStudents ? "#00B894" : C.warning }}>👥 {answeredCount} / {totalStudents} ont répondu</span>
+            <span style={{ fontWeight: 700, color: allAnswered ? "#00B894" : C.warning }}>👥 {answeredCount} / {joinedCount} ont répondu</span>
           </div>
           <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 8, marginBottom: 20, overflow: "hidden" }}>
             <div style={{ width: `${((currentQ + 1) / totalQuestions) * 100}%`, height: "100%", background: C.primary, borderRadius: 10, transition: "width 0.4s" }} />
@@ -504,12 +516,18 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           </div>}
 
           {/* Boutons d'action */}
-          <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-            {status === 'active' && <Btn onClick={() => action('pause')} variant="secondary" disabled={loading}>⏸ Pause / Expliquer</Btn>}
-            {status === 'paused' && <Btn onClick={() => action('resume')} variant="secondary" disabled={loading}>▶ Reprendre</Btn>}
-            {!isLast
+          <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap", alignItems: "center" }}>
+            {status === 'active' && <Btn
+              onClick={() => action('pause')}
+              style={{ background: allAnswered ? "#00B894" : undefined, transition: "background 0.3s" }}
+              disabled={loading || !allAnswered}
+            >
+              {allAnswered ? "👁 Montrer la réponse" : `👁 Montrer la réponse (${answeredCount}/${joinedCount})`}
+            </Btn>}
+            {status === 'paused' && (!isLast
               ? <Btn onClick={() => action('next')} disabled={loading}>Question suivante →</Btn>
-              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}>🏁 Terminer le quiz</Btn>}
+              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}>🏁 Terminer le quiz</Btn>
+            )}
           </div>
         </div>}
 
@@ -536,6 +554,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           })}
         </div>
       </div>
+    </div>
     </div>
   </div>;
 }

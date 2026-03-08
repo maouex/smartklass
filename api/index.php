@@ -578,6 +578,14 @@ try {
             elseif ($method === 'GET' && $id !== null && $action === null) {
                 $sessionId = $id;
                 $studentId = $_GET['studentId'] ?? null;
+
+                // Enregistre l'élève comme "présent dans le salon"
+                if ($studentId) {
+                    $db->prepare(
+                        "INSERT IGNORE INTO live_joined (session_id, student_id) VALUES (?, ?)"
+                    )->execute([$sessionId, $studentId]);
+                }
+
                 $stmt = $db->prepare(
                     "SELECT ls.*, a.data AS activity_data, a.title AS activity_title,
                             (SELECT COUNT(*) FROM students WHERE class_id = ls.class_id) AS total_students
@@ -658,6 +666,24 @@ try {
                     $hasAnswered = (bool)$haStmt->fetchColumn();
                 }
 
+                // Élèves présents dans le salon
+                $joinedStmt = $db->prepare(
+                    "SELECT s.id, s.first_name, s.last_name
+                     FROM live_joined lj
+                     JOIN students s ON s.id = lj.student_id
+                     WHERE lj.session_id = ?
+                     ORDER BY lj.joined_at ASC"
+                );
+                $joinedStmt->execute([$sessionId]);
+                $joinedStudents = array_map(function($r) {
+                    return [
+                        'id'        => $r['id'],
+                        'firstName' => $r['first_name'],
+                        'lastName'  => $r['last_name'],
+                    ];
+                }, $joinedStmt->fetchAll());
+                $joinedCount = count($joinedStudents);
+
                 jsonResponse([
                     'status'         => $status,
                     'currentQ'       => $currentQ,
@@ -666,6 +692,8 @@ try {
                     'question'       => $qData,
                     'answeredCount'  => $answeredCount,
                     'totalStudents'  => (int)$session['total_students'],
+                    'joinedStudents' => $joinedStudents,
+                    'joinedCount'    => $joinedCount,
                     'distribution'   => $distribution,
                     'leaderboard'    => $leaderboard,
                     'hasAnswered'    => $hasAnswered,
