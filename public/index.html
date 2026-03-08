@@ -439,8 +439,12 @@ function LoginScreen({ onLogin, data }) {
     if (newPwd !== newPwdConfirm) { setError("Les mots de passe ne correspondent pas."); return; }
     setLoading(true); setError("");
     try {
-      await api.post('auth', { type: 'set-password', studentId: firstLoginStudent.id, newPassword: newPwd });
-      onLogin({ type: "student", student: firstLoginStudent });
+      const result = await api.post('auth', { type: 'set-password', studentId: firstLoginStudent.id, newPassword: newPwd });
+      if (!result.success) { setError(result.error || "Erreur lors de la sauvegarde du mot de passe."); setLoading(false); return; }
+      // Re-login avec le nouveau mot de passe pour vérifier la sauvegarde et obtenir les données fraîches
+      const loginRes = await api.post('auth', { type: 'student', identifier: firstLoginStudent.identifier, password: newPwd });
+      if (loginRes.success) onLogin({ type: "student", student: loginRes.student });
+      else setError("Mot de passe enregistré, mais connexion impossible. Réessaie.");
     } catch (e) { setError("Erreur serveur."); }
     setLoading(false);
   };

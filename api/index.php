@@ -78,7 +78,11 @@ try {
                     if (strlen($newPassword) < 4) {
                         jsonResponse(['success' => false, 'error' => 'Le mot de passe doit faire au moins 4 caractères.'], 400);
                     }
-                    $db->prepare('UPDATE students SET password = ? WHERE id = ?')->execute([$newPassword, $studentId]);
+                    $stmt = $db->prepare('UPDATE students SET password = ? WHERE id = ?');
+                    $stmt->execute([$newPassword, $studentId]);
+                    if ($stmt->rowCount() === 0) {
+                        jsonResponse(['success' => false, 'error' => 'Élève introuvable.'], 404);
+                    }
                     jsonResponse(['success' => true]);
                 } elseif ($type === 'reset-password') {
                     // Prof réinitialise le mdp d'un élève
