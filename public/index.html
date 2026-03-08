@@ -435,8 +435,7 @@ function LoginScreen({ onLogin, data }) {
   return <AnimatedBg>
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
-        <img src="/logo.png" alt="SmartKlass" style={{ width: 180, marginBottom: 4, animation: "float 3s ease-in-out infinite" }} />
-        <p style={{ color: C.textLight, fontSize: 16, margin: "0 0 32px 0", fontWeight: 600 }}>Apprends, progresse, excelle ! 🚀</p>
+        <img src="/logo.png" alt="SmartKlass" style={{ width: 360, marginBottom: 32, animation: "float 3s ease-in-out infinite" }} />
         <Card style={{ padding: 32 }}>
           <div style={{ display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 24 }}>
             {[{ id: "student", label: "👩‍🎓 Élève" }, { id: "teacher", label: "👩‍🏫 Professeur" }].map(m => <button key={m.id} onClick={() => { setMode(m.id); setError(""); setNeedPwd(false); setStudentPwd(""); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, transition: "all 0.2s", background: mode === m.id ? C.card : "transparent", color: mode === m.id ? C.primary : C.textLight, boxShadow: mode === m.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none" }}>{m.label}</button>)}
