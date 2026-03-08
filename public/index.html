@@ -100,6 +100,16 @@ const C = {
 const EMOJI_OPTIONS = ["📊","📈","🎯","📚","🧠","💡","⚖️","💼","🏢","📝","🎓","🔬","💻","🌍","📱","🎨"];
 const COLOR_OPTIONS = ["#6C5CE7","#00B894","#E17055","#0984E3","#E84393","#00CEC9","#FDCB6E","#636E72","#D63031"];
 
+function getYoutubeEmbedUrl(url) {
+  if (!url) return null;
+  if (url.includes('youtube.com/embed/')) return url;
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  return null;
+}
+
 // ============================================================================
 // UI COMPONENTS
 // ============================================================================
@@ -459,17 +469,20 @@ function LoginScreen({ onLogin, data }) {
 // COURSE READER
 // ============================================================================
 function CourseReader({ course, data, completedIds, myResults, onLaunchActivity, onBack }) {
+  const [showVideo, setShowVideo] = useState(false);
   const sub = data.subjects.find(s => s.id === course.subjectId);
   const linkedActivities = data.activities.filter(a => a.courseId === course.id);
   const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+  const embedUrl = getYoutubeEmbedUrl(course.youtubeUrl);
   return <div style={{ animation: "fadeIn 0.4s" }}>
     <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Retour aux cours</button>
     <Card style={{ marginBottom: 14, padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: course.description ? 10 : 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: course.description || embedUrl ? 10 : 0 }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{sub?.icon || "📖"}</div>
         <div><Chip color={sub?.color}>{sub?.name}</Chip><h2 style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0 0" }}>{course.title}</h2></div>
       </div>
-      {course.description && <p style={{ fontSize: 14, color: C.textLight, margin: 0, lineHeight: 1.6 }}>{course.description}</p>}
+      {course.description && <p style={{ fontSize: 14, color: C.textLight, margin: "0 0 10px 0", lineHeight: 1.6 }}>{course.description}</p>}
+      {embedUrl && <button onClick={() => setShowVideo(true)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF0000 0%, #CC0000 100%)", border: "none", borderRadius: 14, padding: "12px 20px", cursor: "pointer", color: "#fff", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 14, boxShadow: "0 4px 15px rgba(255,0,0,0.3)", transition: "all 0.2s" }}>🎬 Résumé vidéo du cours</button>}
     </Card>
     {course.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
@@ -478,6 +491,17 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
     {linkedActivities.length > 0 && <div style={{ marginTop: 20 }}>
       <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10 }}>🎮 Activités liées à ce cours</h3>
       {linkedActivities.map(a => { const done = completedIds.includes(a.id); const res = myResults.find(r => r.activityId === a.id); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => onLaunchActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer", marginBottom: 8, border: done ? `2px solid ${C.secondary}40` : "2px solid transparent" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: done ? `${C.secondary}20` : `${sub?.color || C.primary}20`, fontSize: 22 }}>{done ? "✅" : icons[a.type]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.warning}>+{xp} XP</Chip>{done && res && <Chip color={C.secondary}>{res.score}%</Chip>}</div></div><span style={{ fontSize: 22, color: done ? C.secondary : C.primary }}>→</span></Card>; })}
+    </div>}
+    {showVideo && embedUrl && <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)", padding: 20 }} onClick={() => setShowVideo(false)}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 800, background: "#000", borderRadius: 20, overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.6)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", background: "#111" }}>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>🎬 Résumé vidéo du cours</span>
+          <button onClick={() => setShowVideo(false)} style={{ border: "none", background: "rgba(255,255,255,0.15)", borderRadius: 10, width: 34, height: 34, fontSize: 18, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        </div>
+        <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+          <iframe src={embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+        </div>
+      </div>
     </div>}
   </div>;
 }
@@ -592,7 +616,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [editClassData, setEditClassData] = useState(null);
   const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "📊" });
   const [editSubjectData, setEditSubjectData] = useState(null);
-  const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }] });
+  const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
   const [activeCourse, setActiveCourse] = useState(null);
   const [editCourseData, setEditCourseData] = useState(null);
   const [jsonImport, setJsonImport] = useState("");
@@ -628,7 +652,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const addSubject = async () => { if (!newSubject.name) return; await api.post('subjects', newSubject); setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal(null); refreshData(); };
   const updateSubject = async () => { if (!editSubjectData) return; await api.put(`subjects/${editSubjectData.id}`, editSubjectData); setModal(null); refreshData(); };
   const deleteSubject = (id) => { setConfirmAction({ msg: "Supprimer cette matière ?", action: async () => { await api.del(`subjects/${id}`); refreshData(); } }); };
-  const addCourse = async () => { if (!newCourse.title) return; await api.post('courses', newCourse); setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: [], chapters: [{ title: "", content: "" }] }); setModal(null); refreshData(); };
+  const addCourse = async () => { if (!newCourse.title) return; await api.post('courses', newCourse); setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal(null); refreshData(); };
   const deleteCourse = (id) => { setConfirmAction({ msg: "Supprimer ce cours ?", action: async () => { await api.del(`courses/${id}`); setActiveCourse(null); refreshData(); } }); };
   const updateCourse = async () => { if (!editCourseData) return; await api.put(`courses/${editCourseData.id}`, editCourseData); setModal(null); setActiveCourse(editCourseData); refreshData(); };
   const deleteActivity = (id) => { setConfirmAction({ msg: "Supprimer cette activité ?", action: async () => { await api.del(`activities/${id}`); refreshData(); } }); };
@@ -764,9 +788,14 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                   <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm">🗑 Supprimer</Btn>
                 </div>
               </div>
-              {activeCourse.classIds?.length > 0 && <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {activeCourse.classIds?.length > 0 && <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: C.textLight, fontWeight: 700, marginRight: 4 }}>Classes :</span>
                 {activeCourse.classIds.map(cid => { const cls = data.classes.find(c => c.id === cid); return cls ? <Chip key={cid} color={C.primary}>{cls.name}</Chip> : null; })}
+              </div>}
+              {activeCourse.youtubeUrl && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#FFF0F0", borderRadius: 12, border: "1px solid #FFCCCC" }}>
+                <span style={{ fontSize: 18 }}>🎬</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#CC0000" }}>Vidéo liée :</span>
+                <a href={activeCourse.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#CC0000", textDecoration: "underline", wordBreak: "break-all" }}>{activeCourse.youtubeUrl}</a>
               </div>}
             </Card>
             {activeCourse.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
@@ -780,7 +809,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             {activeCourse.chapters?.length === 0 && linkedActivities.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 36, marginBottom: 8 }}>📄</div><p style={{ fontWeight: 700, color: C.textLight }}>Ce cours n'a pas encore de contenu.</p><Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" style={{ marginTop: 10 }}>✏️ Modifier le cours</Btn></Card>}
           </>;
         })() : <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }] }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
           {data.courses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, cursor: "pointer" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 6 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div></div><div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div></div></Card>; })}
           {data.courses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours créé</p></Card>}
         </>}
@@ -841,6 +870,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
       {newCourse.chapters.map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}><Input small label={`Titre ${i + 1}`} value={ch.title} onChange={v => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], title: v }; setNewCourse(c => ({ ...c, chapters: chs })); }} /><textarea value={ch.content} onChange={e => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setNewCourse(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} /></div>)}
       <Btn onClick={() => setNewCourse(c => ({ ...c, chapters: [...c.chapters, { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
+      <Input label="🎬 Lien YouTube (optionnel)" value={newCourse.youtubeUrl || ""} onChange={v => setNewCourse(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
       <Btn onClick={addCourse} fullWidth size="lg">Créer</Btn>
     </Modal>
 
@@ -859,6 +889,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <textarea value={ch.content} onChange={e => { const chs = [...editCourseData.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setEditCourseData(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} />
         </div>)}
         <Btn onClick={() => setEditCourseData(c => ({ ...c, chapters: [...(c.chapters || []), { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
+        <Input label="🎬 Lien YouTube (optionnel)" value={editCourseData.youtubeUrl || ""} onChange={v => setEditCourseData(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
         <Btn onClick={updateCourse} fullWidth size="lg">Enregistrer</Btn>
       </>}
     </Modal>

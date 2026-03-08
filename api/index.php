@@ -207,14 +207,15 @@ try {
                 foreach ($courses as &$course) {
                     $course['classIds'] = $course['class_ids'] ? explode(',', $course['class_ids']) : [];
                     $course['chapters'] = json_decode($course['chapters'], true) ?? [];
-                    unset($course['class_ids']);
+                    $course['youtubeUrl'] = $course['youtube_url'] ?? null;
+                    unset($course['class_ids'], $course['youtube_url']);
                 }
                 jsonResponse($courses);
             } elseif ($method === 'POST') {
                 $body = getJsonBody();
                 $newId = generateId();
-                $stmt = $db->prepare('INSERT INTO courses (id, subject_id, title, description, chapters) VALUES (?, ?, ?, ?, ?)');
-                $stmt->execute([$newId, $body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE)]);
+                $stmt = $db->prepare('INSERT INTO courses (id, subject_id, title, description, chapters, youtube_url) VALUES (?, ?, ?, ?, ?, ?)');
+                $stmt->execute([$newId, $body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE), $body['youtubeUrl'] ?? null]);
                 // Liaison classes
                 if (!empty($body['classIds'])) {
                     $ins = $db->prepare('INSERT INTO course_classes (course_id, class_id) VALUES (?, ?)');
@@ -225,8 +226,8 @@ try {
                 jsonResponse(['id' => $newId], 201);
             } elseif ($method === 'PUT' && $id) {
                 $body = getJsonBody();
-                $db->prepare('UPDATE courses SET subject_id=?, title=?, description=?, chapters=? WHERE id=?')
-                   ->execute([$body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE), $id]);
+                $db->prepare('UPDATE courses SET subject_id=?, title=?, description=?, chapters=?, youtube_url=? WHERE id=?')
+                   ->execute([$body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE), $body['youtubeUrl'] ?? null, $id]);
                 $db->prepare('DELETE FROM course_classes WHERE course_id = ?')->execute([$id]);
                 if (!empty($body['classIds'])) {
                     $ins = $db->prepare('INSERT INTO course_classes (course_id, class_id) VALUES (?, ?)');
@@ -330,7 +331,8 @@ try {
                     $c['classIds'] = $c['class_ids'] ? explode(',', $c['class_ids']) : [];
                     $c['chapters'] = json_decode($c['chapters'], true) ?? [];
                     $c['subjectId'] = $c['subject_id'];
-                    unset($c['class_ids'], $c['subject_id']);
+                    $c['youtubeUrl'] = $c['youtube_url'] ?? null;
+                    unset($c['class_ids'], $c['subject_id'], $c['youtube_url']);
                     $courses[] = $c;
                 }
                 
