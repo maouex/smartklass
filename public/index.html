@@ -540,6 +540,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const [activeActivity, setActiveActivity] = useState(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [activeCourse, setActiveCourse] = useState(null);
+  const [activeSubject, setActiveSubject] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(student);
 
   const myClass = data.classes.find(c => c.id === currentStudent.classId);
@@ -552,6 +553,10 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const myRank = leaderboard.findIndex(s => s.id === currentStudent.id) + 1;
   const filteredActivities = subjectFilter === "all" ? myActivities : myActivities.filter(a => a.subjectId === subjectFilter);
   const earnedBadges = BADGES.filter(b => b.condition(myResults, currentStudent.streak, currentStudent.xp));
+
+  const isNew = (dateStr) => dateStr && (Date.now() - new Date(dateStr).getTime()) < 7 * 24 * 60 * 60 * 1000;
+
+  const handleTabChange = (tab) => { setView(tab); setActiveCourse(null); setActiveSubject(null); };
 
   const handleComplete = async (actId, score) => {
     const result = await onActivityComplete(currentStudent.id, actId, score);
@@ -572,7 +577,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>
-      <Tabs tabs={[{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }]} active={view} onChange={setView} />
+      <Tabs tabs={[{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📚", label: "Matières" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }]} active={view} onChange={handleTabChange} />
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
@@ -601,11 +606,55 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
       {view === "courses" && <div style={{ animation: "fadeIn 0.4s" }}>
         {activeCourse
           ? <CourseReader course={activeCourse} data={data} completedIds={completedIds} myResults={myResults} onLaunchActivity={a => { setActiveActivity(a); setActiveCourse(null); }} onBack={() => setActiveCourse(null)} />
-          : <>{/* Course list */}
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14 }}>📖 Mes cours</h2>
-            {myCourses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, padding: 18, cursor: "pointer" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div style={{ flex: 1 }}><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 6 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chapitre{c.chapters.length > 1 ? "s" : ""}</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div><span style={{ fontSize: 22, color: C.primary }}>→</span></div></Card>; })}
-            {myCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours disponible</p></Card>}
-          </>}
+          : activeSubject
+            ? <>
+                {/* En-tête matière + retour */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                  <button onClick={() => setActiveSubject(null)} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 14, color: C.text }}>← Retour</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 24 }}>{activeSubject.icon}</span>
+                    <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{activeSubject.name}</h2>
+                  </div>
+                </div>
+                {/* Liste des cours triés du plus récent au plus ancien */}
+                {myCourses.filter(c => c.subjectId === activeSubject.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(c => {
+                  const nbActs = data.activities.filter(a => a.courseId === c.id).length;
+                  const nouveau = isNew(c.created_at);
+                  return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, padding: 18, cursor: "pointer", position: "relative" }}>
+                    {nouveau && <div style={{ position: "absolute", top: 12, right: 12, background: C.accent, color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>NOUVEAU</div>}
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      <div style={{ flex: 1, paddingRight: nouveau ? 80 : 0 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 4px 0" }}>{c.title}</h3>
+                        <p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p>
+                        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                          {c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chapitre{c.chapters.length > 1 ? "s" : ""}</Chip>}
+                          {nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 22, color: C.primary, flexShrink: 0 }}>→</span>
+                    </div>
+                  </Card>;
+                })}
+                {myCourses.filter(c => c.subjectId === activeSubject.id).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
+              </>
+            : <>
+                {/* Grille des matières */}
+                <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 14 }}>📚 Mes matières</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).map(s => {
+                    const count = myCourses.filter(c => c.subjectId === s.id).length;
+                    const hasNew = myCourses.filter(c => c.subjectId === s.id).some(c => isNew(c.created_at));
+                    return <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", padding: "22px 16px", textAlign: "center", position: "relative" }}>
+                      {hasNew && <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>NOUVEAU</div>}
+                      <div style={{ fontSize: 42, marginBottom: 10 }}>{s.icon}</div>
+                      <div style={{ fontWeight: 900, fontSize: 15, color: C.text, marginBottom: 4 }}>{s.name}</div>
+                      <div style={{ fontSize: 12, color: C.textLight, fontWeight: 600 }}>{count} cours</div>
+                    </Card>;
+                  })}
+                  {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).length === 0 &&
+                    <div style={{ gridColumn: "1/-1" }}><Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours disponible</p></Card></div>}
+                </div>
+              </>}
       </div>}
 
       {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
