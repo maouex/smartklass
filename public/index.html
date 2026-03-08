@@ -172,13 +172,13 @@ function StatCard({ icon, label, value, color, sub }) {
   );
 }
 
-function Input({ label, value, onChange, type = "text", placeholder, style, icon, small }) {
+function Input({ label, value, onChange, type = "text", placeholder, style, icon, small, onKeyDown, name, autoComplete }) {
   const [focus, setFocus] = useState(false);
   return React.createElement('div', { style: { marginBottom: small ? 8 : 16, ...style } },
     label && React.createElement('label', { style: { display: "block", marginBottom: 6, fontWeight: 700, fontSize: small ? 12 : 14, color: C.text } }, label),
     React.createElement('div', { style: { display: "flex", alignItems: "center", background: "#F0F0F8", borderRadius: small ? 10 : 14, padding: `0 ${small ? 10 : 16}px`, border: `2px solid ${focus ? C.primary : "transparent"}`, transition: "border 0.2s" } },
       icon && React.createElement('span', { style: { fontSize: small ? 16 : 20, marginRight: 10 } }, icon),
-      React.createElement('input', { type, value, onChange: e => onChange(e.target.value), placeholder, onFocus: () => setFocus(true), onBlur: () => setFocus(false), style: { border: "none", background: "transparent", padding: `${small ? 10 : 14}px 0`, fontSize: small ? 13 : 15, fontFamily: "'Nunito',sans-serif", outline: "none", width: "100%", color: C.text } })
+      React.createElement('input', { type, value, name, autoComplete, onChange: e => onChange(e.target.value), placeholder, onFocus: () => setFocus(true), onBlur: () => setFocus(false), onKeyDown, style: { border: "none", background: "transparent", padding: `${small ? 10 : 14}px 0`, fontSize: small ? 13 : 15, fontFamily: "'Nunito',sans-serif", outline: "none", width: "100%", color: C.text } })
     )
   );
 }
@@ -336,22 +336,77 @@ function FillBlankActivity({ activity, onComplete }) {
 }
 
 function MatchingActivity({ activity, onComplete }) {
-  const [leftSelected, setLeftSelected] = useState(null); const [matched, setMatched] = useState([]); const [wrong, setWrong] = useState(null); const [finished, setFinished] = useState(false);
+  const [leftSelected, setLeftSelected] = useState(null);
+  const [matched, setMatched] = useState([]);
+  const [wrong, setWrong] = useState(null);
+  const [finished, setFinished] = useState(false);
   const pairs = activity.data.pairs;
   const shuffledRight = useRef([...pairs].sort(() => Math.random() - 0.5).map(p => p.right)).current;
   const xp = activity.xpReward || activity.xp_reward;
-  const handleRight = (rt) => { if (leftSelected === null) return; if (pairs[leftSelected].right === rt) { const nm = [...matched, { leftIdx: leftSelected, right: rt }]; setMatched(nm); setLeftSelected(null); if (nm.length === pairs.length) setTimeout(() => setFinished(true), 400); } else { setWrong(rt); setTimeout(() => { setWrong(null); setLeftSelected(null); }, 600); } };
-  const isLM = (i) => matched.some(m => m.leftIdx === i); const isRM = (t) => matched.some(m => m.right === t);
-  if (finished) return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ fontSize: 72, marginBottom: 16 }}>🎯</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>Toutes les paires trouvées !</h2><div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div><br /><Btn onClick={() => onComplete(100)} size="lg">Terminer</Btn></div>;
+
+  const handleRight = (rt) => {
+    if (leftSelected === null) return;
+    if (pairs[leftSelected].right === rt) {
+      const nm = [...matched, { leftIdx: leftSelected, right: rt }];
+      setMatched(nm); setLeftSelected(null);
+      if (nm.length === pairs.length) setTimeout(() => setFinished(true), 400);
+    } else {
+      setWrong(rt); setTimeout(() => { setWrong(null); setLeftSelected(null); }, 600);
+    }
+  };
+
+  const isLM = (i) => matched.some(m => m.leftIdx === i);
+  const isRM = (t) => matched.some(m => m.right === t);
+
+  if (finished) return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>
+    <div style={{ fontSize: 72, marginBottom: 16 }}>🎯</div>
+    <h2 style={{ fontSize: 28, fontWeight: 900 }}>Toutes les paires trouvées !</h2>
+    <div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div>
+    <br /><Btn onClick={() => onComplete(100)} size="lg">Terminer</Btn>
+  </div>;
+
   return <div style={{ animation: "fadeIn 0.3s" }}>
-    <p style={{ textAlign: "center", color: C.textLight, marginBottom: 16, fontWeight: 600 }}>Sélectionne un concept → sa définition</p>
-    <ProgressBar value={matched.length} max={pairs.length} color={C.secondary} style={{ marginBottom: 16 }} />
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {pairs.map((p, i) => <button key={i} onClick={() => !isLM(i) && setLeftSelected(i)} disabled={isLM(i)} style={{ padding: "12px 14px", borderRadius: 12, border: `2px solid ${isLM(i) ? C.secondary : leftSelected === i ? C.primary : "transparent"}`, background: isLM(i) ? "#D4EDDA" : leftSelected === i ? `${C.primary}10` : "#F0F0F8", fontSize: 13, fontWeight: 700, fontFamily: "'Nunito',sans-serif", cursor: isLM(i) ? "default" : "pointer", textAlign: "left", opacity: isLM(i) ? 0.6 : 1 }}>{isLM(i) ? "✅ " : ""}{p.left}</button>)}
+    {/* Instruction dynamique */}
+    <div style={{ textAlign: "center", marginBottom: 14, minHeight: 38 }}>
+      {leftSelected !== null
+        ? <div style={{ background: `${C.accent}15`, border: `1.5px solid ${C.accent}50`, borderRadius: 12, padding: "8px 16px", fontSize: 13, fontWeight: 700, color: C.accent, display: "inline-block" }}>
+            ← <span style={{ fontWeight: 900 }}>{pairs[leftSelected].left}</span> · Maintenant choisis sa définition →
+          </div>
+        : <p style={{ color: C.textLight, fontWeight: 600, fontSize: 13, margin: 0 }}>Appuie sur un concept à gauche, puis sa définition à droite</p>}
+    </div>
+    <ProgressBar value={matched.length} max={pairs.length} color={C.secondary} style={{ marginBottom: 14 }} />
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {/* Colonne gauche — Concepts */}
+      <div>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.primary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.primary}12`, borderRadius: 8 }}>📌 Concepts</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {pairs.map((p, i) => <button key={i} onClick={() => !isLM(i) && setLeftSelected(i === leftSelected ? null : i)} disabled={isLM(i)} style={{
+            padding: "11px 12px", borderRadius: 12, border: "none",
+            background: isLM(i) ? `${C.secondary}18` : leftSelected === i ? C.primary : `${C.primary}12`,
+            color: isLM(i) ? C.secondary : leftSelected === i ? "#fff" : C.primary,
+            fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif",
+            cursor: isLM(i) ? "default" : "pointer", textAlign: "left",
+            transition: "all 0.18s", transform: leftSelected === i ? "scale(1.03)" : "scale(1)",
+            boxShadow: leftSelected === i ? `0 4px 14px ${C.primary}40` : "none",
+            lineHeight: 1.3
+          }}>{isLM(i) ? "✅ " : leftSelected === i ? "▶ " : ""}{p.left}</button>)}
+        </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {shuffledRight.map((t, i) => <button key={i} onClick={() => handleRight(t)} disabled={isRM(t)} style={{ padding: "12px 14px", borderRadius: 12, border: `2px solid ${isRM(t) ? C.secondary : wrong === t ? C.danger : "transparent"}`, background: isRM(t) ? "#D4EDDA" : wrong === t ? "#FFE0E0" : "#F0F0F8", fontSize: 12, fontWeight: 600, fontFamily: "'Nunito',sans-serif", cursor: isRM(t) ? "default" : "pointer", textAlign: "left", opacity: isRM(t) ? 0.6 : 1 }}>{isRM(t) ? "✅ " : ""}{t}</button>)}
+      {/* Colonne droite — Définitions */}
+      <div>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.accent, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.accent}12`, borderRadius: 8 }}>💡 Définitions</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {shuffledRight.map((t, i) => <button key={i} onClick={() => handleRight(t)} disabled={isRM(t) || leftSelected === null} style={{
+            padding: "11px 12px", borderRadius: 12,
+            border: `2px solid ${isRM(t) ? `${C.secondary}40` : wrong === t ? C.danger : leftSelected !== null ? `${C.accent}55` : "#E4E4F0"}`,
+            background: isRM(t) ? `${C.secondary}12` : wrong === t ? "#FFE0E0" : leftSelected !== null ? `${C.accent}08` : "#F6F6FC",
+            color: isRM(t) ? C.secondary : wrong === t ? C.danger : leftSelected !== null ? C.text : C.textMuted,
+            fontSize: 12, fontWeight: 600, fontFamily: "'Nunito',sans-serif",
+            cursor: isRM(t) || leftSelected === null ? "default" : "pointer", textAlign: "left",
+            opacity: isRM(t) ? 0.7 : leftSelected === null ? 0.5 : 1,
+            transition: "all 0.18s", lineHeight: 1.3
+          }}>{isRM(t) ? "✅ " : ""}{t}</button>)}
+        </div>
       </div>
     </div>
   </div>;
@@ -458,10 +513,12 @@ function LoginScreen({ onLogin, data }) {
           <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Bienvenue {firstLoginStudent.firstName} !</h1>
           <p style={{ color: C.textLight, fontSize: 15, margin: "0 0 24px 0", fontWeight: 600 }}>C'est ta première connexion. Choisis un mot de passe pour sécuriser ton compte.</p>
           <Card style={{ padding: 32, textAlign: "left" }}>
-            <Input icon="🔒" label="Choisis un mot de passe" value={newPwd} onChange={setNewPwd} type="password" placeholder="Minimum 4 caractères" />
-            <Input icon="🔒" label="Confirme le mot de passe" value={newPwdConfirm} onChange={setNewPwdConfirm} type="password" placeholder="Retape le même mot de passe" />
-            {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
-            <Btn onClick={handleSetPassword} fullWidth size="lg" disabled={loading}>{loading ? "..." : "Valider et entrer →"}</Btn>
+            <form onSubmit={e => { e.preventDefault(); handleSetPassword(); }} autoComplete="on">
+              <Input icon="🔒" label="Choisis un mot de passe" value={newPwd} name="new-password" autoComplete="new-password" onChange={setNewPwd} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Minimum 4 caractères" />
+              <Input icon="🔒" label="Confirme le mot de passe" value={newPwdConfirm} name="new-password-confirm" autoComplete="new-password" onChange={setNewPwdConfirm} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Retape le même mot de passe" />
+              {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
+              <Btn onClick={handleSetPassword} fullWidth size="lg" disabled={loading}>{loading ? "..." : "Valider et entrer →"}</Btn>
+            </form>
           </Card>
         </div>
       </div>
@@ -476,14 +533,16 @@ function LoginScreen({ onLogin, data }) {
           <div style={{ display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 24 }}>
             {[{ id: "student", label: "👩‍🎓 Élève" }, { id: "teacher", label: "👩‍🏫 Professeur" }].map(m => <button key={m.id} onClick={() => { setMode(m.id); setError(""); setNeedPwd(false); setStudentPwd(""); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, transition: "all 0.2s", background: mode === m.id ? C.card : "transparent", color: mode === m.id ? C.primary : C.textLight, boxShadow: mode === m.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none" }}>{m.label}</button>)}
           </div>
-          <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
-            {mode === "student" ? <>
-              <Input icon="🔑" label="Ton identifiant" value={studentId} onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} placeholder="Ex: STMG-1ÈRE-MART1" />
-              {needPwd && <Input icon="🔒" label="Ton mot de passe" value={studentPwd} onChange={setStudentPwd} type="password" placeholder="Mot de passe" />}
-            </> : <Input icon="🔒" label="Mot de passe" value={teacherPwd} onChange={setTeacherPwd} type="password" placeholder="Mot de passe professeur" />}
-          </div>
-          {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
-          <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : mode === "student" ? "Suivant →" : "Se connecter →"}</Btn>
+          <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
+            <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
+              {mode === "student" ? <>
+                <Input icon="🔑" label="Ton identifiant" value={studentId} name="username" autoComplete="username" onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Ex: STMG-1ÈRE-MART1" />
+                {needPwd && <Input icon="🔒" label="Ton mot de passe" value={studentPwd} name="password" autoComplete="current-password" onChange={setStudentPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe" />}
+              </> : <Input icon="🔒" label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />}
+            </div>
+            {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
+            <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : mode === "student" ? "Suivant →" : "Se connecter →"}</Btn>
+          </form>
         </Card>
         <p style={{ marginTop: 20, fontSize: 12, color: C.textMuted }}>SmartKlass v2.0 — Plateforme STMG</p>
       </div>
