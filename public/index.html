@@ -31,6 +31,8 @@
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes correctPop { 0% { transform: scale(0.7); opacity: 0; } 55% { transform: scale(1.18); } 80% { transform: scale(0.96); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
         input::placeholder { color: #B2BEC3; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -389,6 +391,16 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
           <p style={{ fontWeight: 700, color: C.secondary, margin: 0 }}>✅ Réponse envoyée ! En attente des autres élèves...</p>
         </Card>}
 
+        {/* Résultat révélé (pause) */}
+        {status === 'paused' && selectedAnswer !== null && (() => {
+          const correct = selectedAnswer === question.answer;
+          return <div style={{ animation: correct ? "correctPop 0.5s ease" : "wrongShake 0.45s ease", borderRadius: 18, padding: "20px 16px", textAlign: "center", background: correct ? "linear-gradient(135deg,#00B894,#00cec9)" : "linear-gradient(135deg,#D63031,#e17055)", color: "#fff", marginBottom: 4, boxShadow: correct ? "0 6px 24px rgba(0,184,148,0.45)" : "0 6px 24px rgba(214,48,49,0.4)" }}>
+            <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 8 }}>{correct ? "🎉" : "😬"}</div>
+            <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{correct ? "Bonne réponse !" : "Mauvaise réponse"}</div>
+            {!correct && question.answer !== undefined && <div style={{ fontSize: 13, opacity: 0.9 }}>La bonne réponse était : <strong>{["A","B","C","D"][question.answer]}</strong></div>}
+          </div>;
+        })()}
+
         {/* Correction (pause) */}
         {status === 'paused' && question.explanation && <Card style={{ padding: 16, background: `${C.warning}15`, border: `1px solid ${C.warning}40` }}>
           <p style={{ fontWeight: 700, color: "#856404", margin: "0 0 4px 0" }}>💡 Explication</p>
@@ -396,24 +408,38 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         </Card>}
       </>}
 
-      {status === 'finished' && <div style={{ textAlign: "center", paddingTop: 20 }}>
-        <div style={{ fontSize: 56, marginBottom: 12 }}>🏁</div>
-        <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
-        <p style={{ color: C.textLight, fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: C.primary }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
-        <Card style={{ padding: 20, marginBottom: 16 }}>
-          <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>🏆 Classement final</h3>
-          {(leaderboard || []).map((l, i) => {
-            const isMe = l.studentId === student.id;
-            const medals = ["🥇","🥈","🥉"];
-            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: isMe ? `${C.primary}15` : i % 2 === 0 ? "#F8F9FD" : "transparent", marginBottom: 4 }}>
-              <span style={{ width: 28, textAlign: "center", fontSize: i < 3 ? 18 : 13, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</span>
-              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600 }}>{l.firstName} {l.lastName}{isMe ? " (moi)" : ""}</span>
-              <span style={{ fontWeight: 800, color: C.primary }}>{l.score} ✓</span>
-            </div>;
-          })}
-        </Card>
-        <Btn onClick={onExit} fullWidth>Fermer</Btn>
-      </div>}
+      {status === 'finished' && (() => {
+        const lb = leaderboard || [];
+        const medals = ["🥇","🥈","🥉"];
+        const top3 = lb.slice(0, 3);
+        const myRank = lb.findIndex(l => l.studentId === student.id);
+        const myEntry = lb[myRank];
+        return <div style={{ textAlign: "center", paddingTop: 20 }}>
+          <div style={{ fontSize: 56, marginBottom: 12, animation: "correctPop 0.5s ease" }}>🏆</div>
+          <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
+          <p style={{ color: C.textLight, fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: C.primary }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
+          <Card style={{ padding: 20, marginBottom: 16 }}>
+            <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>🏆 Podium</h3>
+            {top3.map((l, i) => {
+              const isMe = l.studentId === student.id;
+              return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: isMe ? `${C.primary}15` : i % 2 === 0 ? "#F8F9FD" : "transparent", marginBottom: 4 }}>
+                <span style={{ width: 28, textAlign: "center", fontSize: 20, fontWeight: 800 }}>{medals[i]}</span>
+                <span style={{ flex: 1, fontWeight: isMe ? 800 : 600 }}>{l.firstName} {l.lastName}{isMe ? " (moi)" : ""}</span>
+                <span style={{ fontWeight: 800, color: C.primary }}>{l.score} ✓</span>
+              </div>;
+            })}
+            {myRank >= 3 && myEntry && <>
+              <div style={{ textAlign: "center", color: C.textLight, fontSize: 12, margin: "8px 0 4px" }}>· · ·</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: `${C.primary}15`, marginBottom: 4 }}>
+                <span style={{ width: 28, textAlign: "center", fontSize: 13, fontWeight: 800, color: C.textLight }}>{myRank + 1}</span>
+                <span style={{ flex: 1, fontWeight: 800 }}>{myEntry.firstName} {myEntry.lastName} (moi)</span>
+                <span style={{ fontWeight: 800, color: C.primary }}>{myEntry.score} ✓</span>
+              </div>
+            </>}
+          </Card>
+          <Btn onClick={onExit} fullWidth>Fermer</Btn>
+        </div>;
+      })()}
     </div>
   </div>;
 }
