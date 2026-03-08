@@ -507,7 +507,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           </div>
 
           {/* Distribution */}
-          <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={status === 'paused'} />
+          <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={true} />
 
           {/* Explication si pause */}
           {status === 'paused' && question.explanation && <div style={{ background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 12, padding: 14, marginTop: 16 }}>

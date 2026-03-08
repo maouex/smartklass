@@ -602,12 +602,13 @@ try {
                 $currentQ  = (int)$session['current_q'];
                 $status    = $session['status'];
 
-                // Question courante (sans réponse correcte sauf si paused)
+                // Question courante — réponse correcte toujours visible pour le prof (pas de studentId), sinon seulement si paused
+                $isTeacher = ($studentId === null);
                 $qData = null;
                 if ($currentQ < $totalQ) {
                     $q = $questions[$currentQ];
                     $qData = ['q' => $q['q'], 'choices' => $q['choices']];
-                    if ($status === 'paused') {
+                    if ($isTeacher || $status === 'paused') {
                         $qData['answer']      = $q['answer'];
                         $qData['explanation'] = $q['explanation'] ?? '';
                     }
