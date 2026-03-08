@@ -1,0 +1,25 @@
+{
+  "name": "SmartKlass",
+  "short_name": "SmartKlass",
+  "description": "Plateforme d'apprentissage interactive STMG",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8F9FD",
+  "theme_color": "#6C5CE7",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

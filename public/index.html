@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SmartKlass — Plateforme STMG</title>
     <link rel="icon" href="/logo.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6C5CE7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SmartKlass">
+    <link rel="apple-touch-icon" href="/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,6 +39,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+    <script>
+      // Capture beforeinstallprompt tôt (avant React)
+      window._deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window._deferredInstallPrompt = e;
+        window.dispatchEvent(new Event('pwa-installable'));
+      });
+      // Enregistrement du Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
 
     <script type="text/babel">
 // ============================================================================
@@ -1056,7 +1078,98 @@ function App() {
   return <StudentDashboard student={user.student} data={data} onLogout={() => setUser(null)} onActivityComplete={handleActivityComplete} />;
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
+// ============================================================================
+// PWA INSTALL PROMPT
+// ============================================================================
+function InstallPrompt() {
+  const [show, setShow] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Déjà installé (mode standalone) → ne rien montrer
+    const standalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    if (standalone) return;
+
+    // Ignoré récemment (7 jours)
+    const dismissed = localStorage.getItem('sk_install_dismissed');
+    if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
+
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) && !/CriOS|FxiOS/.test(navigator.userAgent);
+    const android = /Android/.test(navigator.userAgent);
+
+    if (ios) {
+      setIsIOS(true);
+      setTimeout(() => { setShow(true); setTimeout(() => setVisible(true), 50); }, 2500);
+    } else if (android) {
+      const show = () => setTimeout(() => { setShow(true); setTimeout(() => setVisible(true), 50); }, 1500);
+      if (window._deferredInstallPrompt) {
+        show();
+      } else {
+        window.addEventListener('pwa-installable', show, { once: true });
+      }
+    }
+  }, []);
+
+  const handleDismiss = () => {
+    setVisible(false);
+    setTimeout(() => setShow(false), 400);
+    localStorage.setItem('sk_install_dismissed', Date.now().toString());
+  };
+
+  const handleInstall = async () => {
+    const prompt = window._deferredInstallPrompt;
+    if (prompt) {
+      prompt.prompt();
+      await prompt.userChoice;
+      window._deferredInstallPrompt = null;
+    }
+    handleDismiss();
+  };
+
+  if (!show) return null;
+
+  return <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
+    <div onClick={handleDismiss} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", pointerEvents: "auto", opacity: visible ? 1 : 0, transition: "opacity 0.4s" }} />
+    <div style={{ position: "relative", width: "100%", maxWidth: 480, background: "#fff", borderRadius: "24px 24px 0 0", padding: "20px 24px 32px", boxShadow: "0 -8px 40px rgba(0,0,0,0.2)", pointerEvents: "auto", transform: visible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)" }}>
+
+      {/* Poignée */}
+      <div style={{ width: 40, height: 4, background: "#E0E0E0", borderRadius: 2, margin: "0 auto 16px" }} />
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+        <div style={{ width: 54, height: 54, borderRadius: 14, background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>📚</div>
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 17, color: "#2D3436" }}>Installer SmartKlass</div>
+          <div style={{ fontSize: 13, color: "#636E72", marginTop: 2 }}>Accès rapide depuis ton écran d'accueil</div>
+        </div>
+      </div>
+
+      {isIOS ? <>
+        {/* Instructions iOS */}
+        <div style={{ background: "#F8F9FD", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
+          {[
+            { icon: "1️⃣", text: <>Appuie sur le bouton <strong>Partager</strong> <span style={{ fontSize: 16 }}>⬆️</span> en bas de Safari</> },
+            { icon: "2️⃣", text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong></> },
+            { icon: "3️⃣", text: <>Appuie sur <strong>"Ajouter"</strong> en haut à droite</> },
+          ].map((step, i) => <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
+            <span style={{ fontSize: 16 }}>{step.icon}</span>
+            <span style={{ fontSize: 14, color: "#2D3436", lineHeight: 1.5 }}>{step.text}</span>
+          </div>)}
+        </div>
+        <button onClick={handleDismiss} style={{ width: "100%", padding: "14px", borderRadius: 14, border: "2px solid #E0E0E0", background: "transparent", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 15, color: "#636E72", cursor: "pointer" }}>J'ai compris</button>
+      </> : <>
+        {/* Bouton Android */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleDismiss} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "2px solid #E0E0E0", background: "transparent", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 15, color: "#636E72", cursor: "pointer" }}>Plus tard</button>
+          <button onClick={handleInstall} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", boxShadow: "0 4px 15px rgba(108,92,231,0.4)" }}>📲 Installer l'app</button>
+        </div>
+      </>}
+    </div>
+  </div>;
+}
+
+ReactDOM.render(<><App /><InstallPrompt /></>, document.getElementById('root'));
     </script>
 </body>
 </html>
