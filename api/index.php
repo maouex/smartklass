@@ -292,6 +292,19 @@ try {
                     }
                 }
                 jsonResponse(['id' => $newId], 201);
+            } elseif ($method === 'PUT' && $id) {
+                $body = getJsonBody();
+                $courseId = !empty($body['courseId']) ? $body['courseId'] : null;
+                $db->prepare('UPDATE activities SET subject_id=?, course_id=?, title=?, difficulty=?, xp_reward=?, data=? WHERE id=?')
+                   ->execute([$body['subjectId'], $courseId, $body['title'], $body['difficulty'] ?? 2, $body['xpReward'] ?? 40, json_encode($body['data'], JSON_UNESCAPED_UNICODE), $id]);
+                $db->prepare('DELETE FROM activity_classes WHERE activity_id = ?')->execute([$id]);
+                if (!empty($body['classIds'])) {
+                    $ins = $db->prepare('INSERT INTO activity_classes (activity_id, class_id) VALUES (?, ?)');
+                    foreach ($body['classIds'] as $classId) {
+                        $ins->execute([$id, $classId]);
+                    }
+                }
+                jsonResponse(['success' => true]);
             } elseif ($method === 'DELETE' && $id) {
                 $db->prepare('DELETE FROM results WHERE activity_id = ?')->execute([$id]);
                 $db->prepare('DELETE FROM activity_classes WHERE activity_id = ?')->execute([$id]);
@@ -506,7 +519,27 @@ try {
                     $db->prepare("DELETE FROM push_subscriptions WHERE id IN ($placeholders)")->execute($failed);
                 }
 
+                // Sauvegarder dans l'historique
+                $db->prepare('INSERT INTO notification_history (id, class_id, title, body, sent_count) VALUES (?, ?, ?, ?, ?)')
+                   ->execute([generateId(), $classId, $title, $msgBody, $sent]);
+
                 jsonResponse(['success' => true, 'sent' => $sent, 'total' => count($subs)]);
+            }
+            break;
+
+        // =====================================================================
+        // NOTIFICATION HISTORY — Historique des notifications envoyées
+        // =====================================================================
+        case 'notification-history':
+            if ($method === 'GET') {
+                $classId = $_GET['classId'] ?? null;
+                if ($classId) {
+                    $stmt = $db->prepare('SELECT * FROM notification_history WHERE class_id = ? ORDER BY sent_at DESC LIMIT 20');
+                    $stmt->execute([$classId]);
+                } else {
+                    $stmt = $db->query('SELECT * FROM notification_history ORDER BY sent_at DESC LIMIT 50');
+                }
+                jsonResponse($stmt->fetchAll());
             }
             break;
 
