@@ -45,14 +45,25 @@ try {
                     $stmt->execute([$identifier]);
                     $student = $stmt->fetch();
                     if ($student) {
+                        // Calcul du streak basé sur les jours consécutifs
+                        $today     = date('Y-m-d');
+                        $yesterday = date('Y-m-d', strtotime('-1 day'));
+                        $lastDate  = $student['last_active'] ? date('Y-m-d', strtotime($student['last_active'])) : null;
+                        if ($lastDate === null)             $newStreak = 1;
+                        elseif ($lastDate === $today)       $newStreak = $student['streak']; // déjà connecté aujourd'hui
+                        elseif ($lastDate === $yesterday)   $newStreak = $student['streak'] + 1;
+                        else                               $newStreak = 1; // jour sauté
+
                         // Pas de mdp encore = première connexion
                         if (empty($student['password'])) {
-                            $db->prepare('UPDATE students SET last_active = NOW() WHERE id = ?')->execute([$student['id']]);
+                            $db->prepare('UPDATE students SET streak = ?, last_active = NOW() WHERE id = ?')->execute([$newStreak, $student['id']]);
+                            $s2 = $db->prepare('SELECT * FROM students WHERE id = ?'); $s2->execute([$student['id']]); $student = $s2->fetch();
                             jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => true]);
                         } else {
                             // Vérifier le mot de passe
                             if ($password === $student['password']) {
-                                $db->prepare('UPDATE students SET last_active = NOW() WHERE id = ?')->execute([$student['id']]);
+                                $db->prepare('UPDATE students SET streak = ?, last_active = NOW() WHERE id = ?')->execute([$newStreak, $student['id']]);
+                                $s2 = $db->prepare('SELECT * FROM students WHERE id = ?'); $s2->execute([$student['id']]); $student = $s2->fetch();
                                 jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => false]);
                             } else {
                                 jsonResponse(['success' => false, 'error' => 'Mot de passe incorrect.'], 401);
@@ -307,7 +318,7 @@ try {
                 $actStmt->execute([$body['activityId']]);
                 $xpReward = $actStmt->fetchColumn() ?: 0;
                 
-                $db->prepare('UPDATE students SET xp = xp + ?, streak = streak + 1, last_active = NOW() WHERE id = ?')
+                $db->prepare('UPDATE students SET xp = xp + ?, last_active = NOW() WHERE id = ?')
                    ->execute([$xpReward, $body['studentId']]);
                 
                 // Récupérer l'élève mis à jour
