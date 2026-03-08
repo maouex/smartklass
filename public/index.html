@@ -106,6 +106,14 @@ const BADGES = [
   { id: "ten_activities", name: "Travailleur", icon: "📚", desc: "Compléter 10 activités", condition: (r) => r.length >= 10 },
 ];
 
+// --- NOTIFICATION TYPES (push) ---
+const NOTIF_TYPES = [
+  { id: 'new_course',  icon: '📖', title: 'Nouveau cours disponible !',  body: "Un nouveau cours vient d'être publié. Connecte-toi pour le découvrir !" },
+  { id: 'reminder',   icon: '🔥', title: "N'oublie pas de réviser !",   body: "Continue ton streak et garde ta place au classement 🏆" },
+  { id: 'new_act',    icon: '🎮', title: 'Nouvelle activité !',           body: "Une nouvelle activité est disponible. À toi de jouer !" },
+  { id: 'custom',     icon: '✉️', title: 'Message du professeur',        body: '' },
+];
+
 // --- COLORS ---
 const C = {
   primary: "#6C5CE7", primaryLight: "#A29BFE",
@@ -752,6 +760,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [editSubjectData, setEditSubjectData] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
   const [activeClass, setActiveClass] = useState(null);
+  const [notifData, setNotifData] = useState({ typeId: 'new_course', customBody: '', pwd: '', sending: false, result: null });
   const [activeCourse, setActiveCourse] = useState(null);
   const [editCourseData, setEditCourseData] = useState(null);
   const [jsonImport, setJsonImport] = useState("");
@@ -880,6 +889,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0", fontWeight: 600 }}>{activeClass.year} — {classStudentCount} élève{classStudentCount > 1 ? "s" : ""}</p>
               </div>
               <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm">✏️ Modifier</Btn>
+              <Btn onClick={() => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setModal('sendNotif'); }} variant="secondary" size="sm">🔔 Notifier</Btn>
             </div>
 
             {/* Sections par matière */}
@@ -1204,6 +1214,37 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       <Btn onClick={changeTeacherPassword} fullWidth style={{ marginTop: 8 }}>Valider</Btn>
     </Modal>
 
+    {/* MODAL — Envoyer une notification push */}
+    <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="🔔 Envoyer une notification">
+      <p style={{ color: C.textLight, fontSize: 13, marginBottom: 14, fontWeight: 600 }}>
+        Destinataires : élèves abonnés de <strong>{activeClass?.name}</strong>
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        {NOTIF_TYPES.map(t => <label key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 12, border: `2px solid ${notifData.typeId === t.id ? C.primary : '#E4E4F0'}`, cursor: 'pointer', transition: 'border 0.15s', background: notifData.typeId === t.id ? `${C.primary}08` : 'transparent' }}>
+          <input type="radio" name="notifType" value={t.id} checked={notifData.typeId === t.id} onChange={() => setNotifData(d => ({ ...d, typeId: t.id }))} style={{ marginTop: 3 }} />
+          <div><div style={{ fontWeight: 800, fontSize: 14 }}>{t.icon} {t.title}</div>{t.id !== 'custom' && <div style={{ color: C.textLight, fontSize: 12, marginTop: 2 }}>{t.body}</div>}</div>
+        </label>)}
+      </div>
+      {notifData.typeId === 'custom' && <Input label="Message personnalisé" value={notifData.customBody} onChange={v => setNotifData(d => ({ ...d, customBody: v }))} placeholder="Tapez votre message..." />}
+      <Input icon="🔒" label="Mot de passe prof (confirmation)" value={notifData.pwd} onChange={v => setNotifData(d => ({ ...d, pwd: v }))} type="password" placeholder="Mot de passe professeur" />
+      {notifData.result && <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 12, background: notifData.result.success ? `${C.secondary}15` : '#FFE0E0', color: notifData.result.success ? C.secondary : C.danger, fontWeight: 700, fontSize: 13 }}>
+        {notifData.result.success
+          ? `✅ ${notifData.result.sent} notification${notifData.result.sent !== 1 ? 's' : ''} envoyée${notifData.result.sent !== 1 ? 's' : ''} (${notifData.result.total} abonné${notifData.result.total !== 1 ? 's' : ''})`
+          : `❌ ${notifData.result.error || 'Erreur inconnue'}`}
+      </div>}
+      <Btn onClick={async () => {
+        const t = NOTIF_TYPES.find(x => x.id === notifData.typeId);
+        const body = notifData.typeId === 'custom' ? notifData.customBody : t.body;
+        setNotifData(d => ({ ...d, sending: true, result: null }));
+        try {
+          const res = await api.post('push-send', { classId: activeClass?.id, title: t.title, body, teacherPassword: notifData.pwd });
+          setNotifData(d => ({ ...d, sending: false, result: res }));
+        } catch(e) { setNotifData(d => ({ ...d, sending: false, result: { success: false, error: 'Erreur serveur' } })); }
+      }} fullWidth size="lg" disabled={notifData.sending || !notifData.pwd}>
+        {notifData.sending ? '⏳ Envoi en cours...' : '🔔 Envoyer la notification'}
+      </Btn>
+    </Modal>
+
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
   </AnimatedBg>;
 }
@@ -1257,9 +1298,9 @@ function App() {
     )
   );
 
-  if (!user) return <LoginScreen onLogin={setUser} data={data} />;
+  if (!user) return <LoginScreen onLogin={u => { setUser(u); if (u.type === 'student') registerPush(u.student.id); }} data={data} />;
   if (user.type === "teacher") return <TeacherDashboard data={data} refreshData={refreshData} onLogout={() => setUser(null)} />;
-  return <StudentDashboard student={user.student} data={data} onLogout={() => setUser(null)} onActivityComplete={handleActivityComplete} />;
+  return <StudentDashboard student={user.student} data={data} onLogout={() => { unregisterPush(user.student?.id); setUser(null); }} onActivityComplete={handleActivityComplete} />;
 }
 
 // ============================================================================
@@ -1351,6 +1392,45 @@ function InstallPrompt() {
       </>}
     </div>
   </div>;
+}
+
+// ============================================================================
+// PUSH NOTIFICATIONS — Helpers
+// ============================================================================
+function urlBase64ToUint8Array(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const bin = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+let _pushSub = null;
+
+async function registerPush(studentId) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const { key } = await api.get('vapid-key');
+    _pushSub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+    await api.post('push-subscribe', { studentId, subscription: _pushSub.toJSON() });
+  } catch (e) { console.warn('Push non disponible :', e); }
+}
+
+async function unregisterPush(studentId) {
+  try {
+    if (_pushSub) { await _pushSub.unsubscribe(); _pushSub = null; }
+    if (studentId) {
+      const reg = await navigator.serviceWorker?.getRegistration('/sw.js');
+      const existing = await reg?.pushManager?.getSubscription();
+      if (existing) await existing.unsubscribe();
+      await fetch(`/api/push-subscribe?studentId=${encodeURIComponent(studentId)}`, { method: 'DELETE' });
+    }
+  } catch (e) { /* silencieux */ }
 }
 
 ReactDOM.render(<><App /><InstallPrompt /></>, document.getElementById('root'));

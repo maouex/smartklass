@@ -399,6 +399,117 @@ try {
             }
             break;
         
+        // =====================================================================
+        // VAPID PUBLIC KEY — Génère les clés VAPID si absentes, retourne la publique
+        // =====================================================================
+        case 'vapid-key':
+            if ($method === 'GET') {
+                $pub = $db->query("SELECT config_value FROM config WHERE config_key='vapid_public_key'")->fetchColumn();
+                if (!$pub) {
+                    // Générer la paire de clés P-256
+                    $key = openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
+                    $d = openssl_pkey_get_details($key);
+                    $pubRaw = "\x04"
+                        . str_pad($d['ec']['x'], 32, "\x00", STR_PAD_LEFT)
+                        . str_pad($d['ec']['y'], 32, "\x00", STR_PAD_LEFT);
+                    openssl_pkey_export($key, $privPem);
+                    // Extraire les octets DER bruts (SEC1) depuis le PEM
+                    $privDer = base64_decode(preg_replace('/-----.*?-----|\s/s', '', $privPem));
+                    $pubB64u = rtrim(strtr(base64_encode($pubRaw), '+/', '-_'), '=');
+                    $privB64u = rtrim(strtr(base64_encode($privDer), '+/', '-_'), '=');
+                    $db->prepare("INSERT INTO config (config_key, config_value) VALUES ('vapid_public_key',?) ON DUPLICATE KEY UPDATE config_value=?")->execute([$pubB64u, $pubB64u]);
+                    $db->prepare("INSERT INTO config (config_key, config_value) VALUES ('vapid_private_key',?) ON DUPLICATE KEY UPDATE config_value=?")->execute([$privB64u, $privB64u]);
+                    $pub = $pubB64u;
+                }
+                jsonResponse(['key' => $pub]);
+            }
+            break;
+
+        // =====================================================================
+        // PUSH SUBSCRIBE — Enregistre / supprime une souscription push
+        // =====================================================================
+        case 'push-subscribe':
+            if ($method === 'POST') {
+                $body = getJsonBody();
+                $studentId = $body['studentId'] ?? '';
+                $endpoint  = $body['subscription']['endpoint'] ?? '';
+                $p256dh    = $body['subscription']['keys']['p256dh'] ?? '';
+                $auth      = $body['subscription']['keys']['auth'] ?? '';
+                if (!$studentId || !$endpoint || !$p256dh || !$auth) {
+                    jsonResponse(['error' => 'Données manquantes'], 400);
+                }
+                $id = generateId();
+                $db->prepare(
+                    "INSERT INTO push_subscriptions (id, student_id, endpoint, p256dh, auth)
+                     VALUES (?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE student_id=?, p256dh=?, auth=?"
+                )->execute([$id, $studentId, $endpoint, $p256dh, $auth, $studentId, $p256dh, $auth]);
+                jsonResponse(['success' => true]);
+            } elseif ($method === 'DELETE') {
+                $studentId = $_GET['studentId'] ?? '';
+                if ($studentId) {
+                    $db->prepare("DELETE FROM push_subscriptions WHERE student_id=?")->execute([$studentId]);
+                }
+                jsonResponse(['success' => true]);
+            }
+            break;
+
+        // =====================================================================
+        // PUSH SEND — Envoie une notification push à tous les abonnés d'une classe
+        // =====================================================================
+        case 'push-send':
+            if ($method === 'POST') {
+                require_once __DIR__ . '/web-push.php';
+                $body = getJsonBody();
+
+                // Vérification mot de passe prof
+                $stored = $db->query("SELECT config_value FROM config WHERE config_key='teacher_password'")->fetchColumn();
+                if (($body['teacherPassword'] ?? '') !== $stored) {
+                    jsonResponse(['error' => 'Non autorisé'], 401);
+                }
+
+                $classId = $body['classId'] ?? '';
+                $title   = $body['title'] ?? 'SmartKlass';
+                $msgBody = $body['body'] ?? '';
+                $payload = json_encode(['title' => $title, 'body' => $msgBody]);
+
+                // Récupérer les clés VAPID
+                $pubB64u  = $db->query("SELECT config_value FROM config WHERE config_key='vapid_public_key'")->fetchColumn();
+                $privB64u = $db->query("SELECT config_value FROM config WHERE config_key='vapid_private_key'")->fetchColumn();
+                if (!$pubB64u || !$privB64u) {
+                    jsonResponse(['error' => 'Clés VAPID manquantes — appelez /api/vapid-key d\'abord'], 500);
+                }
+                $pubRaw  = base64_decode(strtr($pubB64u, '-_', '+/'));
+                $privDer = base64_decode(strtr($privB64u, '-_', '+/'));
+
+                // Récupérer les souscriptions des élèves de la classe
+                $stmt = $db->prepare(
+                    "SELECT ps.* FROM push_subscriptions ps
+                     JOIN students s ON ps.student_id = s.id
+                     WHERE s.class_id = ?"
+                );
+                $stmt->execute([$classId]);
+                $subs = $stmt->fetchAll();
+
+                $sent = 0; $failed = [];
+                foreach ($subs as $sub) {
+                    if (send_push($sub, $payload, $privDer, $pubRaw)) {
+                        $sent++;
+                    } else {
+                        $failed[] = $sub['id'];
+                    }
+                }
+
+                // Nettoyer les souscriptions expirées (HTTP 404/410)
+                if (!empty($failed)) {
+                    $placeholders = implode(',', array_fill(0, count($failed), '?'));
+                    $db->prepare("DELETE FROM push_subscriptions WHERE id IN ($placeholders)")->execute($failed);
+                }
+
+                jsonResponse(['success' => true, 'sent' => $sent, 'total' => count($subs)]);
+            }
+            break;
+
         default:
             jsonResponse(['error' => 'Route non trouvée', 'path' => $resource], 404);
     }
