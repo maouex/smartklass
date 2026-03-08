@@ -3,7 +3,10 @@
 // SmartKlass - API Router
 // ============================================================================
 
-require_once __DIR__ . '/config.php';
+$config_file = file_exists(__DIR__ . '/config.php')
+    ? __DIR__ . '/config.php'
+    : '/home/tama0496/smartklass_config.php';
+require_once $config_file;
 setupHeaders();
 
 // Parse la route : /api/index.php/resource/id
