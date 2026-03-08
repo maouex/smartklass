@@ -139,6 +139,16 @@ const C = {
   g3: "linear-gradient(135deg, #E17055 0%, #FAB1A0 100%)",
 };
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+  React.useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return isMobile;
+}
+
 const EMOJI_OPTIONS = ["📊","📈","🎯","📚","🧠","💡","⚖️","💼","🏢","📝","🎓","🔬","💻","🌍","📱","🎨"];
 const COLOR_OPTIONS = ["#6C5CE7","#00B894","#E17055","#0984E3","#E84393","#00CEC9","#FDCB6E","#636E72","#D63031"];
 
@@ -228,6 +238,21 @@ function Modal({ open, onClose, title, children, wide }) {
 function Tabs({ tabs, active, onChange }) {
   return React.createElement('div', { style: { display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 20, flexWrap: "wrap" } },
     tabs.map(t => React.createElement('button', { key: t.id, onClick: () => onChange(t.id), style: { flex: 1, padding: "11px 12px", borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 13, fontWeight: 700, transition: "all 0.2s", background: active === t.id ? C.card : "transparent", color: active === t.id ? C.primary : C.textLight, boxShadow: active === t.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none", minWidth: "fit-content" } }, t.icon + " " + t.label))
+  );
+}
+
+function BottomNav({ tabs, active, onChange }) {
+  return React.createElement('div', {
+    style: { position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100, background: "#fff", borderTop: "1px solid #EEEEF5", display: "flex", boxShadow: "0 -4px 20px rgba(0,0,0,0.07)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }
+  },
+    tabs.map(t => React.createElement('button', {
+      key: t.id, onClick: () => onChange(t.id),
+      style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", border: "none", background: "transparent", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: tabs.length > 4 ? 9 : 10, fontWeight: 700, color: active === t.id ? C.primary : C.textLight, transition: "color 0.2s", minWidth: 0, position: "relative" }
+    },
+      active === t.id && React.createElement('div', { style: { position: "absolute", top: 0, left: "20%", right: "20%", height: 3, background: C.primary, borderRadius: "0 0 3px 3px" } }),
+      React.createElement('span', { style: { fontSize: active === t.id ? 22 : 20, marginBottom: 2, transition: "font-size 0.15s", display: "block" } }, t.icon),
+      React.createElement('span', { style: { lineHeight: 1, whiteSpace: "nowrap" } }, t.label)
+    ))
   );
 }
 
@@ -665,6 +690,8 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
 
   const isNew = (dateStr) => dateStr && (Date.now() - new Date(dateStr).getTime()) < 7 * 24 * 60 * 60 * 1000;
 
+  const isMobile = useIsMobile();
+  const studentTabs = [{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📚", label: "Matières" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }];
   const handleTabChange = (tab) => { setView(tab); setActiveCourse(null); setActiveSubject(null); };
 
   const handleComplete = async (actId, score) => {
@@ -685,15 +712,24 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
 
   return <AnimatedBg>
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
+    {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404" }}>🔥 {currentStudent.streak}j</div>
+          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>↩</button>
+        </div>
+      </div>
+    </div>}
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
+      {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404" }}>🔥 {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
         </div>
-      </div>
-      <Tabs tabs={[{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📚", label: "Matières" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }]} active={view} onChange={handleTabChange} />
+      </div>}
+      {!isMobile && <Tabs tabs={studentTabs} active={view} onChange={handleTabChange} />}
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
@@ -795,6 +831,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
           {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const medals = ["🥇", "🥈", "🥉"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i < 3 ? `${C.warning}30` : "#F0F0F8", fontSize: i < 3 ? 18 : 13, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight }}>🔥 {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
+      {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} />}
     </div>
   </AnimatedBg>;
 }
@@ -917,16 +954,28 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const getActivityStats = (actId) => { const act = data.activities.find(a => a.id === actId); if (!act) return null; const results = data.results.filter(r => r.activityId === actId); const targetStudents = data.students.filter(s => act.classIds && act.classIds.includes(s.classId)); const participation = targetStudents.length > 0 ? Math.round(results.length / targetStudents.length * 100) : 0; const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; const maxScore = results.length > 0 ? Math.max(...results.map(r => r.score)) : 0; const minScore = results.length > 0 ? Math.min(...results.map(r => r.score)) : 0; return { act, results, targetStudents, participation, avgScore, maxScore, minScore }; };
   const getStudentResults = (studentId) => { const student = data.students.find(s => s.id === studentId); if (!student) return null; const results = data.results.filter(r => r.studentId === studentId); const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; return { student, results, avgScore }; };
 
+  const isMobile = useIsMobile();
+  const teacherTabs = [{ id: "overview", icon: "📊", label: "Résumé" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }];
+
   return <AnimatedBg>
-    <div style={{ maxWidth: 1050, margin: "0 auto", padding: "20px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
+    {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><p style={{ color: C.textLight, fontSize: 12, fontWeight: 700, margin: 0 }}>Panel Professeur</p></div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑</button>
+          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>↩</button>
+        </div>
+      </div>
+    </div>}
+    <div style={{ maxWidth: 1050, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
+      {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 48 }} /><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑 Mot de passe</button>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
         </div>
-      </div>
-      <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />
+      </div>}
+      {!isMobile && <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
 
       {/* OVERVIEW */}
       {view === "overview" && <div style={{ animation: "fadeIn 0.4s" }}>
@@ -1102,6 +1151,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>🎮 Activités</h2><Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportCourseId(""); setModal("importJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn></div>
         {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
       </div>}
+      {isMobile && <BottomNav tabs={teacherTabs} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
     </div>
 
     {/* MODALS */}
