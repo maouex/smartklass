@@ -223,6 +223,18 @@ try {
                     }
                 }
                 jsonResponse(['id' => $newId], 201);
+            } elseif ($method === 'PUT' && $id) {
+                $body = getJsonBody();
+                $db->prepare('UPDATE courses SET subject_id=?, title=?, description=?, chapters=? WHERE id=?')
+                   ->execute([$body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE), $id]);
+                $db->prepare('DELETE FROM course_classes WHERE course_id = ?')->execute([$id]);
+                if (!empty($body['classIds'])) {
+                    $ins = $db->prepare('INSERT INTO course_classes (course_id, class_id) VALUES (?, ?)');
+                    foreach ($body['classIds'] as $classId) {
+                        $ins->execute([$id, $classId]);
+                    }
+                }
+                jsonResponse(['success' => true]);
             } elseif ($method === 'DELETE' && $id) {
                 $db->prepare('DELETE FROM course_classes WHERE course_id = ?')->execute([$id]);
                 $db->prepare('DELETE FROM courses WHERE id = ?')->execute([$id]);

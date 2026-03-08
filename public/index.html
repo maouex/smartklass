@@ -593,6 +593,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "📊" });
   const [editSubjectData, setEditSubjectData] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }] });
+  const [activeCourse, setActiveCourse] = useState(null);
+  const [editCourseData, setEditCourseData] = useState(null);
   const [jsonImport, setJsonImport] = useState("");
 
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
@@ -627,7 +629,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const updateSubject = async () => { if (!editSubjectData) return; await api.put(`subjects/${editSubjectData.id}`, editSubjectData); setModal(null); refreshData(); };
   const deleteSubject = (id) => { setConfirmAction({ msg: "Supprimer cette matière ?", action: async () => { await api.del(`subjects/${id}`); refreshData(); } }); };
   const addCourse = async () => { if (!newCourse.title) return; await api.post('courses', newCourse); setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: [], chapters: [{ title: "", content: "" }] }); setModal(null); refreshData(); };
-  const deleteCourse = (id) => { setConfirmAction({ msg: "Supprimer ce cours ?", action: async () => { await api.del(`courses/${id}`); refreshData(); } }); };
+  const deleteCourse = (id) => { setConfirmAction({ msg: "Supprimer ce cours ?", action: async () => { await api.del(`courses/${id}`); setActiveCourse(null); refreshData(); } }); };
+  const updateCourse = async () => { if (!editCourseData) return; await api.put(`courses/${editCourseData.id}`, editCourseData); setModal(null); setActiveCourse(editCourseData); refreshData(); };
   const deleteActivity = (id) => { setConfirmAction({ msg: "Supprimer cette activité ?", action: async () => { await api.del(`activities/${id}`); refreshData(); } }); };
   const [importSubjectId, setImportSubjectId] = useState("");
   const [importClassIds, setImportClassIds] = useState([]);
@@ -740,8 +743,47 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
       {/* COURSES */}
       {view === "courses" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }] }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
-        {data.courses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); return <Card key={c.id} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between" }}><div style={{ display: "flex", gap: 12 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight }}>{c.description}</p></div></div><Btn onClick={() => deleteCourse(c.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
+        {activeCourse ? (() => {
+          const sub = data.subjects.find(s => s.id === activeCourse.subjectId);
+          const linkedActivities = data.activities.filter(a => a.courseId === activeCourse.id);
+          const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+          return <>
+            <button onClick={() => setActiveCourse(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Retour aux cours</button>
+            <Card style={{ marginBottom: 14, padding: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{sub?.icon || "📖"}</div>
+                  <div>
+                    <Chip color={sub?.color}>{sub?.name}</Chip>
+                    <h2 style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0 0" }}>{activeCourse.title}</h2>
+                    {activeCourse.description && <p style={{ fontSize: 13, color: C.textLight, margin: "4px 0 0 0", lineHeight: 1.5 }}>{activeCourse.description}</p>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" size="sm">✏️ Modifier</Btn>
+                  <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm">🗑 Supprimer</Btn>
+                </div>
+              </div>
+              {activeCourse.classIds?.length > 0 && <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: C.textLight, fontWeight: 700, marginRight: 4 }}>Classes :</span>
+                {activeCourse.classIds.map(cid => { const cls = data.classes.find(c => c.id === cid); return cls ? <Chip key={cid} color={C.primary}>{cls.name}</Chip> : null; })}
+              </div>}
+            </Card>
+            {activeCourse.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
+              <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
+            </Card>)}
+            {linkedActivities.length > 0 && <div style={{ marginTop: 10 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>🎮 Activités liées à ce cours</h3>
+              {linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icons[a.type]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></Card>; })}
+            </div>}
+            {activeCourse.chapters?.length === 0 && linkedActivities.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 36, marginBottom: 8 }}>📄</div><p style={{ fontWeight: 700, color: C.textLight }}>Ce cours n'a pas encore de contenu.</p><Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" style={{ marginTop: 10 }}>✏️ Modifier le cours</Btn></Card>}
+          </>;
+        })() : <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }] }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
+          {data.courses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, cursor: "pointer" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 6 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div></div><div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div></div></Card>; })}
+          {data.courses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours créé</p></Card>}
+        </>}
       </div>}
 
       {/* ACTIVITIES */}
@@ -800,6 +842,25 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {newCourse.chapters.map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}><Input small label={`Titre ${i + 1}`} value={ch.title} onChange={v => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], title: v }; setNewCourse(c => ({ ...c, chapters: chs })); }} /><textarea value={ch.content} onChange={e => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setNewCourse(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} /></div>)}
       <Btn onClick={() => setNewCourse(c => ({ ...c, chapters: [...c.chapters, { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
       <Btn onClick={addCourse} fullWidth size="lg">Créer</Btn>
+    </Modal>
+
+    <Modal open={modal === "editCourse"} onClose={() => setModal(null)} title="Modifier le cours" wide>
+      {editCourseData && <>
+        <Input label="Titre" value={editCourseData.title} onChange={v => setEditCourseData(c => ({ ...c, title: v }))} />
+        <Input label="Description" value={editCourseData.description} onChange={v => setEditCourseData(c => ({ ...c, description: v }))} />
+        <Select label="Matière" value={editCourseData.subjectId} onChange={v => setEditCourseData(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <div style={{ marginBottom: 16 }}><label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={(editCourseData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditCourseData(nc => ({ ...nc, classIds: [...(nc.classIds || []), c.id] })); else setEditCourseData(nc => ({ ...nc, classIds: (nc.classIds || []).filter(id => id !== c.id) })); }} /><span style={{ fontWeight: 600 }}>{c.name}</span></label>)}</div></div>
+        <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
+        {(editCourseData.chapters || []).map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <Input small label={`Titre ${i + 1}`} value={ch.title} onChange={v => { const chs = [...editCourseData.chapters]; chs[i] = { ...chs[i], title: v }; setEditCourseData(c => ({ ...c, chapters: chs })); }} style={{ flex: 1, marginBottom: 0 }} />
+            <button onClick={() => { const chs = editCourseData.chapters.filter((_, j) => j !== i); setEditCourseData(c => ({ ...c, chapters: chs })); }} style={{ border: "none", background: "none", cursor: "pointer", color: C.danger, fontSize: 18, marginLeft: 8, padding: 4 }}>✕</button>
+          </div>
+          <textarea value={ch.content} onChange={e => { const chs = [...editCourseData.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setEditCourseData(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} />
+        </div>)}
+        <Btn onClick={() => setEditCourseData(c => ({ ...c, chapters: [...(c.chapters || []), { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
+        <Btn onClick={updateCourse} fullWidth size="lg">Enregistrer</Btn>
+      </>}
     </Modal>
 
     <Modal open={modal === "importJson"} onClose={() => { setModal(null); setImportStep("paste"); setImportParsed(null); }} title={importStep === "paste" ? "📥 Importer JSON — Étape 1/2" : "⚙️ Configurer l'activité — Étape 2/2"} wide>
