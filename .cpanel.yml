@@ -2,5 +2,5 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/tama0496/smartklass.fr
-    - /usr/bin/rsync -av --delete public/ $DEPLOYPATH/
+    - /usr/bin/rsync -av --delete --exclude='api/' public/ $DEPLOYPATH/
     - /usr/bin/rsync -av --exclude='config.php' --exclude='config.example.php' api/ $DEPLOYPATH/api/
