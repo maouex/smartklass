@@ -1,6 +1,6 @@
 # 📚 SmartKlass
 
-Plateforme d'apprentissage interactive pour les élèves de 1ère STMG.
+Plateforme d'apprentissage interactive pour les élèves de STMG.
 
 ## Déploiement
 
