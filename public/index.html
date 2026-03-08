@@ -256,6 +256,290 @@ function BottomNav({ tabs, active, onChange }) {
   );
 }
 
+// ============================================================================
+// LIVE QUIZ COMPONENTS
+// ============================================================================
+
+function LiveQuizBanner({ session, onJoin, onDismiss }) {
+  return <div style={{ position: "fixed", top: 64, left: 0, right: 0, zIndex: 200, background: C.primary, color: "#fff", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 20px rgba(108,92,231,0.4)", animation: "fadeIn 0.3s" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 24 }}>🎮</span>
+      <div><div style={{ fontWeight: 900, fontSize: 14 }}>Live Quiz en cours !</div><div style={{ fontSize: 12, opacity: 0.9 }}>{session.activityTitle}</div></div>
+    </div>
+    <div style={{ display: "flex", gap: 8 }}>
+      <button onClick={onJoin} style={{ background: "#fff", color: C.primary, border: "none", borderRadius: 10, padding: "8px 16px", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Rejoindre →</button>
+      <button onClick={onDismiss} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 10px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
+    </div>
+  </div>;
+}
+
+function DistributionBar({ choices, distribution, correctAnswer, revealed }) {
+  const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
+  const labels = ["A", "B", "C", "D"];
+  const maxVal = Math.max(...distribution, 1);
+  return <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    {(choices || []).map((choice, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 28, height: 28, borderRadius: 8, background: colors[i], color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, border: revealed && i === correctAnswer ? "3px solid #00B894" : "3px solid transparent", boxSizing: "border-box" }}>{labels[i]}</div>
+      <div style={{ flex: 1, background: "#F0F0F8", borderRadius: 8, height: 28, overflow: "hidden", position: "relative" }}>
+        <div style={{ width: `${(distribution[i] / maxVal) * 100}%`, height: "100%", background: revealed && i === correctAnswer ? "#00B894" : `${colors[i]}80`, borderRadius: 8, transition: "width 0.4s ease", minWidth: distribution[i] > 0 ? 8 : 0 }} />
+        <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 700, color: C.text }}>{choice}</span>
+      </div>
+      <div style={{ width: 28, textAlign: "right", fontWeight: 800, fontSize: 14, color: revealed && i === correctAnswer ? "#00B894" : C.textLight }}>{distribution[i]}</div>
+    </div>)}
+  </div>;
+}
+
+function LiveQuizStudent({ sessionId, student, onExit }) {
+  const [liveData, setLiveData] = useState(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [localStatus, setLocalStatus] = useState(null);
+  const [localQ, setLocalQ] = useState(-1);
+  const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
+  const labels = ["A", "B", "C", "D"];
+
+  React.useEffect(() => {
+    let interval;
+    const poll = async () => {
+      try {
+        const data = await api.get(`live-quiz/${sessionId}?studentId=${student.id}`);
+        setLiveData(data);
+        // Reset selectedAnswer si nouvelle question
+        if (data.currentQ !== localQ) {
+          setSelectedAnswer(null);
+          setLocalQ(data.currentQ);
+        }
+        setLocalStatus(data.status);
+        if (data.status === 'finished') clearInterval(interval);
+      } catch(e) {}
+    };
+    poll();
+    interval = setInterval(poll, 1500);
+    return () => clearInterval(interval);
+  }, [sessionId, localQ]);
+
+  const handleAnswer = async (idx) => {
+    if (selectedAnswer !== null || liveData?.hasAnswered) return;
+    setSelectedAnswer(idx);
+    try {
+      await api.post(`live-quiz/${sessionId}/answer`, { studentId: student.id, questionIdx: liveData.currentQ, answerIdx: idx });
+    } catch(e) {}
+  };
+
+  if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ textAlign: "center" }}><div style={{ fontSize: 48 }}>🎮</div><p style={{ fontWeight: 700, color: C.textLight }}>Connexion au live...</p></div>
+  </div>;
+
+  const { status, currentQ, totalQuestions, question, hasAnswered, leaderboard } = liveData;
+  const myScore = leaderboard?.find(l => l.studentId === student.id)?.score || 0;
+
+  return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: C.bg, display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif" }}>
+    {/* Header */}
+    <div style={{ background: C.primary, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 22 }}>🎮</span>
+        <div><div style={{ fontWeight: 900, fontSize: 15 }}>Live Quiz</div><div style={{ fontSize: 11, opacity: 0.85 }}>{liveData.activityTitle}</div></div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, opacity: 0.85 }}>Mon score</div><div style={{ fontWeight: 900, fontSize: 18 }}>⚡ {myScore}</div></div>
+        <button onClick={onExit} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 10, padding: "6px 12px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Quitter</button>
+      </div>
+    </div>
+
+    {/* Contenu */}
+    <div style={{ flex: 1, overflow: "auto", padding: "20px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
+      {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
+        <div style={{ fontSize: 64, marginBottom: 16, animation: "float 2s ease-in-out infinite" }}>⏳</div>
+        <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>En attente du démarrage</h2>
+        <p style={{ color: C.textLight, fontWeight: 600 }}>Le professeur va lancer le quiz dans quelques instants...</p>
+      </div>}
+
+      {(status === 'active' || status === 'paused') && question && <>
+        {/* Progression */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? '⏸ Pause' : '🔴 En direct'}</Chip>
+          <span style={{ fontWeight: 700, color: C.textLight, fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
+        </div>
+        <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 20 }} />
+
+        {/* Question */}
+        <Card style={{ padding: 24, marginBottom: 16, textAlign: "center" }}>
+          <p style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.4, margin: 0 }}>{question.q}</p>
+        </Card>
+
+        {/* Choix */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          {(question.choices || []).map((choice, i) => {
+            const answered = hasAnswered || selectedAnswer !== null;
+            const isSelected = selectedAnswer === i;
+            const isCorrect = status === 'paused' && i === question.answer;
+            const isWrong = status === 'paused' && isSelected && i !== question.answer;
+            let bg = colors[i] + "20", border = `2px solid ${colors[i]}40`, color = C.text;
+            if (isSelected && status === 'active') { bg = colors[i]; color = "#fff"; border = `2px solid ${colors[i]}`; }
+            if (isCorrect) { bg = "#00B894"; color = "#fff"; border = "2px solid #00B894"; }
+            if (isWrong) { bg = "#D63031"; color = "#fff"; border = "2px solid #D63031"; }
+            return <button key={i} onClick={() => handleAnswer(i)} disabled={answered} style={{ background: bg, border, borderRadius: 14, padding: "14px 10px", cursor: answered ? "default" : "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color, transition: "all 0.2s", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: answered ? "rgba(255,255,255,0.3)" : colors[i] + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: answered ? "inherit" : colors[i], flexShrink: 0 }}>{labels[i]}</span>
+              {choice}
+            </button>;
+          })}
+        </div>
+
+        {/* Feedback après réponse */}
+        {(hasAnswered || selectedAnswer !== null) && status === 'active' && <Card style={{ padding: 16, textAlign: "center", background: `${C.secondary}15`, border: `1px solid ${C.secondary}40` }}>
+          <p style={{ fontWeight: 700, color: C.secondary, margin: 0 }}>✅ Réponse envoyée ! En attente des autres élèves...</p>
+        </Card>}
+
+        {/* Correction (pause) */}
+        {status === 'paused' && question.explanation && <Card style={{ padding: 16, background: `${C.warning}15`, border: `1px solid ${C.warning}40` }}>
+          <p style={{ fontWeight: 700, color: "#856404", margin: "0 0 4px 0" }}>💡 Explication</p>
+          <p style={{ margin: 0, lineHeight: 1.5 }}>{question.explanation}</p>
+        </Card>}
+      </>}
+
+      {status === 'finished' && <div style={{ textAlign: "center", paddingTop: 20 }}>
+        <div style={{ fontSize: 56, marginBottom: 12 }}>🏁</div>
+        <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
+        <p style={{ color: C.textLight, fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: C.primary }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
+        <Card style={{ padding: 20, marginBottom: 16 }}>
+          <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>🏆 Classement final</h3>
+          {(leaderboard || []).map((l, i) => {
+            const isMe = l.studentId === student.id;
+            const medals = ["🥇","🥈","🥉"];
+            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: isMe ? `${C.primary}15` : i % 2 === 0 ? "#F8F9FD" : "transparent", marginBottom: 4 }}>
+              <span style={{ width: 28, textAlign: "center", fontSize: i < 3 ? 18 : 13, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</span>
+              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600 }}>{l.firstName} {l.lastName}{isMe ? " (moi)" : ""}</span>
+              <span style={{ fontWeight: 800, color: C.primary }}>{l.score} ✓</span>
+            </div>;
+          })}
+        </Card>
+        <Btn onClick={onExit} fullWidth>Fermer</Btn>
+      </div>}
+    </div>
+  </div>;
+}
+
+function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, classStudents, onClose }) {
+  const [liveData, setLiveData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
+  const labels = ["A", "B", "C", "D"];
+
+  React.useEffect(() => {
+    let interval;
+    const poll = async () => {
+      try {
+        const data = await api.get(`live-quiz/${sessionId}`);
+        setLiveData(data);
+        if (data.status === 'finished') clearInterval(interval);
+      } catch(e) {}
+    };
+    poll();
+    interval = setInterval(poll, 2000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  const action = async (act) => {
+    setLoading(true);
+    try { await api.put(`live-quiz/${sessionId}`, { action: act }); }
+    catch(e) {}
+    setLoading(false);
+  };
+
+  if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, animation: "float 1s ease-in-out infinite" }}>🎮</div><p style={{ fontWeight: 700, color: C.textLight }}>Initialisation du Live Quiz...</p></div>
+  </div>;
+
+  const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, distribution, leaderboard } = liveData;
+  const isLast = currentQ + 1 >= totalQuestions;
+
+  return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#1a1a2e", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: "#fff" }}>
+    {/* Header */}
+    <div style={{ background: "rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 24 }}>🎮</span>
+        <div><div style={{ fontWeight: 900, fontSize: 16 }}>{activityTitle}</div><div style={{ fontSize: 12, opacity: 0.7 }}>Live Quiz — Panel Professeur</div></div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+          {status === 'active' ? '🔴 En direct' : status === 'paused' ? '⏸ Pause' : status === 'waiting' ? '⏳ En attente' : '✅ Terminé'}
+        </div>
+        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕ Fermer</button>
+      </div>
+    </div>
+
+    {/* Corps */}
+    <div style={{ flex: 1, overflow: "auto", padding: "16px 20px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, maxWidth: 1100, margin: "0 auto", width: "100%", alignContent: "start" }}>
+
+      {/* Colonne gauche */}
+      <div>
+        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Quiz prêt à démarrer</h2>
+          <p style={{ opacity: 0.7, marginBottom: 24 }}>{totalStudents} élève(s) dans la classe</p>
+          <Btn onClick={() => action('start')} size="lg" disabled={loading}>▶ Démarrer la question 1</Btn>
+        </div>}
+
+        {(status === 'active' || status === 'paused') && question && <div style={{ animation: "fadeIn 0.3s" }}>
+          {/* Progression */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontWeight: 700, opacity: 0.8, fontSize: 14 }}>Question {currentQ + 1} / {totalQuestions}</span>
+            <span style={{ fontWeight: 700, color: answeredCount === totalStudents ? "#00B894" : C.warning }}>👥 {answeredCount} / {totalStudents} ont répondu</span>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 8, marginBottom: 20, overflow: "hidden" }}>
+            <div style={{ width: `${((currentQ + 1) / totalQuestions) * 100}%`, height: "100%", background: C.primary, borderRadius: 10, transition: "width 0.4s" }} />
+          </div>
+
+          {/* Question */}
+          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 20, textAlign: "center" }}>
+            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.4 }}>{question.q}</p>
+          </div>
+
+          {/* Distribution */}
+          <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={status === 'paused'} />
+
+          {/* Explication si pause */}
+          {status === 'paused' && question.explanation && <div style={{ background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 12, padding: 14, marginTop: 16 }}>
+            <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0" }}>💡 Explication</p>
+            <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5, fontSize: 14 }}>{question.explanation}</p>
+          </div>}
+
+          {/* Boutons d'action */}
+          <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+            {status === 'active' && <Btn onClick={() => action('pause')} variant="secondary" disabled={loading}>⏸ Pause / Expliquer</Btn>}
+            {status === 'paused' && <Btn onClick={() => action('resume')} variant="secondary" disabled={loading}>▶ Reprendre</Btn>}
+            {!isLast
+              ? <Btn onClick={() => action('next')} disabled={loading}>Question suivante →</Btn>
+              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}>🏁 Terminer le quiz</Btn>}
+          </div>
+        </div>}
+
+        {status === 'finished' && <div style={{ textAlign: "center", paddingTop: 40 }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🏁</div>
+          <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 8 }}>Quiz terminé !</h2>
+          <p style={{ opacity: 0.7, marginBottom: 24 }}>Résultats ci-contre</p>
+          <Btn onClick={onClose}>Fermer le panneau</Btn>
+        </div>}
+      </div>
+
+      {/* Colonne droite — Classement */}
+      <div>
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, position: "sticky", top: 0 }}>
+          <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, margin: "0 0 12px 0" }}>🏆 Classement en direct</h3>
+          {(!leaderboard || leaderboard.length === 0) && <p style={{ opacity: 0.5, fontSize: 13 }}>En attente des premières réponses...</p>}
+          {(leaderboard || []).map((l, i) => {
+            const medals = ["🥇","🥈","🥉"];
+            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: i === 0 ? "rgba(253,203,110,0.15)" : "transparent", marginBottom: 4 }}>
+              <span style={{ width: 26, textAlign: "center", fontSize: i < 3 ? 16 : 12, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{l.firstName} {l.lastName}</span>
+              <span style={{ fontWeight: 800, color: C.primaryLight, fontSize: 14 }}>{l.score} ✓</span>
+            </div>;
+          })}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
 function Chip({ children, color = C.primary, style }) {
   return React.createElement('span', { style: { display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${color}18`, color, ...style } }, children);
 }
@@ -694,6 +978,28 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const studentTabs = [{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📚", label: "Matières" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }];
   const handleTabChange = (tab) => { setView(tab); setActiveCourse(null); setActiveSubject(null); };
 
+  // Live Quiz — détection et état
+  const [liveSession, setLiveSession] = useState(null);
+  const [inLive, setInLive] = useState(false);
+  const [liveDismissed, setLiveDismissed] = useState(null); // sessionId ignoré
+  React.useEffect(() => {
+    if (inLive) return;
+    let interval;
+    const detect = async () => {
+      try {
+        const res = await api.get(`live-quiz?classId=${currentStudent.classId}`);
+        if (res.session && res.session.status !== 'finished' && res.session.id !== liveDismissed) {
+          setLiveSession(res.session);
+        } else if (!res.session || res.session.status === 'finished') {
+          setLiveSession(null);
+        }
+      } catch(e) {}
+    };
+    detect();
+    interval = setInterval(detect, 2000);
+    return () => clearInterval(interval);
+  }, [currentStudent.classId, inLive, liveDismissed]);
+
   const handleComplete = async (actId, score) => {
     const prevBadgeIds = BADGES.filter(b => b.condition(myResults, currentStudent.streak, currentStudent.xp)).map(b => b.id);
     const result = await onActivityComplete(currentStudent.id, actId, score);
@@ -706,12 +1012,17 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
     setActiveActivity(null); setView("home");
   };
 
+  if (inLive && liveSession) {
+    return <LiveQuizStudent sessionId={liveSession.id} student={currentStudent} onExit={() => { setInLive(false); setLiveSession(null); }} />;
+  }
+
   if (activeActivity) {
     return <AnimatedBg><ActivityPlayer activity={activeActivity} onComplete={(score) => handleComplete(activeActivity.id, score)} onBack={() => setActiveActivity(null)} /></AnimatedBg>;
   }
 
   return <AnimatedBg>
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
+    {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
@@ -859,6 +1170,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [activeCourse, setActiveCourse] = useState(null);
   const [editCourseData, setEditCourseData] = useState(null);
   const [jsonImport, setJsonImport] = useState("");
+  // Live Quiz
+  const [liveSession, setLiveSession] = useState(null);
+  const [liveActivityTitle, setLiveActivityTitle] = useState("");
+  const [liveTotalQ, setLiveTotalQ] = useState(0);
+  const [liveModal, setLiveModal] = useState(null); // activityId en attente de lancement
+  const [liveClassId, setLiveClassId] = useState("");
 
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
 
@@ -1149,7 +1466,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {/* ACTIVITIES */}
       {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>🎮 Activités</h2><Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportCourseId(""); setModal("importJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn></div>
-        {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
+        {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10 }} size="xs">🔴 Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
       </div>}
       {isMobile && <BottomNav tabs={teacherTabs} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
     </div>
@@ -1409,6 +1726,30 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     </Modal>
 
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
+
+    {/* Modal de lancement Live Quiz */}
+    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="🔴 Lancer un Live Quiz">
+      {liveModal && (() => {
+        const act = data.activities.find(a => a.id === liveModal);
+        const availableClasses = data.classes.filter(c => act?.classIds?.includes(c.id));
+        return <div>
+          <p style={{ color: C.textLight, fontSize: 14, marginBottom: 20 }}>QCM : <strong>{liveActivityTitle}</strong></p>
+          <Select label="Classe" value={liveClassId} onChange={setLiveClassId} options={availableClasses.map(c => ({ value: c.id, label: c.name }))} />
+          <Btn fullWidth size="lg" style={{ background: "#D63031", marginTop: 8 }} disabled={!liveClassId} onClick={async () => {
+            const res = await api.post('live-quiz', { activityId: liveModal, classId: liveClassId });
+            if (res.sessionId) {
+              setLiveSession(res.sessionId);
+              setLiveTotalQ(res.totalQuestions);
+              setLiveModal(null);
+            }
+          }}>🔴 Lancer le Live Quiz</Btn>
+        </div>;
+      })()}
+    </Modal>
+
+    {/* Overlay Live Quiz Professeur */}
+    {liveSession && <LiveQuizTeacher sessionId={liveSession} activityTitle={liveActivityTitle} totalQuestions={liveTotalQ} classStudents={data.students} onClose={() => setLiveSession(null)} />}
+
   </AnimatedBg>;
 }
 
