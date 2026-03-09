@@ -940,22 +940,34 @@ function LoginScreen({ onLogin, data }) {
         <img src="/logo.png" alt="SmartKlass" style={{ width: 360, marginBottom: installPrompt ? 16 : 32, animation: "float 3s ease-in-out infinite" }} />
         {installPrompt && !installed && <button onClick={handleInstall} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 auto 24px auto", padding: "10px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontFamily: "'Nunito',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.35)" }}>📲 Installer l'application</button>}
         {installed && <p style={{ fontSize: 13, color: C.secondary, fontWeight: 700, marginBottom: 20 }}>Application installée !</p>}
-        <Card style={{ padding: 32 }}>
-          <div style={{ display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 24 }}>
-            {[{ id: "student", label: "👩‍🎓 Élève" }, { id: "teacher", label: "👩‍🏫 Professeur" }].map(m => <button key={m.id} onClick={() => { setMode(m.id); setError(""); setNeedPwd(false); setStudentPwd(""); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, transition: "all 0.2s", background: mode === m.id ? C.card : "transparent", color: mode === m.id ? C.primary : C.textLight, boxShadow: mode === m.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none" }}>{m.label}</button>)}
-          </div>
-          <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
-            <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
-              {mode === "student" ? <>
+
+        {mode === "teacher" ? (
+          <Card style={{ padding: 32 }}>
+            <button onClick={() => { setMode("student"); setError(""); setTeacherPwd(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 20, padding: 0 }}>← Retour</button>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 20px 0", color: C.text }}>👩‍🏫 Espace Professeur</h2>
+            <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
+              <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
+                <Input icon="🔒" label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />
+              </div>
+              {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
+              <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : "Se connecter →"}</Btn>
+            </form>
+          </Card>
+        ) : (
+          <Card style={{ padding: 32 }}>
+            <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
+              <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
                 <Input icon="🔑" label="Ton identifiant" value={studentId} name="username" autoComplete="username" onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Ex: STMG-1ÈRE-MART1" />
                 {needPwd && <Input icon="🔒" label="Ton mot de passe" value={studentPwd} name="password" autoComplete="current-password" onChange={setStudentPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe" />}
-              </> : <Input icon="🔒" label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />}
-            </div>
-            {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
-            <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : mode === "student" ? "Suivant →" : "Se connecter →"}</Btn>
-          </form>
-        </Card>
+              </div>
+              {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
+              <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : "Suivant →"}</Btn>
+            </form>
+          </Card>
+        )}
+
         <p style={{ marginTop: 20, fontSize: 12, color: C.textMuted }}>SmartKlass v2.0 — Plateforme STMG</p>
+        {mode === "student" && <button onClick={() => { setMode("teacher"); setError(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 11, color: C.textMuted, textDecoration: "underline", marginTop: 4, padding: 0 }}>Espace professeur</button>}
       </div>
     </div>
   </AnimatedBg>;
