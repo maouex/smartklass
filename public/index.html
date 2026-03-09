@@ -1237,7 +1237,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
   const saveCourseOrder = async (subjectCourses) => {
     const orders = subjectCourses.map((c, i) => ({ id: c.id, position: i }));
-    await api.patch('courses', { orders });
+    try {
+      await api.patch('courses', { orders });
+    } catch(e) {
+      console.error('Erreur lors de la sauvegarde de l\'ordre des cours:', e);
+    }
     await refreshData();
   };
 
@@ -1649,7 +1653,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         })() : <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
           {data.subjects.filter(sub => data.courses.some(c => c.subjectId === sub.id)).map(sub => {
-            const subCourses = data.courses.filter(c => c.subjectId === sub.id);
+            const subCourses = data.courses.filter(c => c.subjectId === sub.id).sort((a, b) => a.position - b.position);
             return <div key={sub.id} style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 18 }}>{sub.icon}</span>
@@ -1662,7 +1666,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDropCourseId(null); }}
                 onDrop={e => {
                   e.preventDefault();
-                  const from = e.dataTransfer.getData('text/plain'); const to = c.id;
+                  const from = dragCourseId || e.dataTransfer.getData('text/plain'); const to = c.id;
                   setDragCourseId(null); setDropCourseId(null);
                   if (!from || from === to) return;
                   const reordered = [...subCourses]; const fi = reordered.findIndex(x => x.id === from); const ti = reordered.findIndex(x => x.id === to);
