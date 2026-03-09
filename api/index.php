@@ -229,6 +229,13 @@ try {
                 jsonResponse($courses);
             } elseif ($method === 'POST') {
                 $body = getJsonBody();
+                if (isset($body['action']) && $body['action'] === 'reorder') {
+                    $stmt = $db->prepare('UPDATE courses SET position=? WHERE id=?');
+                    foreach ($body['orders'] as $item) {
+                        $stmt->execute([(int)$item['position'], $item['id']]);
+                    }
+                    jsonResponse(['success' => true]);
+                }
                 $newId = generateId();
                 $stmt = $db->prepare('INSERT INTO courses (id, subject_id, title, description, chapters, youtube_url) VALUES (?, ?, ?, ?, ?, ?)');
                 $stmt->execute([$newId, $body['subjectId'], $body['title'], $body['description'] ?? '', json_encode($body['chapters'] ?? [], JSON_UNESCAPED_UNICODE), $body['youtubeUrl'] ?? null]);
