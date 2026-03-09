@@ -1232,8 +1232,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
 
-  const dragCourseRef = React.useRef(null);
-  const dragOverCourseRef = React.useRef(null);
+  const [dragCourseId, setDragCourseId] = useState(null);
+  const [dropCourseId, setDropCourseId] = useState(null);
 
   const saveCourseOrder = async (subjectCourses) => {
     const orders = subjectCourses.map((c, i) => ({ id: c.id, position: i }));
@@ -1656,24 +1656,26 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 <span style={{ fontWeight: 800, fontSize: 15, color: sub.color }}>{sub.name}</span>
                 <span style={{ fontSize: 12, color: C.textMuted }}>— glissez pour réorganiser</span>
               </div>
-              {subCourses.map((c) => { const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <div key={c.id} draggable
-                onDragStart={e => { dragCourseRef.current = c.id; e.dataTransfer.effectAllowed = "move"; }}
-                onDragEnter={e => { e.preventDefault(); dragOverCourseRef.current = c.id; }}
-                onDragEnd={() => {
-                  const from = dragCourseRef.current; const to = dragOverCourseRef.current;
-                  dragCourseRef.current = null; dragOverCourseRef.current = null;
-                  if (!from || !to || from === to) return;
+              {subCourses.map((c) => { const nbActs = data.activities.filter(a => a.courseId === c.id).length; const isOver = dropCourseId === c.id && dragCourseId !== c.id; return <div key={c.id} draggable
+                onDragStart={e => { setDragCourseId(c.id); e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = "move"; }}
+                onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dropCourseId !== c.id) setDropCourseId(c.id); }}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDropCourseId(null); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  const from = e.dataTransfer.getData('text/plain'); const to = c.id;
+                  setDragCourseId(null); setDropCourseId(null);
+                  if (!from || from === to) return;
                   const reordered = [...subCourses]; const fi = reordered.findIndex(x => x.id === from); const ti = reordered.findIndex(x => x.id === to);
                   if (fi < 0 || ti < 0) return;
                   reordered.splice(ti, 0, reordered.splice(fi, 1)[0]);
                   saveCourseOrder(reordered);
                 }}
-                onDragOver={e => e.preventDefault()}
-                style={{ marginBottom: 8 }}>
+                onDragEnd={() => { setDragCourseId(null); setDropCourseId(null); }}
+                style={{ marginBottom: 8, opacity: dragCourseId === c.id ? 0.4 : 1, outline: isOver ? `2px solid ${C.primary}` : "2px solid transparent", borderRadius: 22, transition: "opacity 0.2s" }}>
                 <Card hover onClick={() => setActiveCourse(c)} style={{ cursor: "pointer" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} onMouseDown={e => e.currentTarget.closest('[draggable]').setAttribute('draggable', true)} title="Glisser pour réorganiser">⠿</span>
+                      <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
                       <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
