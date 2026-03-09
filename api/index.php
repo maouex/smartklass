@@ -217,12 +217,13 @@ try {
         // =====================================================================
         case 'courses':
             if ($method === 'GET') {
-                $stmt = $db->query('SELECT c.*, GROUP_CONCAT(cc.class_id) as class_ids FROM courses c LEFT JOIN course_classes cc ON c.id = cc.course_id GROUP BY c.id ORDER BY c.created_at DESC');
+                $stmt = $db->query('SELECT c.*, GROUP_CONCAT(cc.class_id) as class_ids FROM courses c LEFT JOIN course_classes cc ON c.id = cc.course_id GROUP BY c.id ORDER BY c.subject_id, c.position ASC, c.created_at ASC');
                 $courses = $stmt->fetchAll();
                 foreach ($courses as &$course) {
                     $course['classIds'] = $course['class_ids'] ? explode(',', $course['class_ids']) : [];
                     $course['chapters'] = json_decode($course['chapters'], true) ?? [];
                     $course['youtubeUrl'] = $course['youtube_url'] ?? null;
+                    $course['position'] = (int)($course['position'] ?? 0);
                     unset($course['class_ids'], $course['youtube_url']);
                 }
                 jsonResponse($courses);
@@ -251,13 +252,22 @@ try {
                     }
                 }
                 jsonResponse(['success' => true]);
+            } elseif ($method === 'PATCH') {
+                $body = getJsonBody();
+                if (isset($body['orders'])) {
+                    $stmt = $db->prepare('UPDATE courses SET position=? WHERE id=?');
+                    foreach ($body['orders'] as $item) {
+                        $stmt->execute([(int)$item['position'], $item['id']]);
+                    }
+                    jsonResponse(['success' => true]);
+                }
             } elseif ($method === 'DELETE' && $id) {
                 $db->prepare('DELETE FROM course_classes WHERE course_id = ?')->execute([$id]);
                 $db->prepare('DELETE FROM courses WHERE id = ?')->execute([$id]);
                 jsonResponse(['success' => true]);
             }
             break;
-        
+
         // =====================================================================
         // ACTIVITIES - Activités
         // =====================================================================
