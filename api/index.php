@@ -229,6 +229,7 @@ try {
                 jsonResponse($courses);
             } elseif ($method === 'POST') {
                 $body = getJsonBody();
+                // Réordonnancement des cours (PATCH non supporté sur O2switch)
                 if (isset($body['action']) && $body['action'] === 'reorder') {
                     $stmt = $db->prepare('UPDATE courses SET position=? WHERE id=?');
                     foreach ($body['orders'] as $item) {
