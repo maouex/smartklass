@@ -107,6 +107,14 @@ const api = {
     const res = await fetch(`${API_BASE}/${path}`, { method: 'DELETE' });
     return res.json();
   },
+  async patch(path, body) {
+    const res = await fetch(`${API_BASE}/${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  },
 };
 
 // --- BADGES ---
@@ -1224,6 +1232,15 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
 
+  const dragCourseRef = React.useRef(null);
+  const dragOverCourseRef = React.useRef(null);
+
+  const saveCourseOrder = async (subjectCourses) => {
+    const orders = subjectCourses.map((c, i) => ({ id: c.id, position: i }));
+    await api.patch('courses', { orders });
+    await refreshData();
+  };
+
   const [courseJsonImport, setCourseJsonImport] = useState("");
   const [courseImportStep, setCourseImportStep] = useState("paste");
   const [courseImportParsed, setCourseImportParsed] = useState(null);
@@ -1631,7 +1648,37 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           </>;
         })() : <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
-          {data.courses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, cursor: "pointer" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 6 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div></div><div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div></div></Card>; })}
+          {data.subjects.filter(sub => data.courses.some(c => c.subjectId === sub.id)).map(sub => {
+            const subCourses = data.courses.filter(c => c.subjectId === sub.id);
+            return <div key={sub.id} style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>{sub.icon}</span>
+                <span style={{ fontWeight: 800, fontSize: 15, color: sub.color }}>{sub.name}</span>
+                <span style={{ fontSize: 12, color: C.textMuted }}>— glissez pour réorganiser</span>
+              </div>
+              {subCourses.map((c, idx) => { const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} draggable
+                onDragStart={() => { dragCourseRef.current = c.id; }}
+                onDragEnter={() => { dragOverCourseRef.current = c.id; }}
+                onDragEnd={() => {
+                  const from = dragCourseRef.current; const to = dragOverCourseRef.current;
+                  if (!from || !to || from === to) { dragCourseRef.current = null; dragOverCourseRef.current = null; return; }
+                  const reordered = [...subCourses]; const fi = reordered.findIndex(x => x.id === from); const ti = reordered.findIndex(x => x.id === to);
+                  reordered.splice(ti, 0, reordered.splice(fi, 1)[0]);
+                  dragCourseRef.current = null; dragOverCourseRef.current = null;
+                  saveCourseOrder(reordered);
+                }}
+                onDragOver={e => e.preventDefault()}
+                style={{ marginBottom: 8, cursor: "grab" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
+                    <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
+                </div>
+              </Card>;})}
+            </div>;
+          })}
           {data.courses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours créé</p></Card>}
         </>}
       </div>}
