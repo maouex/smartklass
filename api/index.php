@@ -371,13 +371,14 @@ try {
                 $students = array_map('formatStudent', $db->query('SELECT * FROM students ORDER BY last_name')->fetchAll());
                 
                 // Courses avec classIds
-                $coursesRaw = $db->query('SELECT c.*, GROUP_CONCAT(cc.class_id) as class_ids FROM courses c LEFT JOIN course_classes cc ON c.id = cc.course_id GROUP BY c.id')->fetchAll();
+                $coursesRaw = $db->query('SELECT c.*, GROUP_CONCAT(cc.class_id) as class_ids FROM courses c LEFT JOIN course_classes cc ON c.id = cc.course_id GROUP BY c.id ORDER BY c.subject_id, c.position ASC, c.created_at ASC')->fetchAll();
                 $courses = [];
                 foreach ($coursesRaw as $c) {
                     $c['classIds'] = $c['class_ids'] ? explode(',', $c['class_ids']) : [];
                     $c['chapters'] = json_decode($c['chapters'], true) ?? [];
                     $c['subjectId'] = $c['subject_id'];
                     $c['youtubeUrl'] = $c['youtube_url'] ?? null;
+                    $c['position'] = (int)($c['position'] ?? 0);
                     unset($c['class_ids'], $c['subject_id'], $c['youtube_url']);
                     $courses[] = $c;
                 }
