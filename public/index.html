@@ -1215,6 +1215,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [editClassData, setEditClassData] = useState(null);
   const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "📊" });
   const [editSubjectData, setEditSubjectData] = useState(null);
+  const [activeSubject, setActiveSubject] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
   const [activeClass, setActiveClass] = useState(null);
   const [notifData, setNotifData] = useState({ typeId: 'new_course', customBody: '', pwd: '', sending: false, result: null });
@@ -1354,7 +1355,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const getStudentResults = (studentId) => { const student = data.students.find(s => s.id === studentId); if (!student) return null; const results = data.results.filter(r => r.studentId === studentId); const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; return { student, results, avgScore }; };
 
   const isMobile = useIsMobile();
-  const teacherTabs = [{ id: "overview", icon: "📊", label: "Résumé" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }];
+  const teacherTabs = [{ id: "overview", icon: "📊", label: "Résumé" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }];
 
   return <AnimatedBg>
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
@@ -1374,7 +1375,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>}
-      {!isMobile && <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
+      {!isMobile && <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); setActiveSubject(null); setActiveCourse(null); }} />}
 
       {/* OVERVIEW */}
       {view === "overview" && (() => {
@@ -1601,20 +1602,14 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         </div></Card>
       </div>}
 
-      {/* SUBJECTS */}
+      {/* SUBJECTS — navigation 3 niveaux : Matières → Cours → Fiche cours + Activités */}
       {view === "subjects" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📐 Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
-        {data.subjects.map(s => <Card key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}><div style={{ display: "flex", gap: 14, alignItems: "center" }}><div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{s.icon}</div><div><h3 style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{s.name}</h3></div></div><div style={{ display: "flex", gap: 6 }}><Btn onClick={() => { setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteSubject(s.id)} variant="danger" size="xs">🗑</Btn></div></Card>)}
-      </div>}
-
-      {/* COURSES */}
-      {view === "courses" && <div style={{ animation: "fadeIn 0.4s" }}>
         {activeCourse ? (() => {
           const sub = data.subjects.find(s => s.id === activeCourse.subjectId);
           const linkedActivities = data.activities.filter(a => a.courseId === activeCourse.id);
           const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
           return <>
-            <button onClick={() => setActiveCourse(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Retour aux cours</button>
+            <button onClick={() => setActiveCourse(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← {sub?.name || "Matière"}</button>
             <Card style={{ marginBottom: 14, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1644,60 +1639,75 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
               <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
             </Card>)}
-            {linkedActivities.length > 0 && <div style={{ marginTop: 10 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>🎮 Activités liées à ce cours</h3>
-              {linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icons[a.type]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></Card>; })}
-            </div>}
-            {activeCourse.chapters?.length === 0 && linkedActivities.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 36, marginBottom: 8 }}>📄</div><p style={{ fontWeight: 700, color: C.textLight }}>Ce cours n'a pas encore de contenu.</p><Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" style={{ marginTop: 10 }}>✏️ Modifier le cours</Btn></Card>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, marginBottom: 10 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>🎮 Activités</h3>
+              <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm">📥 Ajouter une activité</Btn>
+            </div>
+            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icons[a.type]}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10 }} size="xs">🔴 Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })
+            : <Card style={{ textAlign: "center", padding: 20 }}><p style={{ color: C.textLight, fontWeight: 700, margin: 0 }}>Aucune activité liée à ce cours.</p></Card>}
+          </>;
+        })() : activeSubject ? (() => {
+          const subCourses = data.courses.filter(c => c.subjectId === activeSubject.id).sort((a, b) => a.position - b.position);
+          return <>
+            <button onClick={() => setActiveSubject(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Matières</button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: `${activeSubject.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{activeSubject.icon}</div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{activeSubject.name}</h2>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn>
+                <Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: activeSubject.id, classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter un cours</Btn>
+              </div>
+            </div>
+            {subCourses.length > 0 && <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>— glissez pour réorganiser</div>}
+            {subCourses.map((c) => { const nbActs = data.activities.filter(a => a.courseId === c.id).length; const isOver = dropCourseId === c.id && dragCourseId !== c.id; return <div key={c.id} draggable
+              onDragStart={e => { setDragCourseId(c.id); e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = "move"; }}
+              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dropCourseId !== c.id) setDropCourseId(c.id); }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDropCourseId(null); }}
+              onDrop={e => {
+                e.preventDefault();
+                const from = dragCourseId || e.dataTransfer.getData('text/plain'); const to = c.id;
+                setDragCourseId(null); setDropCourseId(null);
+                if (!from || from === to) return;
+                const reordered = [...subCourses]; const fi = reordered.findIndex(x => x.id === from); const ti = reordered.findIndex(x => x.id === to);
+                if (fi < 0 || ti < 0) return;
+                reordered.splice(ti, 0, reordered.splice(fi, 1)[0]);
+                saveCourseOrder(reordered);
+              }}
+              onDragEnd={() => { setDragCourseId(null); setDropCourseId(null); }}
+              style={{ marginBottom: 8, opacity: dragCourseId === c.id ? 0.4 : 1, outline: isOver ? `2px solid ${C.primary}` : "2px solid transparent", borderRadius: 22, transition: "opacity 0.2s" }}>
+              <Card hover onClick={() => setActiveCourse(c)} style={{ cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
+                    <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
+                </div>
+              </Card>
+            </div>;})}
+            {subCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
           </>;
         })() : <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
-          {data.subjects.filter(sub => data.courses.some(c => c.subjectId === sub.id)).map(sub => {
-            const subCourses = data.courses.filter(c => c.subjectId === sub.id).sort((a, b) => a.position - b.position);
-            return <div key={sub.id} style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 18 }}>{sub.icon}</span>
-                <span style={{ fontWeight: 800, fontSize: 15, color: sub.color }}>{sub.name}</span>
-                <span style={{ fontSize: 12, color: C.textMuted }}>— glissez pour réorganiser</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📐 Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
+          {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📐</div><p style={{ fontWeight: 700 }}>Aucune matière créée</p></Card>}
+          {data.subjects.map(s => <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{s.icon}</div>
+              <div>
+                <h3 style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{s.name}</h3>
+                <p style={{ fontSize: 12, color: C.textLight, margin: "2px 0 0 0" }}>{data.courses.filter(c => c.subjectId === s.id).length} cours · {data.activities.filter(a => a.subjectId === s.id).length} activités</p>
               </div>
-              {subCourses.map((c) => { const nbActs = data.activities.filter(a => a.courseId === c.id).length; const isOver = dropCourseId === c.id && dragCourseId !== c.id; return <div key={c.id} draggable
-                onDragStart={e => { setDragCourseId(c.id); e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = "move"; }}
-                onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dropCourseId !== c.id) setDropCourseId(c.id); }}
-                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDropCourseId(null); }}
-                onDrop={e => {
-                  e.preventDefault();
-                  const from = dragCourseId || e.dataTransfer.getData('text/plain'); const to = c.id;
-                  setDragCourseId(null); setDropCourseId(null);
-                  if (!from || from === to) return;
-                  const reordered = [...subCourses]; const fi = reordered.findIndex(x => x.id === from); const ti = reordered.findIndex(x => x.id === to);
-                  if (fi < 0 || ti < 0) return;
-                  reordered.splice(ti, 0, reordered.splice(fi, 1)[0]);
-                  saveCourseOrder(reordered);
-                }}
-                onDragEnd={() => { setDragCourseId(null); setDropCourseId(null); }}
-                style={{ marginBottom: 8, opacity: dragCourseId === c.id ? 0.4 : 1, outline: isOver ? `2px solid ${C.primary}` : "2px solid transparent", borderRadius: 22, transition: "opacity 0.2s" }}>
-                <Card hover onClick={() => setActiveCourse(c)} style={{ cursor: "pointer" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
-                      <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
-                  </div>
-                </Card>
-              </div>;})}
-            </div>;
-          })}
-          {data.courses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours créé</p></Card>}
+            </div>
+            <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+              <Btn onClick={e => { e.stopPropagation(); setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs">✏️</Btn>
+              <Btn onClick={e => { e.stopPropagation(); deleteSubject(s.id); }} variant="danger" size="xs">🗑</Btn>
+            </div>
+          </Card>)}
         </>}
       </div>}
-
-      {/* ACTIVITIES */}
-      {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>🎮 Activités</h2><Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportCourseId(""); setModal("importJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn></div>
-        {data.activities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{sub?.icon || "🎮"}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10 }} size="xs">🔴 Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })}
-      </div>}
-      {isMobile && <BottomNav tabs={teacherTabs} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
+      {isMobile && <BottomNav tabs={teacherTabs} active={view} onChange={tab => { setView(tab); setActiveClass(null); setActiveSubject(null); setActiveCourse(null); }} />}
     </div>
 
     {/* MODALS */}
