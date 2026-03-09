@@ -1340,18 +1340,130 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {!isMobile && <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "students", icon: "👩‍🎓", label: "Élèves" }, { id: "subjects", icon: "📐", label: "Matières" }, { id: "courses", icon: "📖", label: "Cours" }, { id: "activities", icon: "🎮", label: "Activités" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); }} />}
 
       {/* OVERVIEW */}
-      {view === "overview" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-          <StatCard icon="👩‍🎓" label="Élèves" value={totalStudents} color={C.primary} />
-          <StatCard icon="📖" label="Cours" value={data.courses.length} color={C.secondary} />
-          <StatCard icon="🎮" label="Activités" value={data.activities.length} color={C.accent} />
-          <StatCard icon="⚡" label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
-        </div>
-        <Card style={{ background: `${C.primary}08`, border: `2px solid ${C.primary}20` }}>
-          <h3 style={{ fontWeight: 800, marginBottom: 6 }}>💡 Import via Claude</h3>
-          <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec Claude → Activités ou Cours → Importer JSON. Demandez à Claude d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
-        </Card>
-      </div>}
+      {view === "overview" && (() => {
+        const now = Date.now();
+        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+        const participationMax = data.activities.reduce((acc, act) => acc + data.students.filter(s => (act.classIds || []).includes(s.classId)).length, 0);
+        const participationRate = participationMax > 0 ? Math.round(data.results.length / participationMax * 100) : 0;
+        const avgScore = data.results.length > 0 ? Math.round(data.results.reduce((a, r) => a + r.score, 0) / data.results.length) : 0;
+        const activeStudents = data.students.filter(s => s.lastActive && new Date(s.lastActive).getTime() >= sevenDaysAgo).length;
+        const avgStreak = totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + (s.streak || 0), 0) / totalStudents) : 0;
+
+        const classSummary = data.classes.map(cls => {
+          const classStudents = data.students.filter(s => s.classId === cls.id);
+          const classActIds = data.activities.filter(a => (a.classIds || []).includes(cls.id)).map(a => a.id);
+          const classResults = data.results.filter(r => classStudents.some(s => s.id === r.studentId) && classActIds.includes(r.activityId));
+          const pMax = classStudents.length * classActIds.length;
+          return { cls, count: classStudents.length, participation: pMax > 0 ? Math.round(classResults.length / pMax * 100) : 0, avgScore: classResults.length > 0 ? Math.round(classResults.reduce((a, r) => a + r.score, 0) / classResults.length) : 0 };
+        });
+
+        const recentResults = [...data.results]
+          .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+          .slice(0, 5)
+          .map(r => ({ student: data.students.find(s => s.id === r.studentId), activity: data.activities.find(a => a.id === r.activityId), score: r.score, date: r.completedAt }))
+          .filter(r => r.student && r.activity);
+
+        const inactiveStudents = data.students.filter(s => !s.lastActive || new Date(s.lastActive).getTime() < sevenDaysAgo);
+        const lowParticipationActs = data.activities
+          .map(act => { const targeted = data.students.filter(s => (act.classIds || []).includes(s.classId)).length; const done = data.results.filter(r => r.activityId === act.id).length; const pct = targeted > 0 ? Math.round(done / targeted * 100) : 0; return { act, pct, targeted }; })
+          .filter(x => x.targeted > 0 && x.pct < 30);
+
+        const relativeDate = d => { const diff = Math.floor((now - new Date(d).getTime()) / 86400000); if (diff === 0) return "aujourd'hui"; if (diff === 1) return "hier"; return `il y a ${diff}j`; };
+        const scoreColor = s => s >= 70 ? "#00B894" : s >= 40 ? "#E67E22" : "#D63031";
+
+        return <div style={{ animation: "fadeIn 0.4s" }}>
+          {/* Rangée 1 — KPIs de base */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+            <StatCard icon="👩‍🎓" label="Élèves" value={totalStudents} color={C.primary} />
+            <StatCard icon="📖" label="Cours" value={data.courses.length} color={C.secondary} />
+            <StatCard icon="🎮" label="Activités" value={data.activities.length} color={C.accent} />
+            <StatCard icon="⚡" label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
+          </div>
+
+          {/* Rangée 2 — KPIs d'engagement */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+            <StatCard icon="📊" label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
+            <StatCard icon="🎯" label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
+            <StatCard icon="🔥" label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
+            <StatCard icon="⚡" label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
+          </div>
+
+          {/* Aperçu par classe */}
+          {data.classes.length > 0 && <Card style={{ marginBottom: 16, padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🏫 Aperçu par classe</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#F8F9FD" }}>
+                    <th style={{ padding: "10px 18px", textAlign: "left", fontWeight: 700, color: C.textLight }}>Classe</th>
+                    <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: C.textLight }}>Élèves</th>
+                    <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: C.textLight }}>Participation</th>
+                    <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: C.textLight }}>Score moyen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classSummary.map(({ cls, count, participation, avgScore: as }, i) => <tr key={cls.id} style={{ borderTop: "1px solid #F0F0F8", background: i % 2 === 0 ? "#fff" : "#FAFBFF" }}>
+                    <td style={{ padding: "10px 18px", fontWeight: 700 }}>{cls.name}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "center", color: C.textLight, fontWeight: 600 }}>{count}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "center" }}><span style={{ fontWeight: 800, color: scoreColor(participation) }}>{participation}%</span></td>
+                    <td style={{ padding: "10px 14px", textAlign: "center" }}><span style={{ fontWeight: 800, color: scoreColor(as) }}>{as > 0 ? `${as}%` : "—"}</span></td>
+                  </tr>)}
+                </tbody>
+              </table>
+            </div>
+          </Card>}
+
+          {/* Colonnes : dernières activités + alertes */}
+          <div style={{ display: "flex", gap: 14, marginBottom: 16, flexWrap: "wrap" }}>
+            <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🕐 Dernières activités</div>
+              {recentResults.length === 0
+                ? <p style={{ padding: "16px 18px", color: C.textMuted, fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune activité complétée pour l'instant.</p>
+                : recentResults.map((r, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: i > 0 ? "1px solid #F0F0F8" : "none" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.student.firstName} {r.student.lastName}</div>
+                      <div style={{ fontSize: 12, color: C.textLight, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.activity.title}</div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: scoreColor(r.score) }}>{r.score}%</div>
+                      <div style={{ fontSize: 11, color: C.textMuted }}>{relativeDate(r.date)}</div>
+                    </div>
+                  </div>)}
+            </Card>
+
+            <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>⚠️ Alertes engagement</div>
+              {inactiveStudents.length === 0 && lowParticipationActs.length === 0
+                ? <p style={{ padding: "16px 18px", color: "#00B894", fontSize: 13, fontWeight: 700, margin: 0 }}>✅ Tout va bien — aucune alerte !</p>
+                : <div>
+                    {inactiveStudents.length > 0 && <>
+                      <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Inactifs depuis + 7 jours ({inactiveStudents.length})</div>
+                      {inactiveStudents.slice(0, 4).map(s => <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 16px", borderTop: "1px solid #F0F0F8" }}>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{s.firstName} {s.lastName}</span>
+                        <span style={{ fontSize: 12, color: C.danger, fontWeight: 700 }}>{s.lastActive ? relativeDate(s.lastActive) : "jamais connecté"}</span>
+                      </div>)}
+                      {inactiveStudents.length > 4 && <div style={{ padding: "6px 16px", fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>+ {inactiveStudents.length - 4} autres</div>}
+                    </>}
+                    {lowParticipationActs.length > 0 && <>
+                      <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px", borderTop: inactiveStudents.length > 0 ? "1px solid #EEEEF6" : "none" }}>Activités peu suivies (&lt;30%)</div>
+                      {lowParticipationActs.slice(0, 3).map(({ act, pct }) => <div key={act.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 16px", borderTop: "1px solid #F0F0F8" }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{act.title}</span>
+                        <span style={{ fontSize: 12, color: "#E67E22", fontWeight: 700, flexShrink: 0, marginLeft: 8 }}>{pct}%</span>
+                      </div>)}
+                      {lowParticipationActs.length > 3 && <div style={{ padding: "6px 16px", fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>+ {lowParticipationActs.length - 3} autres</div>}
+                    </>}
+                  </div>}
+            </Card>
+          </div>
+
+          {/* Encart Import via Claude */}
+          <Card style={{ background: `${C.primary}08`, border: `2px solid ${C.primary}20` }}>
+            <h3 style={{ fontWeight: 800, marginBottom: 6 }}>💡 Import via Claude</h3>
+            <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec Claude → Activités ou Cours → Importer JSON. Demandez à Claude d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
+          </Card>
+        </div>;
+      })()}
 
       {/* CLASSES */}
       {view === "classes" && <div style={{ animation: "fadeIn 0.4s" }}>
