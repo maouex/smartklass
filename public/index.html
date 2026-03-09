@@ -1238,7 +1238,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const saveCourseOrder = async (subjectCourses) => {
     const orders = subjectCourses.map((c, i) => ({ id: c.id, position: i }));
     try {
-      await api.patch('courses', { orders });
+      await api.post('courses', { action: 'reorder', orders });
     } catch(e) {
       console.error('Erreur lors de la sauvegarde de l\'ordre des cours:', e);
     }
