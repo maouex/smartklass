@@ -1225,18 +1225,33 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
 
   const [courseJsonImport, setCourseJsonImport] = useState("");
-  const importCourseJson = async () => {
+  const [courseImportStep, setCourseImportStep] = useState("paste"); // paste | configure
+  const [courseImportParsed, setCourseImportParsed] = useState(null);
+  const [courseImportSubjectId, setCourseImportSubjectId] = useState("");
+  const [courseImportClassIds, setCourseImportClassIds] = useState([]);
+
+  const isPlaceholder = v => !v || v.toString().startsWith("__");
+
+  const importCourseJsonParse = () => {
     let parsed;
     try { parsed = JSON.parse(courseJsonImport); } catch (e) { alert("❌ JSON invalide :\n" + e.message); return; }
     if (!parsed.title) { alert("❌ Le champ 'title' est obligatoire."); return; }
-    const subId = parsed.subjectId || data.subjects[0]?.id;
-    if (!data.subjects.find(s => s.id === subId)) { alert("❌ subjectId invalide. IDs valides : " + data.subjects.map(s => s.id).join(", ")); return; }
+    setCourseImportParsed(parsed);
+    const validSubject = data.subjects.find(s => s.id === parsed.subjectId && !isPlaceholder(parsed.subjectId));
+    setCourseImportSubjectId(validSubject ? validSubject.id : data.subjects[0]?.id || "");
+    const validClassIds = (parsed.classIds || []).filter(cid => !isPlaceholder(cid) && data.classes.some(c => c.id === cid));
+    setCourseImportClassIds(validClassIds.length > 0 ? validClassIds : data.classes.map(c => c.id));
+    setCourseImportStep("configure");
+  };
+
+  const importCourseJsonSubmit = async () => {
+    if (!courseImportParsed || !courseImportSubjectId || courseImportClassIds.length === 0) { alert("❌ Sélectionne une matière et au moins une classe."); return; }
     try {
-      const payload = { subjectId: subId, classIds: parsed.classIds || data.classes.map(c => c.id), title: parsed.title, description: parsed.description || "", chapters: parsed.chapters || [] };
+      const payload = { subjectId: courseImportSubjectId, classIds: courseImportClassIds, title: courseImportParsed.title, description: courseImportParsed.description || "", chapters: courseImportParsed.chapters || [] };
       const res = await api.post('courses', payload);
       if (res.error) { alert("❌ Erreur : " + res.error); return; }
-      alert("✅ Cours '" + parsed.title + "' importé avec succès !");
-      setCourseJsonImport(""); setModal(null); await refreshData();
+      alert("✅ Cours '" + courseImportParsed.title + "' importé avec succès !");
+      setCourseJsonImport(""); setCourseImportParsed(null); setCourseImportStep("paste"); setModal(null); await refreshData();
     } catch (e) { alert("❌ Erreur API :\n" + e.message); }
   };
 
@@ -1280,15 +1295,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     const validTypes = ["qcm", "flashcards", "truefalse", "fillblank", "matching"];
     if (!validTypes.includes(parsed.type)) { alert("❌ Type '" + parsed.type + "' invalide.\nAcceptés : " + validTypes.join(", ")); return; }
     setImportParsed(parsed);
-    // Pre-select subject if valid, else first
-    const validSubject = data.subjects.find(s => s.id === parsed.subjectId);
+    // Pre-select subject if valid (ignore placeholders), else first
+    const validSubject = data.subjects.find(s => s.id === parsed.subjectId && !isPlaceholder(parsed.subjectId));
     setImportSubjectId(validSubject ? validSubject.id : data.subjects[0]?.id || "");
-    // Pre-select classes if valid, else all
-    if (parsed.classIds && parsed.classIds.length > 0 && parsed.classIds.every(cid => data.classes.some(c => c.id === cid))) {
-      setImportClassIds(parsed.classIds);
-    } else {
-      setImportClassIds(data.classes.map(c => c.id));
-    }
+    // Pre-select classes if valid (ignore placeholders), else all
+    const validClassIds = (parsed.classIds || []).filter(cid => !isPlaceholder(cid) && data.classes.some(c => c.id === cid));
+    setImportClassIds(validClassIds.length > 0 ? validClassIds : data.classes.map(c => c.id));
     setImportStep("configure");
   };
 
@@ -1614,7 +1626,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             {activeCourse.chapters?.length === 0 && linkedActivities.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 36, marginBottom: 8 }}>📄</div><p style={{ fontWeight: 700, color: C.textLight }}>Ce cours n'a pas encore de contenu.</p><Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" style={{ marginTop: 10 }}>✏️ Modifier le cours</Btn></Card>}
           </>;
         })() : <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📖 Cours</h2><div style={{ display: "flex", gap: 8 }}><Btn onClick={() => { setCourseJsonImport(""); setCourseImportParsed(null); setCourseImportStep("paste"); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn><Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter</Btn></div></div>
           {data.courses.map(c => { const sub = data.subjects.find(s => s.id === c.subjectId); const nbActs = data.activities.filter(a => a.courseId === c.id).length; return <Card key={c.id} hover onClick={() => setActiveCourse(c)} style={{ marginBottom: 10, cursor: "pointer" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: `${sub?.color || "#999"}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{sub?.icon || "📖"}</div><div><Chip color={sub?.color}>{sub?.name}</Chip><h3 style={{ fontSize: 16, fontWeight: 800, margin: "4px 0" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 6 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div></div><div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div></div></Card>; })}
           {data.courses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours créé</p></Card>}
         </>}
@@ -1772,20 +1784,43 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       <pre style={{ background: "#1E1E2E", color: "#CDD6F4", padding: 16, borderRadius: 12, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>{getExportText(selectedClass)}</pre>
     </Modal>
 
-    <Modal open={modal === "importCourseJson"} onClose={() => setModal(null)} title="📥 Importer un cours (JSON)" wide>
-      <p style={{ fontSize: 13, color: C.textLight, marginBottom: 6 }}>Collez le JSON généré par Claude. Format attendu :</p>
-      <code style={{ display: "block", background: "#1E1E2E", color: "#A6E3A1", padding: 12, borderRadius: 10, fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{`{
+    <Modal open={modal === "importCourseJson"} onClose={() => { setModal(null); setCourseImportStep("paste"); setCourseImportParsed(null); }} title={courseImportStep === "paste" ? "📥 Importer JSON — Étape 1/2" : "⚙️ Configurer le cours — Étape 2/2"} wide>
+      {courseImportStep === "paste" && <>
+        <p style={{ fontSize: 13, color: C.textLight, marginBottom: 10 }}>Collez le JSON généré par Claude, puis cliquez "Suivant" pour configurer la matière et la classe.</p>
+        <code style={{ display: "block", background: "#1E1E2E", color: "#A6E3A1", padding: 12, borderRadius: 10, fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{`{
   "title": "Titre du cours",
   "description": "Résumé du cours",
-  "subjectId": "${data.subjects[0]?.id || 'sdgn'}",
-  "classIds": [${data.classes.map(c => `"${c.id}"`).join(', ')}],
+  "subjectId": "__A_CHOISIR__",
+  "classIds": ["__A_CHOISIR__"],
   "chapters": [
-    { "title": "Chapitre 1 : ...", "content": "Le contenu du chapitre..." },
-    { "title": "Chapitre 2 : ...", "content": "..." }
+    { "title": "Chapitre 1 : ...", "content": "Le contenu du chapitre..." }
   ]
 }`}</code>
-      <textarea value={courseJsonImport} onChange={e => setCourseJsonImport(e.target.value)} placeholder='Collez le JSON du cours ici...' style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
-      <div style={{ marginTop: 10 }}><Btn onClick={importCourseJson} fullWidth size="lg" variant="secondary">📥 Importer le cours</Btn></div>
+        <textarea value={courseJsonImport} onChange={e => setCourseJsonImport(e.target.value)} placeholder='Collez le JSON du cours ici...' style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
+        <div style={{ marginTop: 12 }}><Btn onClick={importCourseJsonParse} fullWidth size="lg">Suivant →</Btn></div>
+      </>}
+      {courseImportStep === "configure" && courseImportParsed && <>
+        <Card style={{ padding: 16, marginBottom: 16, background: "#F8F9FD" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 28 }}>📖</span>
+            <div><div style={{ fontWeight: 800, fontSize: 15 }}>{courseImportParsed.title}</div><div style={{ fontSize: 12, color: C.textLight }}>{(courseImportParsed.chapters || []).length} chapitre{(courseImportParsed.chapters || []).length !== 1 ? "s" : ""}</div></div>
+          </div>
+        </Card>
+        <Select label="📐 Matière" value={courseImportSubjectId} onChange={setCourseImportSubjectId} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>🏫 Classes</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: courseImportClassIds.includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: courseImportClassIds.includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
+              <input type="checkbox" checked={courseImportClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setCourseImportClassIds(ids => [...ids, c.id]); else setCourseImportClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: "none" }} />
+              <span style={{ fontWeight: 600, color: courseImportClassIds.includes(c.id) ? C.primary : C.textLight }}>{courseImportClassIds.includes(c.id) ? "✅ " : ""}{c.name}</span>
+            </label>)}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <Btn onClick={() => { setCourseImportStep("paste"); setCourseImportParsed(null); }} variant="ghost" style={{ flex: 1 }}>← Retour</Btn>
+          <Btn onClick={importCourseJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!courseImportSubjectId || courseImportClassIds.length === 0}>📥 Importer le cours</Btn>
+        </div>
+      </>}
     </Modal>
 
     <Modal open={modal === "previewActivity"} onClose={() => setModal(null)} title="👁 Aperçu" wide>
