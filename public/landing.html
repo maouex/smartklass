@@ -373,6 +373,117 @@
             .ai-step { width: 100%; max-width: 320px; }
         }
 
+        /* ── Live Quiz ── */
+        .livequiz-section {
+            background: linear-gradient(135deg, #E17055 0%, #F39C6B 50%, #FDCB6E 100%);
+            color: white; position: relative; overflow: hidden;
+        }
+        .livequiz-section::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .livequiz-section .section-title { color: white; }
+        .livequiz-section .section-subtitle { color: rgba(255,255,255,0.9); }
+        .livequiz-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 20px; border-radius: 50px; font-weight: 700; font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .livequiz-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #ff4444;
+            animation: pulse 1.5s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(255,68,68,0.6);
+        }
+        .livequiz-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 48px; align-items: center; margin-top: 48px;
+        }
+        .livequiz-features {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .livequiz-feature {
+            display: flex; align-items: flex-start; gap: 16px;
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 16px; padding: 20px;
+            transition: transform 0.3s, background 0.3s;
+        }
+        .livequiz-feature:hover { transform: translateY(-4px); background: rgba(255,255,255,0.2); }
+        .livequiz-feature-icon {
+            width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .livequiz-feature h4 { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+        .livequiz-feature p { font-size: 14px; opacity: 0.9; line-height: 1.5; margin: 0; }
+        .livequiz-mockup {
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px; padding: 32px;
+            position: relative;
+        }
+        .livequiz-mockup-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .livequiz-mockup-title {
+            font-size: 18px; font-weight: 800;
+        }
+        .livequiz-mockup-live {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,68,68,0.3); border: 1px solid rgba(255,68,68,0.5);
+            padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 700;
+        }
+        .livequiz-mockup-question {
+            background: rgba(255,255,255,0.15); border-radius: 12px; padding: 20px;
+            margin-bottom: 16px; font-size: 16px; font-weight: 700;
+        }
+        .livequiz-mockup-options {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .livequiz-mockup-option {
+            padding: 14px; border-radius: 10px; text-align: center;
+            font-weight: 700; font-size: 14px; cursor: default;
+        }
+        .livequiz-mockup-bar {
+            margin-top: 20px; display: flex; align-items: center; gap: 12px;
+        }
+        .livequiz-mockup-timer {
+            font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums;
+        }
+        .livequiz-mockup-progress {
+            flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden;
+        }
+        .livequiz-mockup-progress-fill {
+            height: 100%; width: 65%; background: white; border-radius: 3px;
+            animation: gradientShift 2s ease-in-out infinite alternate;
+        }
+        .livequiz-mockup-players {
+            margin-top: 16px; display: flex; align-items: center; gap: 8px;
+            font-size: 13px; opacity: 0.85;
+        }
+        .livequiz-mockup-avatars {
+            display: flex;
+        }
+        .livequiz-mockup-avatar {
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; margin-left: -8px;
+        }
+        .livequiz-mockup-avatar:first-child { margin-left: 0; }
+
+        @media (max-width: 768px) {
+            .livequiz-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .livequiz-mockup-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ── How it works ── */
         .steps-container {
             display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;
@@ -583,6 +694,9 @@ const Icon = ({ name, size = 24, color = "currentColor" }) => {
         flame: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
         users: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
         menu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+        radio: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/><circle cx="12" cy="12" r="2"/></svg>,
+        timer: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/><path d="M12 2v2"/></svg>,
+        podium: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="14" width="6" height="8" rx="1"/><rect x="9" y="8" width="6" height="14" rx="1"/><rect x="16" y="11" width="6" height="11" rx="1"/></svg>,
     };
     return icons[name] || null;
 };
@@ -792,12 +906,12 @@ const LandingPage = () => {
         },
         {
             name: 'Essentiel', price: '9,90', period: '€/mois',
-            features: ['5 classes', '150 élèves', 'Activités illimitées', 'SmartKlass IA (10 générations/mois)', 'Export statistiques', 'Notifications push'],
+            features: ['5 classes', '150 élèves', 'Activités illimitées', 'SmartKlass IA (10 générations/mois)', 'Live Quiz (5 sessions/mois)', 'Export statistiques', 'Notifications push'],
             featured: true
         },
         {
             name: 'Premium', price: '19,90', period: '€/mois',
-            features: ['Classes illimitées', 'Élèves illimités', 'SmartKlass IA illimité', 'Support prioritaire', 'Personnalisation', 'Quiz en direct'],
+            features: ['Classes illimitées', 'Élèves illimités', 'SmartKlass IA illimité', 'Live Quiz illimité', 'Classements & podiums', 'Support prioritaire', 'Personnalisation'],
             featured: false
         },
     ];
@@ -805,6 +919,7 @@ const LandingPage = () => {
     const faqs = [
         { q: 'SmartKlass fonctionne-t-il sur téléphone ?', a: 'Oui ! SmartKlass est une Progressive Web App (PWA) installable directement depuis le navigateur sur iOS et Android. Vos élèves peuvent y accéder depuis n\'importe quel appareil, même hors-ligne.' },
         { q: 'Comment fonctionne SmartKlass IA ?', a: 'Déposez simplement un PDF de cours et notre IA analyse le contenu pour générer automatiquement des QCM, flashcards, vrai/faux et autres activités adaptées. Vous pouvez ensuite les modifier avant de les publier.' },
+        { q: 'Comment fonctionne le mode Live Quiz ?', a: 'Le professeur lance un quiz en direct depuis son tableau de bord. Les élèves rejoignent avec un code depuis leur téléphone. Les questions défilent avec un chrono, les réponses sont comptabilisées en temps réel et un classement s\'affiche entre chaque question. Les XP gagnés comptent dans la progression globale. Disponible dès le plan Essentiel.' },
         { q: 'Puis-je importer mes contenus existants ?', a: 'Absolument. SmartKlass supporte l\'import de contenu au format JSON. Vous pouvez aussi créer vos activités manuellement ou les générer avec SmartKlass IA.' },
         { q: 'Les données des élèves sont-elles sécurisées ?', a: 'Oui, la sécurité est notre priorité. Les données sont hébergées en France, les mots de passe sont chiffrés et l\'accès est protégé par authentification.' },
         { q: 'Puis-je tester avant de m\'abonner ?', a: 'Bien sûr ! Le plan Découverte est entièrement gratuit et vous permet de tester toutes les fonctionnalités de base avec une classe de 20 élèves.' },
@@ -822,10 +937,10 @@ const LandingPage = () => {
                     </a>
                     <nav className="header-nav">
                         <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                        <a href="#livequiz" onClick={(e) => { e.preventDefault(); scrollTo('livequiz'); }}>Live Quiz</a>
                         <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
                         <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
-                        <a href="/index.html" style={{color:'var(--text-light)'}}>Se connecter</a>
-                        <a href="#tarifs" className="header-cta" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Essayer gratuitement</a>
+                        <a href="/index.html" className="header-cta">Se connecter</a>
                     </nav>
                     <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
                         <span/><span/><span/>
@@ -836,10 +951,10 @@ const LandingPage = () => {
             {/* Mobile Nav */}
             <div className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
                 <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                <a href="#livequiz" onClick={(e) => { e.preventDefault(); scrollTo('livequiz'); }}>Live Quiz</a>
                 <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
                 <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
-                <a href="/index.html">Se connecter</a>
-                <a href="#tarifs" className="btn-primary" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Essayer gratuitement</a>
+                <a href="/index.html" className="btn-primary">Se connecter</a>
             </div>
 
             {/* ── Hero ── */}
@@ -913,6 +1028,104 @@ const LandingPage = () => {
                                 </div>
                             </RevealDiv>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Live Quiz ── */}
+            <section className="section livequiz-section" id="livequiz">
+                <div className="section-inner" style={{position:'relative',zIndex:1}}>
+                    <RevealDiv style={{textAlign:'center'}}>
+                        <div className="livequiz-badge">
+                            <div className="livequiz-dot"/> EN DIRECT
+                        </div>
+                        <div className="section-title">Live Quiz</div>
+                        <div className="section-subtitle">
+                            Lancez des quiz en temps réel en classe. Vos élèves répondent simultanément
+                            depuis leur téléphone — ambiance garantie, apprentissage maximisé.
+                        </div>
+                    </RevealDiv>
+                    <div className="livequiz-grid">
+                        <div className="livequiz-features">
+                            <RevealDiv delay={1}>
+                                <div className="livequiz-feature">
+                                    <div className="livequiz-feature-icon">
+                                        <Icon name="radio" size={24} color="white"/>
+                                    </div>
+                                    <div>
+                                        <h4>Temps réel</h4>
+                                        <p>Les réponses s'affichent en direct. Chaque élève voit sa progression et le classement se met à jour instantanément.</p>
+                                    </div>
+                                </div>
+                            </RevealDiv>
+                            <RevealDiv delay={2}>
+                                <div className="livequiz-feature">
+                                    <div className="livequiz-feature-icon">
+                                        <Icon name="timer" size={24} color="white"/>
+                                    </div>
+                                    <div>
+                                        <h4>Chrono & suspense</h4>
+                                        <p>Un compte à rebours par question pour maintenir la tension. Plus la réponse est rapide, plus les points sont élevés.</p>
+                                    </div>
+                                </div>
+                            </RevealDiv>
+                            <RevealDiv delay={3}>
+                                <div className="livequiz-feature">
+                                    <div className="livequiz-feature-icon">
+                                        <Icon name="podium" size={24} color="white"/>
+                                    </div>
+                                    <div>
+                                        <h4>Classement en direct</h4>
+                                        <p>Podium affiché entre chaque question. Les XP gagnés en Live Quiz comptent dans la progression globale de l'élève.</p>
+                                    </div>
+                                </div>
+                            </RevealDiv>
+                            <RevealDiv delay={4}>
+                                <div className="livequiz-feature">
+                                    <div className="livequiz-feature-icon">
+                                        <Icon name="users" size={24} color="white"/>
+                                    </div>
+                                    <div>
+                                        <h4>Toute la classe ensemble</h4>
+                                        <p>Le prof projette le quiz, les élèves rejoignent avec un code. Aucune installation requise — juste un navigateur.</p>
+                                    </div>
+                                </div>
+                            </RevealDiv>
+                        </div>
+                        <RevealDiv delay={2}>
+                            <div className="livequiz-mockup">
+                                <div className="livequiz-mockup-header">
+                                    <div className="livequiz-mockup-title">Quiz : Le marché</div>
+                                    <div className="livequiz-mockup-live">
+                                        <div className="livequiz-dot"/> LIVE
+                                    </div>
+                                </div>
+                                <div className="livequiz-mockup-question">
+                                    Qu'est-ce qu'un marché oligopolistique ?
+                                </div>
+                                <div className="livequiz-mockup-options">
+                                    <div className="livequiz-mockup-option" style={{background:'rgba(108,92,231,0.5)'}}>Un seul vendeur</div>
+                                    <div className="livequiz-mockup-option" style={{background:'rgba(0,184,148,0.5)', border:'2px solid rgba(255,255,255,0.6)'}}>Peu de vendeurs</div>
+                                    <div className="livequiz-mockup-option" style={{background:'rgba(225,112,85,0.5)'}}>Beaucoup de vendeurs</div>
+                                    <div className="livequiz-mockup-option" style={{background:'rgba(253,203,110,0.5)'}}>Aucun vendeur</div>
+                                </div>
+                                <div className="livequiz-mockup-bar">
+                                    <div className="livequiz-mockup-timer">0:12</div>
+                                    <div className="livequiz-mockup-progress">
+                                        <div className="livequiz-mockup-progress-fill"/>
+                                    </div>
+                                </div>
+                                <div className="livequiz-mockup-players">
+                                    <div className="livequiz-mockup-avatars">
+                                        <div className="livequiz-mockup-avatar" style={{background:'rgba(108,92,231,0.6)'}}>L</div>
+                                        <div className="livequiz-mockup-avatar" style={{background:'rgba(0,184,148,0.6)'}}>M</div>
+                                        <div className="livequiz-mockup-avatar" style={{background:'rgba(225,112,85,0.6)'}}>S</div>
+                                        <div className="livequiz-mockup-avatar" style={{background:'rgba(253,203,110,0.6)'}}>A</div>
+                                    </div>
+                                    <span>24 élèves connectés — Question 5/10</span>
+                                </div>
+                            </div>
+                        </RevealDiv>
                     </div>
                 </div>
             </section>
@@ -1080,6 +1293,7 @@ const LandingPage = () => {
                     <div className="footer-links">
                         <h4>Produit</h4>
                         <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                        <a href="#livequiz" onClick={(e) => { e.preventDefault(); scrollTo('livequiz'); }}>Live Quiz</a>
                         <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
                         <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
                         <a href="#faq" onClick={(e) => { e.preventDefault(); scrollTo('faq'); }}>FAQ</a>
