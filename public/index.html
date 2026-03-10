@@ -652,7 +652,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 20 }} />
 
         {/* Question */}
-        <Card style={{ padding: 24, marginBottom: 16, textAlign: "center" }}>
+        <Card style={{ padding: 24, marginBottom: 16, textAlign: "center", color: C.text }}>
           <p style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.4, margin: 0 }}>{question.q}</p>
         </Card>
 
@@ -706,7 +706,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, animation: "correctPop 0.5s ease" }}><Icon name="Trophy" size={56} color={C.warning} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
           <p style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: "#a29bfe" }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
-          <Card style={{ padding: 20, marginBottom: 16 }}>
+          <Card style={{ padding: 20, marginBottom: 16, color: C.text }}>
             <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Podium</h3>
             {top3.map((l, i) => {
               const isMe = l.studentId === student.id;
