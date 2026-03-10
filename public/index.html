@@ -161,9 +161,8 @@ function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, style,
 }
 
 function SubjectIcon({ icon, size = 20, color }) {
-  if (!icon) return React.createElement(Icon, { name: "BookOpen", size, color });
-  if (window.lucide && window.lucide[icon]) return React.createElement(Icon, { name: icon, size, color });
-  return React.createElement('span', { style: { fontSize: size } }, icon);
+  const name = (icon && window.lucide && window.lucide[icon]) ? icon : "BookOpen";
+  return React.createElement(Icon, { name, size, color });
 }
 
 // --- API Layer ---
