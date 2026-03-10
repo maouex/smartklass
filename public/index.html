@@ -43,8 +43,6 @@
         /* ── Magic Bento ── */
         .magic-card { --glow-x:50%; --glow-y:50%; --glow-intensity:0; --glow-radius:260px; --glow-color:108,92,231; transition: transform 0.12s ease, box-shadow 0.3s ease; }
         .magic-card::after { content:''; position:absolute; inset:0; padding:2px; background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y), rgba(var(--glow-color), calc(var(--glow-intensity) * 0.9)) 0%, rgba(var(--glow-color), calc(var(--glow-intensity) * 0.4)) 30%, transparent 65%); border-radius:inherit; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; pointer-events:none; z-index:1; }
-        .mc-particle { position:absolute; width:4px; height:4px; border-radius:50%; pointer-events:none; z-index:5; animation: mc-float 3s ease-in-out infinite; }
-        @keyframes mc-float { 0%,100% { transform:translateY(0) scale(1); opacity:0.9; } 50% { transform:translateY(-12px) scale(1.3); opacity:0.25; } }
     </style>
 </head>
 <body>
@@ -378,30 +376,13 @@ function Card({ children, style, onClick, hover: hov }) {
   return React.createElement('div', { onClick, onMouseEnter: () => setH(true), onMouseLeave: () => setH(false), style: { background: C.card, borderRadius: 20, padding: 24, boxShadow: h && hov ? "0 12px 40px rgba(108,92,231,0.15)" : "0 4px 20px rgba(0,0,0,0.06)", transition: "all 0.3s", transform: h && hov ? "translateY(-4px)" : "translateY(0)", cursor: onClick ? "pointer" : "default", ...style } }, children);
 }
 
-function MagicCard({ children, className, style, glowColor = "108,92,231", particleCount = 8, enableTilt = true }) {
+function MagicCard({ children, className, style, glowColor = "108,92,231", enableTilt = true }) {
   const ref = React.useRef(null);
   React.useEffect(() => {
     const el = ref.current;
     if (!el || window.innerWidth < 768) return;
-    const particles = [];
-    let hovered = false;
-    const clearP = () => { particles.forEach(p => p.parentNode?.removeChild(p)); particles.length = 0; };
-    const spawnP = () => {
-      clearP();
-      const { width, height } = el.getBoundingClientRect();
-      for (let i = 0; i < particleCount; i++) {
-        setTimeout(() => {
-          if (!hovered) return;
-          const p = document.createElement('div');
-          p.className = 'mc-particle';
-          p.style.cssText = `left:${Math.random()*width}px;top:${Math.random()*height}px;background:rgba(${glowColor},0.9);box-shadow:0 0 6px rgba(${glowColor},0.5);animation-delay:${(Math.random()*2).toFixed(2)}s;animation-duration:${(2+Math.random()*2).toFixed(2)}s;`;
-          el.appendChild(p); particles.push(p);
-        }, i * 70);
-      }
-    };
-    const onEnter = () => { hovered = true; spawnP(); };
+    const onEnter = () => {};
     const onLeave = () => {
-      hovered = false; clearP();
       el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
       el.style.setProperty('--glow-intensity', '0');
     };
@@ -430,8 +411,8 @@ function MagicCard({ children, className, style, glowColor = "108,92,231", parti
     el.addEventListener('mouseleave', onLeave);
     el.addEventListener('mousemove', onMove);
     el.addEventListener('click', onClick);
-    return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); el.removeEventListener('mousemove', onMove); el.removeEventListener('click', onClick); clearP(); };
-  }, [glowColor, particleCount, enableTilt]);
+    return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); el.removeEventListener('mousemove', onMove); el.removeEventListener('click', onClick); };
+  }, [glowColor, enableTilt]);
   return React.createElement('div', { ref, className: `magic-card${className ? ' '+className : ''}`, style: { '--glow-color': glowColor, position: 'relative', overflow: 'hidden', ...style } }, children);
 }
 
