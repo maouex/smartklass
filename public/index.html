@@ -1914,8 +1914,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
           {/* Encart Import via Claude */}
           <Card style={{ background: `${C.primary}08`, border: `2px solid ${C.primary}20` }}>
-            <h3 style={{ fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Lightbulb" size={18} color={C.primary} />Import via Claude</h3>
-            <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec Claude → Activités ou Cours → Importer JSON. Demandez à Claude d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
+            <h3 style={{ fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Lightbulb" size={18} color={C.primary} />Import via SmartKlass IA</h3>
+            <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec SmartKlass IA → Activités ou Cours → Importer JSON. Demandez à SmartKlass IA d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
           </Card>
         </div>;
       })()}
@@ -2267,7 +2267,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     <Modal open={modal === "aiGenerate"} onClose={() => { if (aiStep !== 'loading') { setModal(null); resetAiModal(); } }} title={aiStep === 'upload' ? "Générer avec IA — PDF" : aiStep === 'loading' ? "Analyse en cours..." : "Vérifier et sauvegarder"} wide>
       {/* Étape 1 : Upload + options */}
       {aiStep === 'upload' && <>
-        <p style={{ fontSize: 13, color: C.textLight, marginBottom: 16 }}>Upload un PDF de cours. Claude analysera le document et générera automatiquement un cours structuré et/ou des activités pédagogiques prêtes à utiliser.</p>
+        <p style={{ fontSize: 13, color: C.textLight, marginBottom: 16 }}>Upload un PDF de cours. SmartKlass IA analysera le document et générera automatiquement un cours structuré et/ou des activités pédagogiques prêtes à utiliser.</p>
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Fichier PDF *</label>
           <input type="file" accept=".pdf" onChange={e => setAiPdfFile(e.target.files[0] || null)} style={{ display: 'block', fontSize: 14, width: '100%' }} />
@@ -2298,13 +2298,13 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             })}
           </div>
         </div>}
-        <Btn onClick={handleAiGenerate} variant="primary" fullWidth size="lg" disabled={!aiPdfFile}><Icon name="Sparkles" size={16} style={{marginRight: 6}} />Analyser le PDF avec Claude</Btn>
+        <Btn onClick={handleAiGenerate} variant="primary" fullWidth size="lg" disabled={!aiPdfFile}><Icon name="Sparkles" size={16} style={{marginRight: 6}} />Analyser le PDF avec SmartKlass IA</Btn>
       </>}
 
       {/* Étape 2 : Chargement */}
       {aiStep === 'loading' && <div style={{ textAlign: 'center', padding: '40px 20px' }}>
         <div style={{ width: 48, height: 48, border: `4px solid ${C.primary}30`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 20px' }} />
-        <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Claude analyse votre PDF...</p>
+        <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>SmartKlass IA analyse votre PDF...</p>
         <p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>Génération du contenu pédagogique en cours, cela peut prendre 15-30 secondes.</p>
       </div>}
 
