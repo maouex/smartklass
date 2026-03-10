@@ -40,6 +40,11 @@
         #root { min-height: 100vh; }
         .loader { display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 16px; }
         .loader .spinner { width: 48px; height: 48px; border: 4px solid #E8E8F0; border-top-color: #6C5CE7; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        /* ── Magic Bento ── */
+        .magic-card { --glow-x:50%; --glow-y:50%; --glow-intensity:0; --glow-radius:260px; --glow-color:108,92,231; transition: transform 0.12s ease, box-shadow 0.3s ease; }
+        .magic-card::after { content:''; position:absolute; inset:0; padding:2px; background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y), rgba(var(--glow-color), calc(var(--glow-intensity) * 0.9)) 0%, rgba(var(--glow-color), calc(var(--glow-intensity) * 0.4)) 30%, transparent 65%); border-radius:inherit; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; pointer-events:none; z-index:1; }
+        .mc-particle { position:absolute; width:4px; height:4px; border-radius:50%; pointer-events:none; z-index:5; animation: mc-float 3s ease-in-out infinite; }
+        @keyframes mc-float { 0%,100% { transform:translateY(0) scale(1); opacity:0.9; } 50% { transform:translateY(-12px) scale(1.3); opacity:0.25; } }
     </style>
 </head>
 <body>
@@ -373,6 +378,84 @@ function Card({ children, style, onClick, hover: hov }) {
   return React.createElement('div', { onClick, onMouseEnter: () => setH(true), onMouseLeave: () => setH(false), style: { background: C.card, borderRadius: 20, padding: 24, boxShadow: h && hov ? "0 12px 40px rgba(108,92,231,0.15)" : "0 4px 20px rgba(0,0,0,0.06)", transition: "all 0.3s", transform: h && hov ? "translateY(-4px)" : "translateY(0)", cursor: onClick ? "pointer" : "default", ...style } }, children);
 }
 
+function MagicCard({ children, className, style, glowColor = "108,92,231", particleCount = 8, enableTilt = true }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || window.innerWidth < 768) return;
+    const particles = [];
+    let hovered = false;
+    const clearP = () => { particles.forEach(p => p.parentNode?.removeChild(p)); particles.length = 0; };
+    const spawnP = () => {
+      clearP();
+      const { width, height } = el.getBoundingClientRect();
+      for (let i = 0; i < particleCount; i++) {
+        setTimeout(() => {
+          if (!hovered) return;
+          const p = document.createElement('div');
+          p.className = 'mc-particle';
+          p.style.cssText = `left:${Math.random()*width}px;top:${Math.random()*height}px;background:rgba(${glowColor},0.9);box-shadow:0 0 6px rgba(${glowColor},0.5);animation-delay:${(Math.random()*2).toFixed(2)}s;animation-duration:${(2+Math.random()*2).toFixed(2)}s;`;
+          el.appendChild(p); particles.push(p);
+        }, i * 70);
+      }
+    };
+    const onEnter = () => { hovered = true; spawnP(); };
+    const onLeave = () => {
+      hovered = false; clearP();
+      el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
+      el.style.setProperty('--glow-intensity', '0');
+    };
+    const onMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      el.style.setProperty('--glow-x', `${(x/rect.width)*100}%`);
+      el.style.setProperty('--glow-y', `${(y/rect.height)*100}%`);
+      el.style.setProperty('--glow-intensity', '1');
+      if (enableTilt) {
+        const cx = rect.width/2, cy = rect.height/2;
+        el.style.transform = `perspective(1000px) rotateX(${((y-cy)/cy)*-8}deg) rotateY(${((x-cx)/cx)*8}deg) translateY(-3px)`;
+      }
+    };
+    const onClick = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const d = Math.max(Math.hypot(x,y), Math.hypot(x-rect.width,y), Math.hypot(x,y-rect.height), Math.hypot(x-rect.width,y-rect.height));
+      const rip = document.createElement('div');
+      rip.style.cssText = `position:absolute;width:${d*2}px;height:${d*2}px;border-radius:50%;background:radial-gradient(circle,rgba(${glowColor},0.35) 0%,rgba(${glowColor},0.15) 30%,transparent 70%);left:${x-d}px;top:${y-d}px;pointer-events:none;z-index:20;transform:scale(0);opacity:1;transition:transform 0.7s ease,opacity 0.7s ease;`;
+      el.appendChild(rip);
+      requestAnimationFrame(() => { rip.style.transform = 'scale(1)'; rip.style.opacity = '0'; });
+      setTimeout(() => rip.remove(), 800);
+    };
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('click', onClick);
+    return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); el.removeEventListener('mousemove', onMove); el.removeEventListener('click', onClick); clearP(); };
+  }, [glowColor, particleCount, enableTilt]);
+  return React.createElement('div', { ref, className: `magic-card${className ? ' '+className : ''}`, style: { '--glow-color': glowColor, position: 'relative', overflow: 'hidden', ...style } }, children);
+}
+
+function BentoGrid({ children, style }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (window.innerWidth < 768) return;
+    const grid = ref.current;
+    if (!grid) return;
+    const spot = document.createElement('div');
+    spot.style.cssText = 'position:fixed;width:600px;height:600px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(108,92,231,0.09) 0%,rgba(108,92,231,0.04) 20%,rgba(108,92,231,0.015) 40%,transparent 65%);z-index:0;opacity:0;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:opacity 0.35s ease;will-change:left,top;';
+    document.body.appendChild(spot);
+    const move = (e) => {
+      const r = grid.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      spot.style.left = e.clientX + 'px'; spot.style.top = e.clientY + 'px';
+      spot.style.opacity = inside ? '1' : '0';
+    };
+    document.addEventListener('mousemove', move);
+    return () => { document.removeEventListener('mousemove', move); spot.remove(); };
+  }, []);
+  return React.createElement('div', { ref, style: { position: 'relative', ...style } }, children);
+}
+
 function ProgressBar({ value, max = 100, color = C.primary, height = 10, style }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return React.createElement('div', { style: { background: "#E8E8F0", borderRadius: height, height, overflow: "hidden", ...style } },
@@ -381,7 +464,7 @@ function ProgressBar({ value, max = 100, color = C.primary, height = 10, style }
 }
 
 function StatCard({ icon, label, value, color, sub }) {
-  return React.createElement(Card, { style: { textAlign: "center", flex: 1, minWidth: 130 } },
+  return React.createElement(MagicCard, { style: { background: C.card, borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", textAlign: "center", flex: 1, minWidth: 130 } },
     React.createElement('div', { style: { display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 8, height: 36 } }, icon),
     React.createElement('div', { style: { fontSize: 26, fontWeight: 800, color } }, value),
     React.createElement('div', { style: { fontSize: 12, color: C.textLight, fontWeight: 600 } }, label),
@@ -1390,12 +1473,12 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
       {!isMobile && <Tabs tabs={studentTabs} active={view} onChange={handleTabChange} />}
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <BentoGrid style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
           <StatCard icon={<Icon name="Zap" size={28} color={C.primary} />} label="XP Total" value={currentStudent.xp} color={C.primary} />
           <StatCard icon={<Icon name="Medal" size={28} color={C.secondary} />} label="Rang" value={`#${myRank}`} color={C.secondary} sub={`sur ${classStudents.length}`} />
           <StatCard icon={<Icon name="CheckCircle2" size={28} color={C.accent} />} label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
           <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
-        </div>
+        </BentoGrid>
         <Card style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color="#FDCB6E" /> Mes badges</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
@@ -1705,21 +1788,21 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         const scoreColor = s => s >= 70 ? "#00B894" : s >= 40 ? "#E67E22" : "#D63031";
 
         return <div style={{ animation: "fadeIn 0.4s" }}>
-          {/* Rangée 1 — KPIs de base */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-            <StatCard icon={<Icon name="GraduationCap" size={28} color={C.primary} />} label="Élèves" value={totalStudents} color={C.primary} />
-            <StatCard icon={<Icon name="BookOpen" size={28} color={C.secondary} />} label="Cours" value={data.courses.length} color={C.secondary} />
-            <StatCard icon={<Icon name="Layers" size={28} color={C.accent} />} label="Activités" value={data.activities.length} color={C.accent} />
-            <StatCard icon={<Icon name="Zap" size={28} color="#E67E22" />} label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
-          </div>
-
-          {/* Rangée 2 — KPIs d'engagement */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-            <StatCard icon={<Icon name="TrendingUp" size={28} color="#0984E3" />} label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
-            <StatCard icon={<Icon name="Target" size={28} color="#00B894" />} label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
-            <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
-            <StatCard icon={<Icon name="Flame" size={28} color="#A29BFE" />} label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
-          </div>
+          {/* Rangée 1 & 2 — KPIs (Magic Bento) */}
+          <BentoGrid style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <StatCard icon={<Icon name="GraduationCap" size={28} color={C.primary} />} label="Élèves" value={totalStudents} color={C.primary} />
+              <StatCard icon={<Icon name="BookOpen" size={28} color={C.secondary} />} label="Cours" value={data.courses.length} color={C.secondary} />
+              <StatCard icon={<Icon name="Layers" size={28} color={C.accent} />} label="Activités" value={data.activities.length} color={C.accent} />
+              <StatCard icon={<Icon name="Zap" size={28} color="#E67E22" />} label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <StatCard icon={<Icon name="TrendingUp" size={28} color="#0984E3" />} label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
+              <StatCard icon={<Icon name="Target" size={28} color="#00B894" />} label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
+              <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
+              <StatCard icon={<Icon name="Flame" size={28} color="#A29BFE" />} label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
+            </div>
+          </BentoGrid>
 
           {/* Aperçu par classe */}
           {data.classes.length > 0 && <Card style={{ marginBottom: 16, padding: 0, overflow: "hidden" }}>
