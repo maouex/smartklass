@@ -779,27 +779,33 @@ try {
 
                 // Données équipe si mode team
                 $teams = null;
+                $myTeamRow = null;
                 if ($mode === 'team') {
-                    $teamStmt = $db->prepare(
-                        "SELECT team, COUNT(*) AS cnt, SUM(sub.score) AS team_score
-                         FROM live_teams lt
-                         LEFT JOIN (
-                             SELECT student_id, SUM(score) AS score FROM live_responses WHERE session_id = ? GROUP BY student_id
-                         ) sub ON sub.student_id = lt.student_id
-                         WHERE lt.session_id = ?
-                         GROUP BY team"
-                    );
-                    $teamStmt->execute([$sessionId, $sessionId]);
-                    $teams = ['A' => ['count' => 0, 'score' => 0], 'B' => ['count' => 0, 'score' => 0]];
-                    foreach ($teamStmt->fetchAll() as $tr) {
-                        $teams[$tr['team']] = ['count' => (int)$tr['cnt'], 'score' => (int)($tr['team_score'] ?? 0)];
-                    }
+                    try {
+                        $teamStmt = $db->prepare(
+                            "SELECT team, COUNT(*) AS cnt, SUM(sub.score) AS team_score
+                             FROM live_teams lt
+                             LEFT JOIN (
+                                 SELECT student_id, SUM(score) AS score FROM live_responses WHERE session_id = ? GROUP BY student_id
+                             ) sub ON sub.student_id = lt.student_id
+                             WHERE lt.session_id = ?
+                             GROUP BY team"
+                        );
+                        $teamStmt->execute([$sessionId, $sessionId]);
+                        $teams = ['A' => ['count' => 0, 'score' => 0], 'B' => ['count' => 0, 'score' => 0]];
+                        foreach ($teamStmt->fetchAll() as $tr) {
+                            $teams[$tr['team']] = ['count' => (int)$tr['cnt'], 'score' => (int)($tr['team_score'] ?? 0)];
+                        }
 
-                    // Équipe de l'élève
-                    if ($studentId) {
-                        $myTeamStmt = $db->prepare("SELECT team FROM live_teams WHERE session_id = ? AND student_id = ?");
-                        $myTeamStmt->execute([$sessionId, $studentId]);
-                        $myTeamRow = $myTeamStmt->fetch();
+                        // Équipe de l'élève
+                        if ($studentId) {
+                            $myTeamStmt = $db->prepare("SELECT team FROM live_teams WHERE session_id = ? AND student_id = ?");
+                            $myTeamStmt->execute([$sessionId, $studentId]);
+                            $myTeamRow = $myTeamStmt->fetch();
+                        }
+                    } catch (PDOException $e) {
+                        // Table live_teams manquante — fallback sans crash
+                        $teams = ['A' => ['count' => 0, 'score' => 0], 'B' => ['count' => 0, 'score' => 0]];
                     }
                 }
 

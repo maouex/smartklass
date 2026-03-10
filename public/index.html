@@ -1345,7 +1345,9 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   const [showConfetti, setShowConfetti] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [soundMuted, setSoundMuted] = useState(false);
+  const [initError, setInitError] = useState(null);
   const prevJoinedRef = React.useRef(0);
+  const pollFailRef = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
   const labels = ["A", "B", "C", "D"];
 
@@ -1374,11 +1376,20 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     const poll = async () => {
       try {
         const data = await api.get(`live-quiz/${sessionId}`);
+        if (data.error) {
+          pollFailRef.current++;
+          if (pollFailRef.current >= 3) { clearInterval(interval); setInitError(data.error); SoundEngine.stopMusic(); }
+          return;
+        }
+        pollFailRef.current = 0;
         if (data.joinedCount > prevJoinedRef.current && prevJoinedRef.current > 0) SoundEngine.joinPop();
         prevJoinedRef.current = data.joinedCount;
         setLiveData(data);
         if (data.status === 'finished') { clearInterval(interval); SoundEngine.podiumFanfare(); setShowConfetti(true); }
-      } catch(e) {}
+      } catch(e) {
+        pollFailRef.current++;
+        if (pollFailRef.current >= 3) { clearInterval(interval); setInitError('Impossible de se connecter au serveur.'); SoundEngine.stopMusic(); }
+      }
     };
     poll();
     interval = setInterval(poll, 2000);
@@ -1400,11 +1411,21 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   };
 
   if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#F8F9FD", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif" }}>
-    <div style={{ textAlign: "center" }}>
-      <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${C.primary}15`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", animation: "float 1s ease-in-out infinite" }}>
-        <Icon name="Radio" size={32} color={C.primary} />
-      </div>
-      <p style={{ fontWeight: 700, color: C.text }}>Initialisation du Live Quiz...</p>
+    <div style={{ textAlign: "center", maxWidth: 400, padding: 24 }}>
+      {initError ? <>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#D6303115', display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <Icon name="AlertTriangle" size={32} color="#D63031" />
+        </div>
+        <h3 style={{ fontWeight: 900, color: C.text, marginBottom: 8 }}>Erreur de connexion</h3>
+        <p style={{ color: C.textLight, fontSize: 13, marginBottom: 8 }}>{initError}</p>
+        <p style={{ color: C.textLight, fontSize: 12, marginBottom: 16, background: '#F0F0F8', borderRadius: 10, padding: '8px 12px' }}>Vérifiez que la migration v9 a été exécutée (table <code>live_teams</code>).</p>
+        <Btn onClick={onClose}>Fermer</Btn>
+      </> : <>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${C.primary}15`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", animation: "float 1s ease-in-out infinite" }}>
+          <Icon name="Radio" size={32} color={C.primary} />
+        </div>
+        <p style={{ fontWeight: 700, color: C.text }}>Initialisation du Live Quiz...</p>
+      </>}
     </div>
   </div>;
 
