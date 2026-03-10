@@ -160,6 +160,86 @@ function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, style,
   }, ...iconChildren.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs })));
 }
 
+function ClickSpark({
+  sparkColor = '#6C5CE7',
+  sparkSize = 10,
+  sparkRadius = 20,
+  sparkCount = 8,
+  duration = 450,
+  children
+}) {
+  const canvasRef = React.useRef(null);
+  const sparksRef = React.useRef([]);
+  const isDesktop = React.useMemo(() => window.matchMedia('(hover: hover) and (pointer: fine)').matches, []);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isDesktop) return;
+    const parent = canvas.parentElement;
+    let resizeTimeout;
+    const resizeCanvas = () => {
+      const { width, height } = parent.getBoundingClientRect();
+      if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    };
+    const ro = new ResizeObserver(() => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(resizeCanvas, 100); });
+    ro.observe(parent);
+    resizeCanvas();
+    return () => { ro.disconnect(); clearTimeout(resizeTimeout); };
+  }, [isDesktop]);
+
+  React.useEffect(() => {
+    if (!isDesktop) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animId;
+    const draw = timestamp => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      sparksRef.current = sparksRef.current.filter(spark => {
+        const elapsed = timestamp - spark.startTime;
+        if (elapsed >= duration) return false;
+        const t = elapsed / duration;
+        const eased = t * (2 - t);
+        const dist = eased * sparkRadius;
+        const len = sparkSize * (1 - eased);
+        const x1 = spark.x + dist * Math.cos(spark.angle);
+        const y1 = spark.y + dist * Math.sin(spark.angle);
+        const x2 = spark.x + (dist + len) * Math.cos(spark.angle);
+        const y2 = spark.y + (dist + len) * Math.sin(spark.angle);
+        ctx.globalAlpha = 1 - eased;
+        ctx.strokeStyle = sparkColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        return true;
+      });
+      ctx.globalAlpha = 1;
+      animId = requestAnimationFrame(draw);
+    };
+    animId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animId);
+  }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, isDesktop]);
+
+  const handleClick = e => {
+    if (!isDesktop) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const now = performance.now();
+    sparksRef.current.push(...Array.from({ length: sparkCount }, (_, i) => ({
+      x, y, angle: (2 * Math.PI * i) / sparkCount, startTime: now
+    })));
+  };
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }} onClick={handleClick}>
+      {isDesktop && <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block', userSelect: 'none', position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 9999 }} />}
+      {children}
+    </div>
+  );
+}
+
 function SubjectIcon({ icon, size = 20, color }) {
   const name = (icon && window.lucide && window.lucide[icon]) ? icon : "BookOpen";
   return React.createElement(Icon, { name, size, color });
@@ -2308,7 +2388,12 @@ async function unregisterPush(studentId) {
   } catch (e) { /* silencieux */ }
 }
 
-ReactDOM.render(<><App /><InstallPrompt /></>, document.getElementById('root'));
+ReactDOM.render(
+  <ClickSpark sparkColor="#6C5CE7" sparkSize={10} sparkRadius={22} sparkCount={8} duration={450}>
+    <App /><InstallPrompt />
+  </ClickSpark>,
+  document.getElementById('root')
+);
     </script>
 </body>
 </html>
