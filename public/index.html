@@ -52,7 +52,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/lucide-react@0.469.0/dist/umd/lucide-react.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js" onerror="window.lucide={}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 
     <script>
@@ -78,16 +78,21 @@
 
 const { useState, useEffect, useRef, useCallback } = React;
 
-// --- Icon System (Lucide React) ---
-function Icon({ name, size = 18, color, strokeWidth = 2, style }) {
-  const Comp = window.LucideReact && window.LucideReact[name];
-  if (!Comp) return null;
-  return React.createElement(Comp, { size, color, strokeWidth, style });
+// --- Icon System (Lucide) ---
+function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, style, className }) {
+  const iconChildren = window.lucide && window.lucide[name];
+  if (!iconChildren || !Array.isArray(iconChildren)) return null;
+  return React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg", width: size, height: size,
+    viewBox: "0 0 24 24", fill: "none", stroke: color || "currentColor",
+    strokeWidth: strokeWidth, strokeLinecap: "round", strokeLinejoin: "round",
+    style, className
+  }, ...iconChildren.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs })));
 }
 
 function SubjectIcon({ icon, size = 20, color }) {
   if (!icon) return React.createElement(Icon, { name: "BookOpen", size, color });
-  if (window.LucideReact && window.LucideReact[icon]) return React.createElement(Icon, { name: icon, size, color });
+  if (window.lucide && window.lucide[icon]) return React.createElement(Icon, { name: icon, size, color });
   return React.createElement('span', { style: { fontSize: size } }, icon);
 }
 
