@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartKlass — Transformez vos cours en expériences interactives</title>
+    <meta name="description" content="SmartKlass : la plateforme d'apprentissage interactive qui crée automatiquement des activités engageantes à partir de vos contenus. QCM, flashcards, quiz… en un clic.">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="shortcut icon" href="/icons/favicon.ico">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="theme-color" content="#6C5CE7">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Nunito', sans-serif; background: #F8F9FD; color: #2D3436; overflow-x: hidden; }
+
+        /* ── Design Tokens ── */
+        :root {
+            --primary: #6C5CE7;
+            --primary-light: #A29BFE;
+            --secondary: #00B894;
+            --secondary-light: #55EFC4;
+            --accent: #E17055;
+            --accent-light: #FAB1A0;
+            --warning: #FDCB6E;
+            --bg: #F8F9FD;
+            --card: #FFFFFF;
+            --text: #2D3436;
+            --text-light: #636E72;
+            --text-muted: #B2BEC3;
+            --g1: linear-gradient(135deg, #6C5CE7, #A29BFE);
+            --g2: linear-gradient(135deg, #00B894, #55EFC4);
+            --g3: linear-gradient(135deg, #E17055, #FAB1A0);
+            --shadow: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+            --radius: 16px;
+            --max-w: 1200px;
+        }
+
+        /* ── Animations ── */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.8; }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes flowLine {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+        .reveal-delay-5 { transition-delay: 0.5s; }
+
+        /* ── Header ── */
+        .header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 16px 32px;
+            transition: all 0.3s ease;
+            background: transparent;
+        }
+        .header.scrolled {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+            padding: 10px 32px;
+        }
+        .header-inner {
+            max-width: var(--max-w); margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .header-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 22px; font-weight: 900; color: var(--primary);
+            text-decoration: none;
+        }
+        .header-logo img { height: 36px; width: 36px; border-radius: 10px; }
+        .header-nav { display: flex; align-items: center; gap: 32px; }
+        .header-nav a {
+            text-decoration: none; color: var(--text); font-weight: 700; font-size: 15px;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover { color: var(--primary); }
+        .header-cta {
+            background: var(--g1); color: white; border: none; padding: 10px 24px;
+            border-radius: 50px; font-weight: 800; font-size: 14px; cursor: pointer;
+            text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .header-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,92,231,0.3); }
+
+        /* Mobile menu */
+        .hamburger {
+            display: none; background: none; border: none; cursor: pointer;
+            width: 32px; height: 32px; position: relative; z-index: 110;
+        }
+        .hamburger span {
+            display: block; width: 24px; height: 2px; background: var(--text);
+            margin: 6px auto; transition: all 0.3s ease; border-radius: 2px;
+        }
+        .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+        .hamburger.open span:nth-child(2) { opacity: 0; }
+        .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+        .mobile-nav {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.97); backdrop-filter: blur(20px);
+            flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+            z-index: 105;
+        }
+        .mobile-nav.open { display: flex; }
+        .mobile-nav a {
+            text-decoration: none; color: var(--text); font-weight: 800; font-size: 24px;
+            transition: color 0.2s;
+        }
+        .mobile-nav a:hover { color: var(--primary); }
+
+        @media (max-width: 768px) {
+            .header-nav { display: none; }
+            .hamburger { display: block; }
+            .header { padding: 12px 20px; }
+        }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center;
+            padding: 120px 32px 80px;
+            position: relative; overflow: hidden;
+        }
+        .hero::before {
+            content: ''; position: absolute; top: -20%; right: -10%;
+            width: 600px; height: 600px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(108,92,231,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero::after {
+            content: ''; position: absolute; bottom: -10%; left: -10%;
+            width: 500px; height: 500px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,184,148,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-inner {
+            max-width: var(--max-w); margin: 0 auto; width: 100%;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+        }
+        .hero-text h1 {
+            font-size: 52px; font-weight: 900; line-height: 1.1;
+            color: var(--text); margin-bottom: 20px;
+        }
+        .hero-text h1 span {
+            background: var(--g1); -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero-text p {
+            font-size: 19px; color: var(--text-light); line-height: 1.6;
+            margin-bottom: 32px; max-width: 500px;
+        }
+        .hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; }
+        .btn-primary {
+            background: var(--g1); color: white; border: none; padding: 14px 32px;
+            border-radius: 50px; font-weight: 800; font-size: 16px; cursor: pointer;
+            text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(108,92,231,0.35); }
+        .btn-outline {
+            background: transparent; color: var(--primary); border: 2px solid var(--primary);
+            padding: 12px 30px; border-radius: 50px; font-weight: 800; font-size: 16px;
+            cursor: pointer; text-decoration: none; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-outline:hover { background: var(--primary); color: white; transform: translateY(-3px); }
+
+        /* Hero Mockups */
+        .hero-mockups {
+            position: relative; height: 480px;
+            perspective: 1200px;
+        }
+        .mockup-card {
+            position: absolute; width: 300px; background: var(--card);
+            border-radius: 20px; box-shadow: var(--shadow-lg);
+            overflow: hidden; transition: transform 0.4s ease;
+        }
+        .mockup-card:nth-child(1) {
+            top: 40px; left: 0; transform: rotate(-8deg);
+            animation: float 4s ease-in-out infinite;
+            z-index: 1;
+        }
+        .mockup-card:nth-child(2) {
+            top: 10px; left: 80px; transform: rotate(0deg);
+            animation: float 4s ease-in-out infinite 0.5s;
+            z-index: 3;
+        }
+        .mockup-card:nth-child(3) {
+            top: 50px; left: 160px; transform: rotate(8deg);
+            animation: float 4s ease-in-out infinite 1s;
+            z-index: 2;
+        }
+        .mockup-header {
+            padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid #F0F0F8;
+        }
+        .mockup-body { padding: 16px; }
+        .mockup-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-inner { grid-template-columns: 1fr; text-align: center; }
+            .hero-text h1 { font-size: 38px; }
+            .hero-text p { margin: 0 auto 32px; }
+            .hero-buttons { justify-content: center; }
+            .hero-mockups { height: 360px; margin: 0 auto; max-width: 500px; }
+            .mockup-card { width: 240px; }
+            .mockup-card:nth-child(1) { left: 0; }
+            .mockup-card:nth-child(2) { left: 60px; }
+            .mockup-card:nth-child(3) { left: 120px; }
+        }
+        @media (max-width: 480px) {
+            .hero { padding: 100px 20px 60px; }
+            .hero-text h1 { font-size: 30px; }
+            .hero-text p { font-size: 16px; }
+            .hero-mockups { height: 300px; }
+            .mockup-card { width: 200px; }
+            .mockup-card:nth-child(1) { left: 0; top: 30px; }
+            .mockup-card:nth-child(2) { left: 40px; top: 10px; }
+            .mockup-card:nth-child(3) { left: 80px; top: 40px; }
+        }
+
+        /* ── Social Proof / Stats ── */
+        .stats-bar {
+            background: var(--card); padding: 40px 32px;
+            border-top: 1px solid #F0F0F8; border-bottom: 1px solid #F0F0F8;
+        }
+        .stats-inner {
+            max-width: var(--max-w); margin: 0 auto;
+            display: flex; justify-content: center; gap: 80px; flex-wrap: wrap;
+        }
+        .stat-item { text-align: center; }
+        .stat-number {
+            font-size: 42px; font-weight: 900; background: var(--g1);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .stat-label { font-size: 15px; color: var(--text-light); font-weight: 600; margin-top: 4px; }
+
+        @media (max-width: 768px) {
+            .stats-inner { gap: 40px; }
+            .stat-number { font-size: 32px; }
+        }
+
+        /* ── Section layout ── */
+        .section {
+            padding: 100px 32px;
+        }
+        .section-inner {
+            max-width: var(--max-w); margin: 0 auto;
+        }
+        .section-title {
+            font-size: 40px; font-weight: 900; text-align: center;
+            margin-bottom: 16px; color: var(--text);
+        }
+        .section-subtitle {
+            font-size: 18px; color: var(--text-light); text-align: center;
+            max-width: 600px; margin: 0 auto 60px; line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .section { padding: 60px 20px; }
+            .section-title { font-size: 28px; }
+            .section-subtitle { font-size: 16px; margin-bottom: 40px; }
+        }
+
+        /* ── Features Grid ── */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+        }
+        .feature-card {
+            background: var(--card); border-radius: var(--radius); padding: 32px;
+            box-shadow: var(--shadow); transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px); box-shadow: var(--shadow-lg);
+        }
+        .feature-icon {
+            width: 56px; height: 56px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px; font-size: 26px;
+        }
+        .feature-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+        .feature-card p { font-size: 15px; color: var(--text-light); line-height: 1.6; }
+
+        @media (max-width: 1024px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── AI Section ── */
+        .ai-section {
+            background: linear-gradient(135deg, #6C5CE7 0%, #8B7CF7 50%, #A29BFE 100%);
+            color: white; position: relative; overflow: hidden;
+        }
+        .ai-section::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .ai-section .section-title { color: white; }
+        .ai-section .section-subtitle { color: rgba(255,255,255,0.85); }
+        .ai-steps {
+            display: flex; align-items: center; justify-content: center;
+            gap: 24px; flex-wrap: wrap; margin-top: 40px;
+        }
+        .ai-step {
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px; padding: 32px 28px; text-align: center;
+            width: 240px; transition: transform 0.3s;
+        }
+        .ai-step:hover { transform: translateY(-6px); background: rgba(255,255,255,0.18); }
+        .ai-step-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px; font-size: 28px;
+        }
+        .ai-step-icon.pulse { animation: pulse 2s ease-in-out infinite; }
+        .ai-step h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+        .ai-step p { font-size: 14px; opacity: 0.85; line-height: 1.5; }
+        .ai-arrow {
+            font-size: 28px; color: rgba(255,255,255,0.5); font-weight: 900;
+        }
+        .ai-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            padding: 8px 20px; border-radius: 50px; font-weight: 700; font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .ai-arrow { transform: rotate(90deg); }
+            .ai-steps { flex-direction: column; }
+            .ai-step { width: 100%; max-width: 320px; }
+        }
+
+        /* ── How it works ── */
+        .steps-container {
+            display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;
+            position: relative;
+        }
+        .step-item {
+            text-align: center; flex: 1; min-width: 220px; max-width: 300px;
+            position: relative;
+        }
+        .step-number {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--g1); color: white;
+            font-size: 24px; font-weight: 900;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; position: relative; z-index: 2;
+        }
+        .step-item h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+        .step-item p { font-size: 15px; color: var(--text-light); line-height: 1.5; }
+        .step-item:not(:last-child)::after {
+            content: ''; position: absolute; top: 28px; left: calc(50% + 40px);
+            width: calc(100% - 20px); height: 2px;
+            background: linear-gradient(90deg, var(--primary-light), var(--text-muted));
+            z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            .steps-container { flex-direction: column; align-items: center; gap: 40px; }
+            .step-item:not(:last-child)::after { display: none; }
+        }
+
+        /* ── Pricing ── */
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+            align-items: start;
+        }
+        .pricing-card {
+            background: var(--card); border-radius: var(--radius); padding: 36px 28px;
+            box-shadow: var(--shadow); text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative; border: 2px solid transparent;
+        }
+        .pricing-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+        .pricing-card.featured {
+            border-color: var(--primary); transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(108,92,231,0.15);
+        }
+        .pricing-card.featured:hover { transform: scale(1.05) translateY(-6px); }
+        .pricing-badge {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            background: var(--g1); color: white; padding: 4px 20px;
+            border-radius: 50px; font-size: 13px; font-weight: 800;
+            white-space: nowrap;
+        }
+        .pricing-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+        .pricing-price {
+            font-size: 48px; font-weight: 900; color: var(--primary); margin: 16px 0;
+        }
+        .pricing-price span { font-size: 16px; font-weight: 600; color: var(--text-light); }
+        .pricing-features {
+            list-style: none; text-align: left; margin: 24px 0; padding: 0;
+        }
+        .pricing-features li {
+            padding: 8px 0; font-size: 15px; color: var(--text-light);
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid #F0F0F8;
+        }
+        .pricing-features li:last-child { border-bottom: none; }
+        .check { color: var(--secondary); font-weight: 900; font-size: 16px; }
+        .pricing-cta {
+            display: block; width: 100%; padding: 14px; border-radius: 50px;
+            font-weight: 800; font-size: 16px; cursor: pointer;
+            text-decoration: none; text-align: center;
+            transition: all 0.2s; margin-top: 8px; border: 2px solid var(--primary);
+            background: transparent; color: var(--primary);
+        }
+        .pricing-cta:hover { background: var(--primary); color: white; }
+        .pricing-card.featured .pricing-cta {
+            background: var(--g1); color: white; border-color: transparent;
+        }
+        .pricing-card.featured .pricing-cta:hover { box-shadow: 0 6px 20px rgba(108,92,231,0.3); transform: translateY(-2px); }
+        .pricing-note {
+            text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-muted);
+        }
+
+        @media (max-width: 1024px) {
+            .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; gap: 20px; }
+            .pricing-card.featured { transform: scale(1); }
+            .pricing-card.featured:hover { transform: translateY(-6px); }
+        }
+
+        /* ── FAQ ── */
+        .faq-list {
+            max-width: 720px; margin: 0 auto;
+        }
+        .faq-item {
+            background: var(--card); border-radius: var(--radius);
+            margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden;
+        }
+        .faq-question {
+            width: 100%; padding: 20px 24px; background: none; border: none;
+            font-family: inherit; font-size: 17px; font-weight: 700;
+            color: var(--text); text-align: left; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: color 0.2s;
+        }
+        .faq-question:hover { color: var(--primary); }
+        .faq-arrow {
+            font-size: 20px; transition: transform 0.3s; color: var(--text-muted);
+        }
+        .faq-item.open .faq-arrow { transform: rotate(180deg); color: var(--primary); }
+        .faq-answer {
+            max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 24px;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 300px; padding: 0 24px 20px;
+        }
+        .faq-answer p { font-size: 15px; color: var(--text-light); line-height: 1.7; }
+
+        /* ── Final CTA ── */
+        .final-cta {
+            background: var(--g1); color: white; text-align: center;
+            padding: 80px 32px; position: relative; overflow: hidden;
+        }
+        .final-cta::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='2' fill='rgba(255,255,255,0.06)'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .final-cta h2 {
+            font-size: 38px; font-weight: 900; margin-bottom: 16px;
+            position: relative;
+        }
+        .final-cta p {
+            font-size: 18px; opacity: 0.9; margin-bottom: 32px;
+            position: relative;
+        }
+        .btn-white {
+            background: white; color: var(--primary); border: none;
+            padding: 16px 40px; border-radius: 50px; font-weight: 800;
+            font-size: 18px; cursor: pointer; text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s; position: relative;
+            display: inline-block;
+        }
+        .btn-white:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+
+        @media (max-width: 768px) {
+            .final-cta { padding: 60px 20px; }
+            .final-cta h2 { font-size: 28px; }
+        }
+
+        /* ── Footer ── */
+        .footer {
+            background: var(--text); color: rgba(255,255,255,0.7); padding: 48px 32px 24px;
+        }
+        .footer-inner {
+            max-width: var(--max-w); margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: start;
+            flex-wrap: wrap; gap: 32px;
+        }
+        .footer-brand { max-width: 300px; }
+        .footer-brand h3 { color: white; font-size: 20px; font-weight: 900; margin-bottom: 8px; }
+        .footer-brand p { font-size: 14px; line-height: 1.6; }
+        .footer-links h4 { color: white; font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+        .footer-links a {
+            display: block; color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 14px; margin-bottom: 8px; transition: color 0.2s;
+        }
+        .footer-links a:hover { color: white; }
+        .footer-bottom {
+            max-width: var(--max-w); margin: 32px auto 0;
+            padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center; font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .footer-inner { flex-direction: column; text-align: center; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── SVG Icons ── */
+const Icon = ({ name, size = 24, color = "currentColor" }) => {
+    const icons = {
+        zap: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+        bookOpen: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+        trophy: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+        barChart: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>,
+        smartphone: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>,
+        upload: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+        brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.07-4.8 3 3 0 0 1 .17-5.68A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.07-4.8 3 3 0 0 0-.17-5.68A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
+        fileText: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>,
+        sparkles: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+        check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+        chevronDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>,
+        arrowRight: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>,
+        star: <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+        flame: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+        users: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+        menu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+    };
+    return icons[name] || null;
+};
+
+/* ── Animated Counter ── */
+const AnimatedCounter = ({ target, suffix = "", duration = 2000 }) => {
+    const [count, setCount] = useState(0);
+    const ref = useRef(null);
+    const counted = useRef(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting && !counted.current) {
+                counted.current = true;
+                const start = Date.now();
+                const tick = () => {
+                    const elapsed = Date.now() - start;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    setCount(Math.floor(eased * target));
+                    if (progress < 1) requestAnimationFrame(tick);
+                };
+                tick();
+            }
+        }, { threshold: 0.5 });
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, [target, duration]);
+
+    return <span ref={ref} className="stat-number">{count}{suffix}</span>;
+};
+
+/* ── Scroll Reveal Hook ── */
+const useReveal = () => {
+    const ref = useRef(null);
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+        );
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+    return ref;
+};
+
+const RevealDiv = ({ children, className = "", delay = 0, ...props }) => {
+    const ref = useReveal();
+    return (
+        <div ref={ref} className={`reveal ${delay ? `reveal-delay-${delay}` : ''} ${className}`} {...props}>
+            {children}
+        </div>
+    );
+};
+
+/* ── Mockup: Dashboard Élève ── */
+const MockupDashboard = () => (
+    <div className="mockup-card" style={{border:'1px solid #F0F0F8'}}>
+        <div className="mockup-header">
+            <div className="mockup-dot" style={{background:'#6C5CE7'}}/>
+            <span style={{fontSize:12,fontWeight:800,color:'#2D3436'}}>Dashboard</span>
+        </div>
+        <div className="mockup-body">
+            <div style={{display:'flex',gap:8,marginBottom:12}}>
+                <div style={{flex:1,background:'linear-gradient(135deg,#6C5CE7,#A29BFE)',borderRadius:10,padding:'10px 12px',color:'white'}}>
+                    <div style={{fontSize:9,opacity:0.8,fontWeight:600}}>XP Total</div>
+                    <div style={{fontSize:18,fontWeight:900}}>1 250</div>
+                </div>
+                <div style={{flex:1,background:'linear-gradient(135deg,#E17055,#FAB1A0)',borderRadius:10,padding:'10px 12px',color:'white'}}>
+                    <div style={{fontSize:9,opacity:0.8,fontWeight:600}}>Streak</div>
+                    <div style={{fontSize:18,fontWeight:900}}>7 🔥</div>
+                </div>
+            </div>
+            <div style={{fontSize:10,fontWeight:700,marginBottom:8,color:'#636E72'}}>Mes matières</div>
+            <div style={{display:'flex',gap:6}}>
+                <div style={{flex:1,background:'#F7F7FF',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16}}>📊</div>
+                    <div style={{fontSize:8,fontWeight:700,marginTop:2}}>SDGN</div>
+                </div>
+                <div style={{flex:1,background:'#F0FFF8',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16}}>📈</div>
+                    <div style={{fontSize:8,fontWeight:700,marginTop:2}}>MSDGN</div>
+                </div>
+                <div style={{flex:1,background:'#FFF5F3',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16}}>🎯</div>
+                    <div style={{fontSize:8,fontWeight:700,marginTop:2}}>Marketing</div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+/* ── Mockup: Activité QCM ── */
+const MockupQCM = () => (
+    <div className="mockup-card" style={{border:'1px solid #F0F0F8'}}>
+        <div className="mockup-header">
+            <div className="mockup-dot" style={{background:'#00B894'}}/>
+            <span style={{fontSize:12,fontWeight:800,color:'#2D3436'}}>QCM — SDGN</span>
+            <span style={{fontSize:9,marginLeft:'auto',color:'#B2BEC3',fontWeight:600}}>3/10</span>
+        </div>
+        <div className="mockup-body">
+            <div style={{background:'#F0F0F8',borderRadius:50,height:6,marginBottom:14}}>
+                <div style={{background:'linear-gradient(90deg,#6C5CE7,#A29BFE)',borderRadius:50,height:6,width:'30%'}}/>
+            </div>
+            <div style={{fontSize:11,fontWeight:700,marginBottom:10,color:'#2D3436'}}>
+                Quel est le rôle du management stratégique ?
+            </div>
+            {['Fixer les objectifs long terme','Gérer les stocks','Recruter le personnel','Établir les fiches de paie'].map((t,i) => (
+                <div key={i} style={{
+                    padding:'8px 10px',borderRadius:10,marginBottom:6,fontSize:10,fontWeight:600,
+                    background: i===0 ? 'linear-gradient(135deg,#00B894,#55EFC4)' : '#F8F9FD',
+                    color: i===0 ? 'white' : '#636E72',
+                    border: i===0 ? 'none' : '1px solid #F0F0F8',
+                }}>{t}</div>
+            ))}
+        </div>
+    </div>
+);
+
+/* ── Mockup: Dashboard Prof ── */
+const MockupTeacher = () => (
+    <div className="mockup-card" style={{border:'1px solid #F0F0F8'}}>
+        <div className="mockup-header">
+            <div className="mockup-dot" style={{background:'#E17055'}}/>
+            <span style={{fontSize:12,fontWeight:800,color:'#2D3436'}}>Espace Professeur</span>
+        </div>
+        <div className="mockup-body">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
+                <div style={{background:'#F7F7FF',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16,fontWeight:900,color:'#6C5CE7'}}>32</div>
+                    <div style={{fontSize:8,color:'#636E72',fontWeight:600}}>Élèves</div>
+                </div>
+                <div style={{background:'#F0FFF8',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16,fontWeight:900,color:'#00B894'}}>12</div>
+                    <div style={{fontSize:8,color:'#636E72',fontWeight:600}}>Activités</div>
+                </div>
+                <div style={{background:'#FFF5F3',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16,fontWeight:900,color:'#E17055'}}>87%</div>
+                    <div style={{fontSize:8,color:'#636E72',fontWeight:600}}>Taux réussite</div>
+                </div>
+                <div style={{background:'#FFFCF0',borderRadius:8,padding:8,textAlign:'center'}}>
+                    <div style={{fontSize:16,fontWeight:900,color:'#FDCB6E'}}>4.2</div>
+                    <div style={{fontSize:8,color:'#636E72',fontWeight:600}}>Moy. score</div>
+                </div>
+            </div>
+            <div style={{fontSize:10,fontWeight:700,marginBottom:6,color:'#636E72'}}>Dernières activités</div>
+            {['QCM — Management','Flashcards — Droit'].map((t,i) => (
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #F0F0F8',fontSize:9,color:'#2D3436',fontWeight:600}}>
+                    <span>{t}</span>
+                    <span style={{color:'#00B894',fontWeight:800}}>{i===0?'24':'18'} réponses</span>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+/* ── FAQ Item ── */
+const FAQItem = ({ question, answer }) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className={`faq-item ${open ? 'open' : ''}`}>
+            <button className="faq-question" onClick={() => setOpen(!open)}>
+                {question}
+                <span className="faq-arrow"><Icon name="chevronDown" size={20}/></span>
+            </button>
+            <div className="faq-answer">
+                <p>{answer}</p>
+            </div>
+        </div>
+    );
+};
+
+/* ── Main Landing Page ── */
+const LandingPage = () => {
+    const [scrolled, setScrolled] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 40);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    const scrollTo = (id) => {
+        setMenuOpen(false);
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const features = [
+        { icon: 'zap', color: '#6C5CE7', bg: '#F7F7FF', title: 'Activités interactives', desc: 'QCM, flashcards, vrai/faux, texte à trous, associations — 5 formats pour varier l\'apprentissage et captiver vos élèves.' },
+        { icon: 'bookOpen', color: '#00B894', bg: '#F0FFF8', title: 'Cours structurés', desc: 'Créez des cours avec chapitres, intégrez du contenu riche en Markdown et assignez-les à vos classes en un clic.' },
+        { icon: 'trophy', color: '#E17055', bg: '#FFF5F3', title: 'Gamification', desc: 'XP, streaks, classements, badges — un système de progression qui motive vos élèves et rend l\'apprentissage addictif.' },
+        { icon: 'barChart', color: '#6C5CE7', bg: '#F7F7FF', title: 'Tableau de bord', desc: 'Suivez les résultats en temps réel, gérez vos classes et identifiez rapidement les élèves en difficulté.' },
+        { icon: 'smartphone', color: '#00B894', bg: '#F0FFF8', title: 'App mobile (PWA)', desc: 'Installable sur téléphone, fonctionne hors-ligne avec notifications push pour garder vos élèves engagés.' },
+        { icon: 'upload', color: '#E17055', bg: '#FFF5F3', title: 'Import facile', desc: 'Importez vos activités en JSON ou créez du contenu rapidement. Partagez vos ressources entre collègues.' },
+    ];
+
+    const pricing = [
+        {
+            name: 'Découverte', price: '0', period: 'Gratuit',
+            features: ['1 classe', '20 élèves maximum', '5 activités par mois', 'Cours illimités', '5 types d\'activités'],
+            featured: false
+        },
+        {
+            name: 'Essentiel', price: '9,90', period: '€/mois',
+            features: ['5 classes', '150 élèves', 'Activités illimitées', 'SmartKlass IA (10 générations/mois)', 'Export statistiques', 'Notifications push'],
+            featured: true
+        },
+        {
+            name: 'Premium', price: '19,90', period: '€/mois',
+            features: ['Classes illimitées', 'Élèves illimités', 'SmartKlass IA illimité', 'Support prioritaire', 'Personnalisation', 'Quiz en direct'],
+            featured: false
+        },
+    ];
+
+    const faqs = [
+        { q: 'SmartKlass fonctionne-t-il sur téléphone ?', a: 'Oui ! SmartKlass est une Progressive Web App (PWA) installable directement depuis le navigateur sur iOS et Android. Vos élèves peuvent y accéder depuis n\'importe quel appareil, même hors-ligne.' },
+        { q: 'Comment fonctionne SmartKlass IA ?', a: 'Déposez simplement un PDF de cours et notre IA analyse le contenu pour générer automatiquement des QCM, flashcards, vrai/faux et autres activités adaptées. Vous pouvez ensuite les modifier avant de les publier.' },
+        { q: 'Puis-je importer mes contenus existants ?', a: 'Absolument. SmartKlass supporte l\'import de contenu au format JSON. Vous pouvez aussi créer vos activités manuellement ou les générer avec SmartKlass IA.' },
+        { q: 'Les données des élèves sont-elles sécurisées ?', a: 'Oui, la sécurité est notre priorité. Les données sont hébergées en France, les mots de passe sont chiffrés et l\'accès est protégé par authentification.' },
+        { q: 'Puis-je tester avant de m\'abonner ?', a: 'Bien sûr ! Le plan Découverte est entièrement gratuit et vous permet de tester toutes les fonctionnalités de base avec une classe de 20 élèves.' },
+        { q: 'Comment annuler mon abonnement ?', a: 'Vous pouvez annuler à tout moment depuis votre espace. Il n\'y a aucun engagement et aucun frais caché. Simple et transparent.' },
+    ];
+
+    return (
+        <>
+            {/* ── Header ── */}
+            <header className={`header ${scrolled ? 'scrolled' : ''}`}>
+                <div className="header-inner">
+                    <a href="#" className="header-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({top:0,behavior:'smooth'}); }}>
+                        <img src="/logo.png" alt="SmartKlass"/>
+                        SmartKlass
+                    </a>
+                    <nav className="header-nav">
+                        <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                        <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
+                        <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
+                        <a href="/index.html" style={{color:'var(--text-light)'}}>Se connecter</a>
+                        <a href="#tarifs" className="header-cta" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Essayer gratuitement</a>
+                    </nav>
+                    <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+                        <span/><span/><span/>
+                    </button>
+                </div>
+            </header>
+
+            {/* Mobile Nav */}
+            <div className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
+                <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
+                <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
+                <a href="/index.html">Se connecter</a>
+                <a href="#tarifs" className="btn-primary" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Essayer gratuitement</a>
+            </div>
+
+            {/* ── Hero ── */}
+            <section className="hero">
+                <div className="hero-inner">
+                    <div className="hero-text">
+                        <h1>
+                            Transformez vos cours en <span>expériences interactives</span>
+                        </h1>
+                        <p>
+                            SmartKlass crée automatiquement des activités engageantes à partir de vos contenus.
+                            QCM, flashcards, quiz… en un clic. Vos élèves apprennent en s'amusant.
+                        </p>
+                        <div className="hero-buttons">
+                            <a href="#tarifs" className="btn-primary" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>
+                                Essayer gratuitement <Icon name="arrowRight" size={18}/>
+                            </a>
+                            <a href="#fonctionnalites" className="btn-outline" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>
+                                Découvrir
+                            </a>
+                        </div>
+                    </div>
+                    <div className="hero-mockups">
+                        <MockupDashboard/>
+                        <MockupQCM/>
+                        <MockupTeacher/>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Stats Bar ── */}
+            <section className="stats-bar">
+                <div className="stats-inner">
+                    <div className="stat-item">
+                        <AnimatedCounter target={500} suffix="+"/>
+                        <div className="stat-label">Élèves actifs</div>
+                    </div>
+                    <div className="stat-item">
+                        <AnimatedCounter target={5}/>
+                        <div className="stat-label">Types d'activités</div>
+                    </div>
+                    <div className="stat-item">
+                        <AnimatedCounter target={98} suffix="%"/>
+                        <div className="stat-label">Satisfaction</div>
+                    </div>
+                    <div className="stat-item">
+                        <AnimatedCounter target={10000} suffix="+"/>
+                        <div className="stat-label">Activités complétées</div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Features ── */}
+            <section className="section" id="fonctionnalites">
+                <div className="section-inner">
+                    <RevealDiv>
+                        <div className="section-title">Tout pour engager vos élèves</div>
+                        <div className="section-subtitle">
+                            Des outils puissants et intuitifs pour créer, gérer et suivre l'apprentissage de vos classes.
+                        </div>
+                    </RevealDiv>
+                    <div className="features-grid">
+                        {features.map((f, i) => (
+                            <RevealDiv key={i} delay={i % 3 + 1}>
+                                <div className="feature-card">
+                                    <div className="feature-icon" style={{background: f.bg}}>
+                                        <Icon name={f.icon} size={28} color={f.color}/>
+                                    </div>
+                                    <h3>{f.title}</h3>
+                                    <p>{f.desc}</p>
+                                </div>
+                            </RevealDiv>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ── SmartKlass IA ── */}
+            <section className="section ai-section" id="ia">
+                <div className="section-inner" style={{position:'relative',zIndex:1}}>
+                    <RevealDiv style={{textAlign:'center'}}>
+                        <div className="ai-badge">
+                            <Icon name="sparkles" size={16}/> Propulsé par l'IA
+                        </div>
+                        <div className="section-title">SmartKlass IA</div>
+                        <div className="section-subtitle">
+                            Votre assistant pédagogique intelligent. Déposez un PDF et laissez l'IA
+                            générer automatiquement des activités adaptées à vos élèves.
+                        </div>
+                    </RevealDiv>
+                    <div className="ai-steps">
+                        <RevealDiv delay={1}>
+                            <div className="ai-step">
+                                <div className="ai-step-icon">
+                                    <Icon name="fileText" size={28} color="white"/>
+                                </div>
+                                <h3>Déposez un PDF</h3>
+                                <p>Uploadez votre cours, support de révision ou document pédagogique.</p>
+                            </div>
+                        </RevealDiv>
+                        <RevealDiv delay={2}>
+                            <span className="ai-arrow">→</span>
+                        </RevealDiv>
+                        <RevealDiv delay={2}>
+                            <div className="ai-step">
+                                <div className="ai-step-icon pulse">
+                                    <Icon name="brain" size={28} color="white"/>
+                                </div>
+                                <h3>L'IA analyse</h3>
+                                <p>SmartKlass IA comprend votre contenu et identifie les notions clés.</p>
+                            </div>
+                        </RevealDiv>
+                        <RevealDiv delay={3}>
+                            <span className="ai-arrow">→</span>
+                        </RevealDiv>
+                        <RevealDiv delay={3}>
+                            <div className="ai-step">
+                                <div className="ai-step-icon">
+                                    <Icon name="sparkles" size={28} color="white"/>
+                                </div>
+                                <h3>Activités générées</h3>
+                                <p>QCM, flashcards, vrai/faux… prêtes à être assignées à vos classes.</p>
+                            </div>
+                        </RevealDiv>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── How it works ── */}
+            <section className="section" style={{background:'white'}}>
+                <div className="section-inner">
+                    <RevealDiv>
+                        <div className="section-title">Comment ça marche ?</div>
+                        <div className="section-subtitle">
+                            Trois étapes simples pour transformer votre enseignement.
+                        </div>
+                    </RevealDiv>
+                    <div className="steps-container">
+                        <RevealDiv delay={1}>
+                            <div className="step-item">
+                                <div className="step-number">1</div>
+                                <h3>Créez votre compte</h3>
+                                <p>Inscription gratuite en 2 minutes. Aucune carte bancaire requise.</p>
+                            </div>
+                        </RevealDiv>
+                        <RevealDiv delay={2}>
+                            <div className="step-item">
+                                <div className="step-number">2</div>
+                                <h3>Ajoutez vos contenus</h3>
+                                <p>Importez vos cours ou générez des activités automatiquement avec l'IA.</p>
+                            </div>
+                        </RevealDiv>
+                        <RevealDiv delay={3}>
+                            <div className="step-item">
+                                <div className="step-number">3</div>
+                                <h3>Vos élèves apprennent</h3>
+                                <p>Ils accèdent aux activités, gagnent des XP et progressent à leur rythme.</p>
+                            </div>
+                        </RevealDiv>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Pricing ── */}
+            <section className="section" id="tarifs">
+                <div className="section-inner">
+                    <RevealDiv>
+                        <div className="section-title">Des tarifs simples et transparents</div>
+                        <div className="section-subtitle">
+                            Choisissez le plan qui correspond à vos besoins. Changez ou annulez à tout moment.
+                        </div>
+                    </RevealDiv>
+                    <div className="pricing-grid">
+                        {pricing.map((plan, i) => (
+                            <RevealDiv key={i} delay={i + 1}>
+                                <div className={`pricing-card ${plan.featured ? 'featured' : ''}`}>
+                                    {plan.featured && <div className="pricing-badge">Populaire</div>}
+                                    <h3>{plan.name}</h3>
+                                    <div className="pricing-price">
+                                        {plan.price === '0' ? 'Gratuit' : <>{plan.price}<span>{plan.period}</span></>}
+                                    </div>
+                                    <ul className="pricing-features">
+                                        {plan.features.map((f, j) => (
+                                            <li key={j}>
+                                                <span className="check"><Icon name="check" size={16} color="#00B894"/></span>
+                                                {f}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <a href="mailto:contact@smartklass.fr?subject=SmartKlass%20-%20Plan%20{plan.name}" className="pricing-cta">
+                                        Nous contacter
+                                    </a>
+                                </div>
+                            </RevealDiv>
+                        ))}
+                    </div>
+                    <p className="pricing-note">Sans engagement. Annulez à tout moment. Tous les prix sont HT.</p>
+                </div>
+            </section>
+
+            {/* ── FAQ ── */}
+            <section className="section" style={{background:'white'}} id="faq">
+                <div className="section-inner">
+                    <RevealDiv>
+                        <div className="section-title">Questions fréquentes</div>
+                        <div className="section-subtitle">
+                            Tout ce que vous devez savoir pour commencer avec SmartKlass.
+                        </div>
+                    </RevealDiv>
+                    <div className="faq-list">
+                        {faqs.map((f, i) => (
+                            <RevealDiv key={i} delay={Math.min(i + 1, 5)}>
+                                <FAQItem question={f.q} answer={f.a}/>
+                            </RevealDiv>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Final CTA ── */}
+            <section className="final-cta">
+                <RevealDiv>
+                    <h2>Prêt à transformer vos cours ?</h2>
+                    <p>Rejoignez les enseignants qui utilisent SmartKlass pour engager leurs élèves.</p>
+                    <a href="mailto:contact@smartklass.fr?subject=Inscription%20SmartKlass" className="btn-white">
+                        Créer mon compte gratuitement
+                    </a>
+                </RevealDiv>
+            </section>
+
+            {/* ── Footer ── */}
+            <footer className="footer">
+                <div className="footer-inner">
+                    <div className="footer-brand">
+                        <h3>SmartKlass</h3>
+                        <p>La plateforme d'apprentissage interactive qui transforme vos cours en expériences engageantes.</p>
+                    </div>
+                    <div className="footer-links">
+                        <h4>Produit</h4>
+                        <a href="#fonctionnalites" onClick={(e) => { e.preventDefault(); scrollTo('fonctionnalites'); }}>Fonctionnalités</a>
+                        <a href="#ia" onClick={(e) => { e.preventDefault(); scrollTo('ia'); }}>SmartKlass IA</a>
+                        <a href="#tarifs" onClick={(e) => { e.preventDefault(); scrollTo('tarifs'); }}>Tarifs</a>
+                        <a href="#faq" onClick={(e) => { e.preventDefault(); scrollTo('faq'); }}>FAQ</a>
+                    </div>
+                    <div className="footer-links">
+                        <h4>Accès</h4>
+                        <a href="/index.html">Se connecter</a>
+                        <a href="mailto:contact@smartklass.fr">Contact</a>
+                    </div>
+                </div>
+                <div className="footer-bottom">
+                    © 2026 SmartKlass. Tous droits réservés.
+                </div>
+            </footer>
+        </>
+    );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<LandingPage/>);
+</script>
+</body>
+</html>
