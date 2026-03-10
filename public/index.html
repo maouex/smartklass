@@ -1239,7 +1239,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [editStudentData, setEditStudentData] = useState(null);
   const [newClass, setNewClass] = useState({ name: "", year: "2025-2026" });
   const [editClassData, setEditClassData] = useState(null);
-  const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "📊" });
+  const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "BarChart2" });
   const [editSubjectData, setEditSubjectData] = useState(null);
   const [activeSubject, setActiveSubject] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
@@ -1314,7 +1314,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const addClass = async () => { if (!newClass.name) return; await api.post('classes', newClass); setNewClass({ name: "", year: "2025-2026" }); setModal(null); refreshData(); };
   const updateClass = async () => { if (!editClassData) return; await api.put(`classes/${editClassData.id}`, editClassData); setModal(null); refreshData(); };
   const deleteClass = (id) => { const count = data.students.filter(s => s.classId === id).length; setConfirmAction({ msg: `Supprimer cette classe et ses ${count} élèves ?`, action: async () => { await api.del(`classes/${id}`); refreshData(); } }); };
-  const addSubject = async () => { if (!newSubject.name) return; await api.post('subjects', newSubject); setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal(null); refreshData(); };
+  const addSubject = async () => { if (!newSubject.name) return; await api.post('subjects', newSubject); setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal(null); refreshData(); };
   const updateSubject = async () => { if (!editSubjectData) return; await api.put(`subjects/${editSubjectData.id}`, editSubjectData); setModal(null); refreshData(); };
   const deleteSubject = (id) => { setConfirmAction({ msg: "Supprimer cette matière ?", action: async () => { await api.del(`subjects/${id}`); refreshData(); } }); };
   const addCourse = async () => { if (!newCourse.title) return; await api.post('courses', newCourse); setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal(null); refreshData(); };
@@ -1447,15 +1447,15 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
           {/* Rangée 2 — KPIs d'engagement */}
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-            <StatCard icon="📊" label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
-            <StatCard icon="🎯" label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
-            <StatCard icon="🔥" label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
-            <StatCard icon="⚡" label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
+            <StatCard icon={<Icon name="TrendingUp" size={28} color="#0984E3" />} label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
+            <StatCard icon={<Icon name="Target" size={28} color="#00B894" />} label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
+            <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
+            <StatCard icon={<Icon name="Flame" size={28} color="#A29BFE" />} label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
           </div>
 
           {/* Aperçu par classe */}
           {data.classes.length > 0 && <Card style={{ marginBottom: 16, padding: 0, overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🏫 Aperçu par classe</div>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={16} />Aperçu par classe</div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
@@ -1481,7 +1481,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           {/* Colonnes : dernières activités + alertes */}
           <div style={{ display: "flex", gap: 14, marginBottom: 16, flexWrap: "wrap" }}>
             <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🕐 Dernières activités</div>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Clock" size={16} />Dernières activités</div>
               {recentResults.length === 0
                 ? <p style={{ padding: "16px 18px", color: C.textMuted, fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune activité complétée pour l'instant.</p>
                 : recentResults.map((r, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: i > 0 ? "1px solid #F0F0F8" : "none" }}>
@@ -1497,9 +1497,9 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             </Card>
 
             <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>⚠️ Alertes engagement</div>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="AlertTriangle" size={16} color="#E67E22" />Alertes engagement</div>
               {inactiveStudents.length === 0 && lowParticipationActs.length === 0
-                ? <p style={{ padding: "16px 18px", color: "#00B894", fontSize: 13, fontWeight: 700, margin: 0 }}>✅ Tout va bien — aucune alerte !</p>
+                ? <p style={{ padding: "16px 18px", color: "#00B894", fontSize: 13, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="CheckCircle2" size={14} color="#00B894" />Tout va bien — aucune alerte !</p>
                 : <div>
                     {inactiveStudents.length > 0 && <>
                       <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Inactifs depuis + 7 jours ({inactiveStudents.length})</div>
@@ -1523,7 +1523,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
           {/* Encart Import via Claude */}
           <Card style={{ background: `${C.primary}08`, border: `2px solid ${C.primary}20` }}>
-            <h3 style={{ fontWeight: 800, marginBottom: 6 }}>💡 Import via Claude</h3>
+            <h3 style={{ fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Lightbulb" size={18} color={C.primary} />Import via Claude</h3>
             <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec Claude → Activités ou Cours → Importer JSON. Demandez à Claude d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
           </Card>
         </div>;
@@ -1538,19 +1538,19 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
               <button onClick={() => setActiveClass(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, padding: "6px 0", flexShrink: 0 }}>← Classes</button>
               <div style={{ flex: 1 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>🏫 {activeClass.name}</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={20} />{activeClass.name}</h2>
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0", fontWeight: 600 }}>{activeClass.year} — {classStudents.length} élève{classStudents.length > 1 ? "s" : ""}</p>
               </div>
-              <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm">✏️ Modifier</Btn>
-              <Btn onClick={async () => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setShowNotifHistory(false); setModal('sendNotif'); try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }} variant="secondary" size="sm">🔔 Notifier</Btn>
+              <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm"><Icon name="Pencil" size={14} style={{marginRight: 4}} />Modifier</Btn>
+              <Btn onClick={async () => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setShowNotifHistory(false); setModal('sendNotif'); try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }} variant="secondary" size="sm"><Icon name="Bell" size={14} style={{marginRight: 4}} />Notifier</Btn>
             </div>
 
             {/* Élèves */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>👩‍🎓 Élèves</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="GraduationCap" size={16} />Élèves</h3>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <Btn onClick={() => { setModal("exportIds"); }} variant="secondary" size="sm">📋 Export</Btn>
+                  <Btn onClick={() => { setModal("exportIds"); }} variant="secondary" size="sm"><Icon name="FileDown" size={14} style={{marginRight: 4}} />Export</Btn>
                   <Btn onClick={() => { setNewStudent({ firstName: "", lastName: "", classId: activeClass.id }); setModal("addStudent"); }} size="sm">+ Ajouter</Btn>
                 </div>
               </div>
@@ -1559,18 +1559,18 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 : <Card><div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Nunito',sans-serif", fontSize: 13 }}>
                       <thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Nom", "Prénom", "ID", "XP", "Actions"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead>
-                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}>🔑</Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs">🗑</Btn></div></td></tr>)}</tbody>
+                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
                     </table>
                   </div></Card>}
             </div>
 
             {/* Sections par matière */}
             <div style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>📚 Matières et cours</h3>
-              <Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} variant="outline" size="sm">+ Matière</Btn>
+              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="BookOpen" size={16} />Matières et cours</h3>
+              <Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal("addSubject"); }} variant="outline" size="sm">+ Matière</Btn>
             </div>
 
-            {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📐</div><p style={{ fontWeight: 700 }}>Aucune matière — commencez par en créer une</p></Card>}
+            {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="BookMarked" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucune matière — commencez par en créer une</p></Card>}
 
             {data.subjects.map(s => {
               const classCourses = data.courses.filter(c => c.classIds?.includes(activeClass.id) && c.subjectId === s.id);
@@ -1608,7 +1608,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         })() : <>
           {/* Liste des classes */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800 }}>🏫 Classes</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={20} />Classes</h2>
             <Btn onClick={() => { setNewClass({ name: "", year: "2025-2026" }); setModal("addClass"); }} size="sm">+ Ajouter</Btn>
           </div>
           {data.classes.map(c => {
@@ -1619,8 +1619,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0" }}>{c.year} — {count} élève{count > 1 ? "s" : ""}</p>
               </div>
               <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
-                <Btn onClick={() => { setEditClassData({ ...c }); setModal("editClass"); }} variant="outline" size="xs">✏️</Btn>
-                <Btn onClick={() => deleteClass(c.id)} variant="danger" size="xs">🗑</Btn>
+                <Btn onClick={() => { setEditClassData({ ...c }); setModal("editClass"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn>
+                <Btn onClick={() => deleteClass(c.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn>
               </div>
             </Card>;
           })}
@@ -1632,13 +1632,13 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         {activeCourse ? (() => {
           const sub = data.subjects.find(s => s.id === activeCourse.subjectId);
           const linkedActivities = data.activities.filter(a => a.courseId === activeCourse.id);
-          const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+          const typeIcons = { qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" };
           return <>
             <button onClick={() => setActiveCourse(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← {sub?.name || "Matière"}</button>
             <Card style={{ marginBottom: 14, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{sub?.icon || "📖"}</div>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><SubjectIcon icon={sub?.icon} size={26} color={sub?.color || C.primary} /></div>
                   <div>
                     <Chip color={sub?.color}>{sub?.name}</Chip>
                     <h2 style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0 0" }}>{activeCourse.title}</h2>
@@ -1646,8 +1646,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" size="sm">✏️ Modifier</Btn>
-                  <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm">🗑 Supprimer</Btn>
+                  <Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" size="sm"><Icon name="Pencil" size={14} style={{marginRight: 4}} />Modifier</Btn>
+                  <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm"><Icon name="Trash2" size={14} style={{marginRight: 4}} />Supprimer</Btn>
                 </div>
               </div>
               {activeCourse.classIds?.length > 0 && <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -1655,7 +1655,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 {activeCourse.classIds.map(cid => { const cls = data.classes.find(c => c.id === cid); return cls ? <Chip key={cid} color={C.primary}>{cls.name}</Chip> : null; })}
               </div>}
               {activeCourse.youtubeUrl && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#FFF0F0", borderRadius: 12, border: "1px solid #FFCCCC" }}>
-                <span style={{ fontSize: 18 }}>🎬</span>
+                <Icon name="Youtube" size={18} color="#CC0000" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#CC0000" }}>Vidéo liée :</span>
                 <a href={activeCourse.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#CC0000", textDecoration: "underline", wordBreak: "break-all" }}>{activeCourse.youtubeUrl}</a>
               </div>}
@@ -1665,10 +1665,10 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
             </Card>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, marginBottom: 10 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>🎮 Activités</h3>
-              <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm">📥 Ajouter une activité</Btn>
+              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Layers" size={15} />Activités</h3>
+              <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm"><Icon name="Plus" size={14} style={{marginRight: 4}} />Ajouter une activité</Btn>
             </div>
-            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icons[a.type]}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10 }} size="xs">🔴 Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })
+            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={typeIcons[a.type]} size={20} color={sub?.color || C.primary} /></div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10, display: "flex", alignItems: "center", gap: 3 }} size="xs"><Icon name="Radio" size={10} />Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs"><Icon name="Eye" size={12} /></Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></Card>; })
             : <Card style={{ textAlign: "center", padding: 20 }}><p style={{ color: C.textLight, fontWeight: 700, margin: 0 }}>Aucune activité liée à ce cours.</p></Card>}
           </>;
         })() : activeSubject ? (() => {
@@ -1677,11 +1677,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             <button onClick={() => setActiveSubject(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Matières</button>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: `${activeSubject.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{activeSubject.icon}</div>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: `${activeSubject.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><SubjectIcon icon={activeSubject.icon} size={24} color={activeSubject.color} /></div>
                 <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{activeSubject.name}</h2>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn>
+                <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm"><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer JSON</Btn>
                 <Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: activeSubject.id, classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter un cours</Btn>
               </div>
             </div>
@@ -1708,26 +1708,26 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                     <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
                     <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
+                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div>
                 </div>
               </Card>
             </div>;})}
-            {subCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
+            {subCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="Inbox" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
           </>;
         })() : <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📐 Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
-          {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📐</div><p style={{ fontWeight: 700 }}>Aucune matière créée</p></Card>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}><Icon name="BookMarked" size={20} />Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
+          {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="BookMarked" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucune matière créée</p></Card>}
           {data.subjects.map(s => <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{s.icon}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><SubjectIcon icon={s.icon} size={24} color={s.color} /></div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{s.name}</h3>
                 <p style={{ fontSize: 12, color: C.textLight, margin: "2px 0 0 0" }}>{data.courses.filter(c => c.subjectId === s.id).length} cours · {data.activities.filter(a => a.subjectId === s.id).length} activités</p>
               </div>
             </div>
             <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
-              <Btn onClick={e => { e.stopPropagation(); setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs">✏️</Btn>
-              <Btn onClick={e => { e.stopPropagation(); deleteSubject(s.id); }} variant="danger" size="xs">🗑</Btn>
+              <Btn onClick={e => { e.stopPropagation(); setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn>
+              <Btn onClick={e => { e.stopPropagation(); deleteSubject(s.id); }} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn>
             </div>
           </Card>)}
         </>}
@@ -1763,14 +1763,14 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
     <Modal open={modal === "addSubject"} onClose={() => setModal(null)} title="Ajouter une matière">
       <Input label="Nom" value={newSubject.name} onChange={v => setNewSubject(s => ({ ...s, name: v }))} placeholder="Économie" />
-      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{EMOJI_OPTIONS.map(e => <button key={e} onClick={() => setNewSubject(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: newSubject.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: newSubject.icon === e ? `${C.primary}15` : "#F0F0F8", fontSize: 20, cursor: "pointer" }}>{e}</button>)}</div></div>
+      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{ICON_OPTIONS.map(e => <button key={e} onClick={() => setNewSubject(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: newSubject.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: newSubject.icon === e ? `${C.primary}15` : "#F0F0F8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name={e} size={20} color={newSubject.icon === e ? C.primary : "#888"} /></button>)}</div></div>
       <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Couleur</label><div style={{ display: "flex", gap: 6 }}>{COLOR_OPTIONS.map(c => <button key={c} onClick={() => setNewSubject(s => ({ ...s, color: c }))} style={{ width: 36, height: 36, borderRadius: 10, background: c, border: newSubject.color === c ? "3px solid #333" : "3px solid transparent", cursor: "pointer" }} />)}</div></div>
       <Btn onClick={addSubject} fullWidth size="lg">Créer</Btn>
     </Modal>
 
     <Modal open={modal === "editSubject"} onClose={() => setModal(null)} title="Modifier la matière">
       {editSubjectData && <><Input label="Nom" value={editSubjectData.name} onChange={v => setEditSubjectData(s => ({ ...s, name: v }))} />
-      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{EMOJI_OPTIONS.map(e => <button key={e} onClick={() => setEditSubjectData(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: editSubjectData.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: editSubjectData.icon === e ? `${C.primary}15` : "#F0F0F8", fontSize: 20, cursor: "pointer" }}>{e}</button>)}</div></div>
+      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{ICON_OPTIONS.map(e => <button key={e} onClick={() => setEditSubjectData(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: editSubjectData.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: editSubjectData.icon === e ? `${C.primary}15` : "#F0F0F8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name={e} size={20} color={editSubjectData.icon === e ? C.primary : "#888"} /></button>)}</div></div>
       <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Couleur</label><div style={{ display: "flex", gap: 6 }}>{COLOR_OPTIONS.map(c => <button key={c} onClick={() => setEditSubjectData(s => ({ ...s, color: c }))} style={{ width: 36, height: 36, borderRadius: 10, background: c, border: editSubjectData.color === c ? "3px solid #333" : "3px solid transparent", cursor: "pointer" }} />)}</div></div>
       <Btn onClick={updateSubject} fullWidth size="lg">Enregistrer</Btn></>}
     </Modal>
@@ -1778,12 +1778,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     <Modal open={modal === "addCourse"} onClose={() => setModal(null)} title="Ajouter un cours" wide>
       <Input label="Titre" value={newCourse.title} onChange={v => setNewCourse(c => ({ ...c, title: v }))} />
       <Input label="Description" value={newCourse.description} onChange={v => setNewCourse(c => ({ ...c, description: v }))} />
-      <Select label="Matière" value={newCourse.subjectId} onChange={v => setNewCourse(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+      <Select label="Matière" value={newCourse.subjectId} onChange={v => setNewCourse(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
       <div style={{ marginBottom: 16 }}><label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={newCourse.classIds.includes(c.id)} onChange={e => { if (e.target.checked) setNewCourse(nc => ({ ...nc, classIds: [...nc.classIds, c.id] })); else setNewCourse(nc => ({ ...nc, classIds: nc.classIds.filter(id => id !== c.id) })); }} /><span style={{ fontWeight: 600 }}>{c.name}</span></label>)}</div></div>
       <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
       {newCourse.chapters.map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}><Input small label={`Titre ${i + 1}`} value={ch.title} onChange={v => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], title: v }; setNewCourse(c => ({ ...c, chapters: chs })); }} /><textarea value={ch.content} onChange={e => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setNewCourse(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} /></div>)}
       <Btn onClick={() => setNewCourse(c => ({ ...c, chapters: [...c.chapters, { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
-      <Input label="🎬 Lien YouTube (optionnel)" value={newCourse.youtubeUrl || ""} onChange={v => setNewCourse(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
+      <Input label="Lien YouTube (optionnel)" value={newCourse.youtubeUrl || ""} onChange={v => setNewCourse(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon={<Icon name="Youtube" size={16} color="#CC0000" />} />
       <Btn onClick={addCourse} fullWidth size="lg">Créer</Btn>
     </Modal>
 
@@ -1791,7 +1791,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {editCourseData && <>
         <Input label="Titre" value={editCourseData.title} onChange={v => setEditCourseData(c => ({ ...c, title: v }))} />
         <Input label="Description" value={editCourseData.description} onChange={v => setEditCourseData(c => ({ ...c, description: v }))} />
-        <Select label="Matière" value={editCourseData.subjectId} onChange={v => setEditCourseData(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière" value={editCourseData.subjectId} onChange={v => setEditCourseData(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ marginBottom: 16 }}><label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={(editCourseData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditCourseData(nc => ({ ...nc, classIds: [...(nc.classIds || []), c.id] })); else setEditCourseData(nc => ({ ...nc, classIds: (nc.classIds || []).filter(id => id !== c.id) })); }} /><span style={{ fontWeight: 600 }}>{c.name}</span></label>)}</div></div>
         <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
         {(editCourseData.chapters || []).map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}>
@@ -1802,12 +1802,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <textarea value={ch.content} onChange={e => { const chs = [...editCourseData.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setEditCourseData(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} />
         </div>)}
         <Btn onClick={() => setEditCourseData(c => ({ ...c, chapters: [...(c.chapters || []), { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
-        <Input label="🎬 Lien YouTube (optionnel)" value={editCourseData.youtubeUrl || ""} onChange={v => setEditCourseData(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
+        <Input label="Lien YouTube (optionnel)" value={editCourseData.youtubeUrl || ""} onChange={v => setEditCourseData(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon={<Icon name="Youtube" size={16} color="#CC0000" />} />
         <Btn onClick={updateCourse} fullWidth size="lg">Enregistrer</Btn>
       </>}
     </Modal>
 
-    <Modal open={modal === "importJson"} onClose={() => { setModal(null); setImportStep("paste"); setImportParsed(null); }} title={importStep === "paste" ? "📥 Importer JSON — Étape 1/2" : "⚙️ Configurer l'activité — Étape 2/2"} wide>
+    <Modal open={modal === "importJson"} onClose={() => { setModal(null); setImportStep("paste"); setImportParsed(null); }} title={importStep === "paste" ? "Importer JSON — Étape 1/2" : "Configurer l'activité — Étape 2/2"} wide>
       {importStep === "paste" && <>
         <p style={{ fontSize: 13, color: C.textLight, marginBottom: 10 }}>Collez le JSON généré par Claude, puis cliquez "Suivant" pour configurer la matière et la classe.</p>
         <textarea value={jsonImport} onChange={e => setJsonImport(e.target.value)} placeholder='{ "title": "...", "type": "qcm", "data": { ... } }' style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
@@ -1817,7 +1817,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         {/* Recap */}
         <Card style={{ padding: 16, marginBottom: 16, background: "#F8F9FD" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 28 }}>{{ qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" }[importParsed.type]}</span>
+            <Icon name={{ qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" }[importParsed.type]} size={28} color={C.primary} />
             <div>
               <div style={{ fontWeight: 800, fontSize: 16 }}>{importParsed.title}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -1837,22 +1837,22 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         </Card>
 
         {/* Matière */}
-        <Select label="📐 Matière *" value={importSubjectId} onChange={setImportSubjectId}
-          options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière *" value={importSubjectId} onChange={setImportSubjectId}
+          options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
 
         {/* Classes */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>🏫 Classes *</label>
+          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes *</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: importClassIds.includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: importClassIds.includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={importClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setImportClassIds(ids => [...ids, c.id]); else setImportClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: importClassIds.includes(c.id) ? C.primary : C.textLight }}>{importClassIds.includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: importClassIds.includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{importClassIds.includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
 
         {/* Cours associé (optionnel) */}
-        <Select label="📖 Associer à un cours (optionnel)" value={importCourseId} onChange={setImportCourseId}
+        <Select label="Associer à un cours (optionnel)" value={importCourseId} onChange={setImportCourseId}
           options={[
             { value: "", label: "— Aucun cours —" },
             ...data.courses
@@ -1865,21 +1865,21 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
         {/* Buttons */}
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <Btn onClick={() => { setImportStep("paste"); setImportParsed(null); }} variant="ghost" style={{ flex: 1 }}>← Retour</Btn>
-          <Btn onClick={importJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!importSubjectId || importClassIds.length === 0}>📥 Importer l'activité</Btn>
+          <Btn onClick={() => { setImportStep("paste"); setImportParsed(null); }} variant="ghost" style={{ flex: 1 }}><Icon name="ArrowLeft" size={14} style={{marginRight: 4}} />Retour</Btn>
+          <Btn onClick={importJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!importSubjectId || importClassIds.length === 0}><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer l'activité</Btn>
         </div>
       </>}
     </Modal>
 
-    <Modal open={modal === "exportIds"} onClose={() => setModal(null)} title="📋 Export identifiants" wide>
+    <Modal open={modal === "exportIds"} onClose={() => setModal(null)} title="Export identifiants" wide>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <Btn onClick={() => navigator.clipboard?.writeText(getExportText("all"))} variant="primary" size="sm">📋 Copier tout</Btn>
-        {data.classes.map(c => <Btn key={c.id} onClick={() => navigator.clipboard?.writeText(getExportText(c.id))} variant="outline" size="sm">📋 {c.name}</Btn>)}
+        <Btn onClick={() => navigator.clipboard?.writeText(getExportText("all"))} variant="primary" size="sm"><Icon name="Copy" size={14} style={{marginRight: 4}} />Copier tout</Btn>
+        {data.classes.map(c => <Btn key={c.id} onClick={() => navigator.clipboard?.writeText(getExportText(c.id))} variant="outline" size="sm"><Icon name="Copy" size={14} style={{marginRight: 4}} />{c.name}</Btn>)}
       </div>
       <pre style={{ background: "#1E1E2E", color: "#CDD6F4", padding: 16, borderRadius: 12, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>{getExportText(selectedClass)}</pre>
     </Modal>
 
-    <Modal open={modal === "importCourseJson"} onClose={() => { setModal(null); setCourseImportStep("paste"); setCourseImportParsed(null); }} title={courseImportStep === "paste" ? "📥 Importer un cours (JSON) — Étape 1/2" : "⚙️ Configurer le cours — Étape 2/2"} wide>
+    <Modal open={modal === "importCourseJson"} onClose={() => { setModal(null); setCourseImportStep("paste"); setCourseImportParsed(null); }} title={courseImportStep === "paste" ? "Importer un cours (JSON) — Étape 1/2" : "Configurer le cours — Étape 2/2"} wide>
       {courseImportStep === "paste" && <>
         <p style={{ fontSize: 13, color: C.textLight, marginBottom: 6 }}>Collez le JSON généré par Claude. La matière et les classes seront choisies à l'étape suivante.</p>
         <code style={{ display: "block", background: "#1E1E2E", color: "#A6E3A1", padding: 12, borderRadius: 10, fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{`{
@@ -1897,49 +1897,49 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       </>}
       {courseImportStep === "configure" && courseImportParsed && <>
         <Card style={{ padding: 16, marginBottom: 16, background: "#F8F9FD" }}>
-          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>📖 {courseImportParsed.title}</div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}><Icon name="BookOpen" size={16} color={C.primary} />{courseImportParsed.title}</div>
           {courseImportParsed.description && <div style={{ fontSize: 13, color: C.textLight, marginBottom: 6 }}>{courseImportParsed.description}</div>}
           <div style={{ fontSize: 12, color: C.textMuted }}>{courseImportParsed.chapters?.length || 0} chapitre(s)</div>
         </Card>
-        <Select label="📐 Matière *" value={courseImportSubjectId} onChange={setCourseImportSubjectId}
-          options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière *" value={courseImportSubjectId} onChange={setCourseImportSubjectId}
+          options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>🏫 Classes *</label>
+          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes *</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: courseImportClassIds.includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: courseImportClassIds.includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={courseImportClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setCourseImportClassIds(ids => [...ids, c.id]); else setCourseImportClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: courseImportClassIds.includes(c.id) ? C.primary : C.textLight }}>{courseImportClassIds.includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: courseImportClassIds.includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{courseImportClassIds.includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <Btn onClick={() => { setCourseImportStep("paste"); setCourseImportParsed(null); }} variant="ghost" style={{ flex: 1 }}>← Retour</Btn>
-          <Btn onClick={importCourseJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!courseImportSubjectId || courseImportClassIds.length === 0}>📥 Importer le cours</Btn>
+          <Btn onClick={() => { setCourseImportStep("paste"); setCourseImportParsed(null); }} variant="ghost" style={{ flex: 1 }}><Icon name="ArrowLeft" size={14} style={{marginRight: 4}} />Retour</Btn>
+          <Btn onClick={importCourseJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!courseImportSubjectId || courseImportClassIds.length === 0}><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer le cours</Btn>
         </div>
       </>}
     </Modal>
 
-    <Modal open={modal === "previewActivity"} onClose={() => setModal(null)} title="👁 Aperçu" wide>
+    <Modal open={modal === "previewActivity"} onClose={() => setModal(null)} title="Aperçu" wide>
       {modal === "previewActivity" && modalData && (() => { const a = modalData; const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; return <><div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{a.xpReward || a.xp_reward} XP</Chip></div><div style={{ background: "#F8F9FD", borderRadius: 12, padding: 16, maxHeight: 400, overflowY: "auto", fontSize: 14 }}>{a.type === "qcm" && a.data.questions.map((q, i) => <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #E8E8F0" }}><p style={{ fontWeight: 700 }}>Q{i + 1}: {q.q}</p>{q.choices.map((c, j) => <div key={j} style={{ fontSize: 13, color: j === q.answer ? C.secondary : C.textLight, fontWeight: j === q.answer ? 700 : 400, paddingLeft: 12 }}>{String.fromCharCode(65 + j)}) {c} {j === q.answer ? "✅" : ""}</div>)}</div>)}{a.type === "flashcards" && a.data.cards.map((c, i) => <div key={i} style={{ marginBottom: 8 }}><strong>{c.front}</strong> → <span style={{ color: C.textLight }}>{c.back}</span></div>)}{a.type === "truefalse" && a.data.questions.map((q, i) => <div key={i} style={{ marginBottom: 8 }}><strong>Q{i + 1}:</strong> {q.q} → <span style={{ color: q.answer ? C.secondary : C.danger, fontWeight: 700 }}>{q.answer ? "VRAI" : "FAUX"}</span></div>)}{a.type === "fillblank" && a.data.sentences.map((s, i) => <div key={i} style={{ marginBottom: 8 }}>{s.text.replace("___", `[${s.answer}]`)}</div>)}{a.type === "matching" && a.data.pairs.map((p, i) => <div key={i} style={{ marginBottom: 6 }}><strong>{p.left}</strong> ↔ <span style={{ color: C.textLight }}>{p.right}</span></div>)}</div></>; })()}
     </Modal>
 
-    <Modal open={modal === "activityStats"} onClose={() => setModal(null)} title="📊 Stats" wide>
+    <Modal open={modal === "activityStats"} onClose={() => setModal(null)} title="Stats" wide>
       {modal === "activityStats" && modalData && (() => { const stats = getActivityStats(modalData); if (!stats) return <p>Introuvable</p>; return <><h3 style={{ fontWeight: 800, marginBottom: 12 }}>{stats.act.title}</h3><div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Participation</div><div style={{ fontWeight: 800, fontSize: 22, color: C.primary }}>{stats.participation}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Moyenne</div><div style={{ fontWeight: 800, fontSize: 22, color: stats.avgScore >= 70 ? C.secondary : C.accent }}>{stats.avgScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Max</div><div style={{ fontWeight: 800, fontSize: 22, color: C.secondary }}>{stats.maxScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Min</div><div style={{ fontWeight: 800, fontSize: 22, color: C.danger }}>{stats.minScore}%</div></div></div>{stats.results.length > 0 && <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Élève", "Score", "Date"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead><tbody>{stats.results.sort((a, b) => b.score - a.score).map(r => { const st = data.students.find(s => s.id === r.studentId); return <tr key={r.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", fontWeight: 600 }}>{st ? `${st.lastName} ${st.firstName}` : "?"}</td><td style={{ padding: "6px 8px" }}><span style={{ fontWeight: 700, color: r.score >= 70 ? C.secondary : C.danger }}>{r.score}%</span></td><td style={{ padding: "6px 8px", color: C.textLight }}>{new Date(r.completedAt).toLocaleDateString("fr-FR")}</td></tr>; })}</tbody></table>}</>; })()}
     </Modal>
 
-    <Modal open={modal === "changeTeacherPwd"} onClose={() => setModal(null)} title="🔑 Changer le mot de passe">
-      <Input icon="🔒" label="Mot de passe actuel" value={changePwdData.current} onChange={v => setChangePwdData(d => ({ ...d, current: v }))} type="password" placeholder="Mot de passe actuel" />
-      <Input icon="🔑" label="Nouveau mot de passe" value={changePwdData.next} onChange={v => setChangePwdData(d => ({ ...d, next: v }))} type="password" placeholder="Minimum 4 caractères" />
-      <Input icon="🔑" label="Confirmer le nouveau mot de passe" value={changePwdData.confirm} onChange={v => setChangePwdData(d => ({ ...d, confirm: v }))} type="password" placeholder="Retape le nouveau mot de passe" />
+    <Modal open={modal === "changeTeacherPwd"} onClose={() => setModal(null)} title="Changer le mot de passe">
+      <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe actuel" value={changePwdData.current} onChange={v => setChangePwdData(d => ({ ...d, current: v }))} type="password" placeholder="Mot de passe actuel" />
+      <Input icon={<Icon name="Key" size={16} />} label="Nouveau mot de passe" value={changePwdData.next} onChange={v => setChangePwdData(d => ({ ...d, next: v }))} type="password" placeholder="Minimum 4 caractères" />
+      <Input icon={<Icon name="Key" size={16} />} label="Confirmer le nouveau mot de passe" value={changePwdData.confirm} onChange={v => setChangePwdData(d => ({ ...d, confirm: v }))} type="password" placeholder="Retape le nouveau mot de passe" />
       {changePwdError && <p style={{ color: C.danger, fontWeight: 700, fontSize: 13, margin: "4px 0 0" }}>{changePwdError}</p>}
       <Btn onClick={changeTeacherPassword} fullWidth style={{ marginTop: 8 }}>Valider</Btn>
     </Modal>
 
     {/* MODAL — Modifier une activité */}
-    <Modal open={modal === "editActivity"} onClose={() => { setModal(null); setEditActivityData(null); }} title="✏️ Modifier l'activité" wide>
+    <Modal open={modal === "editActivity"} onClose={() => { setModal(null); setEditActivityData(null); }} title="Modifier l'activité" wide>
       {editActivityData && <>
         <Input label="Titre" value={editActivityData.title} onChange={v => setEditActivityData(d => ({ ...d, title: v }))} />
-        <Select label="Matière" value={editActivityData.subjectId} onChange={v => setEditActivityData(d => ({ ...d, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière" value={editActivityData.subjectId} onChange={v => setEditActivityData(d => ({ ...d, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ display: "flex", gap: 12 }}>
           <Select label="Difficulté" value={String(editActivityData.difficulty)} onChange={v => setEditActivityData(d => ({ ...d, difficulty: parseInt(v) }))} options={[{ value: "1", label: "1 — Facile" }, { value: "2", label: "2 — Moyen" }, { value: "3", label: "3 — Difficile" }]} style={{ flex: 1 }} />
           <Input label="XP récompense" value={String(editActivityData.xpReward)} onChange={v => setEditActivityData(d => ({ ...d, xpReward: parseInt(v) || 40 }))} type="number" style={{ flex: 1 }} />
@@ -1949,11 +1949,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: (editActivityData.classIds || []).includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: (editActivityData.classIds || []).includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={(editActivityData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditActivityData(d => ({ ...d, classIds: [...(d.classIds||[]), c.id] })); else setEditActivityData(d => ({ ...d, classIds: (d.classIds||[]).filter(id => id !== c.id) })); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: (editActivityData.classIds || []).includes(c.id) ? C.primary : C.textLight }}>{(editActivityData.classIds || []).includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: (editActivityData.classIds || []).includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{(editActivityData.classIds || []).includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
-        <Select label="📖 Cours associé (optionnel)" value={editActivityData.courseId || ""} onChange={v => setEditActivityData(d => ({ ...d, courseId: v || null }))} options={[{ value: "", label: "— Aucun cours —" }, ...data.courses.filter(c => c.subjectId === editActivityData.subjectId).map(c => ({ value: c.id, label: c.title }))]} />
+        <Select label="Cours associé (optionnel)" value={editActivityData.courseId || ""} onChange={v => setEditActivityData(d => ({ ...d, courseId: v || null }))} options={[{ value: "", label: "— Aucun cours —" }, ...data.courses.filter(c => c.subjectId === editActivityData.subjectId).map(c => ({ value: c.id, label: c.title }))]} />
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Contenu (JSON) <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 400 }}>— modifier avec précaution</span></label>
           <textarea value={typeof editActivityData.data === 'string' ? editActivityData.data : JSON.stringify(editActivityData.data, null, 2)} onChange={e => setEditActivityData(d => ({ ...d, data: e.target.value }))} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
@@ -1963,22 +1963,22 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     </Modal>
 
     {/* MODAL — Envoyer une notification push */}
-    <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="🔔 Envoyer une notification">
+    <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="Envoyer une notification">
       <p style={{ color: C.textLight, fontSize: 13, marginBottom: 14, fontWeight: 600 }}>
         Destinataires : élèves abonnés de <strong>{activeClass?.name}</strong>
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
         {NOTIF_TYPES.map(t => <label key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 12, border: `2px solid ${notifData.typeId === t.id ? C.primary : '#E4E4F0'}`, cursor: 'pointer', transition: 'border 0.15s', background: notifData.typeId === t.id ? `${C.primary}08` : 'transparent' }}>
           <input type="radio" name="notifType" value={t.id} checked={notifData.typeId === t.id} onChange={() => setNotifData(d => ({ ...d, typeId: t.id }))} style={{ marginTop: 3 }} />
-          <div><div style={{ fontWeight: 800, fontSize: 14 }}>{t.icon} {t.title}</div>{t.id !== 'custom' && <div style={{ color: C.textLight, fontSize: 12, marginTop: 2 }}>{t.body}</div>}</div>
+          <div><div style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}><Icon name={t.icon} size={14} />{t.title}</div>{t.id !== 'custom' && <div style={{ color: C.textLight, fontSize: 12, marginTop: 2 }}>{t.body}</div>}</div>
         </label>)}
       </div>
       {notifData.typeId === 'custom' && <Input label="Message personnalisé" value={notifData.customBody} onChange={v => setNotifData(d => ({ ...d, customBody: v }))} placeholder="Tapez votre message..." />}
-      <Input icon="🔒" label="Mot de passe prof (confirmation)" value={notifData.pwd} onChange={v => setNotifData(d => ({ ...d, pwd: v }))} type="password" placeholder="Mot de passe professeur" />
+      <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe prof (confirmation)" value={notifData.pwd} onChange={v => setNotifData(d => ({ ...d, pwd: v }))} type="password" placeholder="Mot de passe professeur" />
       {notifData.result && <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 12, background: notifData.result.success ? `${C.secondary}15` : '#FFE0E0', color: notifData.result.success ? C.secondary : C.danger, fontWeight: 700, fontSize: 13 }}>
         {notifData.result.success
-          ? `✅ ${notifData.result.sent} notification${notifData.result.sent !== 1 ? 's' : ''} envoyée${notifData.result.sent !== 1 ? 's' : ''} (${notifData.result.total} abonné${notifData.result.total !== 1 ? 's' : ''})`
-          : `❌ ${notifData.result.error || 'Erreur inconnue'}`}
+          ? `${notifData.result.sent} notification${notifData.result.sent !== 1 ? 's' : ''} envoyée${notifData.result.sent !== 1 ? 's' : ''} (${notifData.result.total} abonné${notifData.result.total !== 1 ? 's' : ''})`
+          : `${notifData.result.error || 'Erreur inconnue'}`}
       </div>}
       <Btn onClick={async () => {
         const t = NOTIF_TYPES.find(x => x.id === notifData.typeId);
@@ -1990,11 +1990,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           if (res.success) { try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }
         } catch(e) { setNotifData(d => ({ ...d, sending: false, result: { success: false, error: 'Erreur serveur' } })); }
       }} fullWidth size="lg" disabled={notifData.sending || !notifData.pwd}>
-        {notifData.sending ? '⏳ Envoi en cours...' : '🔔 Envoyer la notification'}
+        {notifData.sending ? <><Icon name="Loader" size={16} style={{marginRight: 6}} />Envoi en cours...</> : <><Icon name="Bell" size={16} style={{marginRight: 6}} />Envoyer la notification</>}
       </Btn>
       {notifHistory.length > 0 && <div style={{ marginTop: 20 }}>
         <button onClick={() => setShowNotifHistory(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 6, padding: "6px 0", marginBottom: 8 }}>
-          🕐 Historique ({notifHistory.length}) {showNotifHistory ? "▲" : "▼"}
+          <Icon name="Clock" size={14} style={{marginRight: 4}} />Historique ({notifHistory.length}) {showNotifHistory ? "▲" : "▼"}
         </button>
         {showNotifHistory && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {notifHistory.map((h, i) => <div key={i} style={{ padding: "10px 14px", borderRadius: 12, background: "#F8F9FD", border: "1px solid #E8E8F0" }}>
@@ -2016,7 +2016,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
 
     {/* Modal de lancement Live Quiz */}
-    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="🔴 Lancer un Live Quiz">
+    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="Lancer un Live Quiz">
       {liveModal && (() => {
         const act = data.activities.find(a => a.id === liveModal);
         const availableClasses = data.classes.filter(c => act?.classIds?.includes(c.id));
@@ -2030,7 +2030,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               setLiveTotalQ(res.totalQuestions);
               setLiveModal(null);
             }
-          }}>🔴 Lancer le Live Quiz</Btn>
+          }}><Icon name="Radio" size={16} style={{marginRight: 6}} />Lancer le Live Quiz</Btn>
         </div>;
       })()}
     </Modal>
@@ -2082,7 +2082,7 @@ function App() {
   if (error) return React.createElement(AnimatedBg, null,
     React.createElement('div', { style: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 } },
       React.createElement(Card, { style: { maxWidth: 500, textAlign: 'center', padding: 40 } },
-        React.createElement('div', { style: { fontSize: 56, marginBottom: 16 } }, '⚠️'),
+        React.createElement(Icon, { name: 'AlertTriangle', size: 56, color: '#E67E22', style: { marginBottom: 16 } }),
         React.createElement('h2', { style: { marginBottom: 12, fontWeight: 800 } }, 'Erreur de connexion'),
         React.createElement('p', { style: { color: C.textLight, marginBottom: 20, lineHeight: 1.6 } }, error),
         React.createElement(Btn, { onClick: loadData, size: 'lg' }, 'Réessayer')
@@ -2155,7 +2155,7 @@ function InstallPrompt() {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-        <div style={{ width: 54, height: 54, borderRadius: 14, background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>📚</div>
+        <div style={{ width: 54, height: 54, borderRadius: 14, background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="BookOpen" size={28} color="#fff" /></div>
         <div>
           <div style={{ fontWeight: 900, fontSize: 17, color: "#2D3436" }}>Installer SmartKlass</div>
           <div style={{ fontSize: 13, color: "#636E72", marginTop: 2 }}>Accès rapide depuis ton écran d'accueil</div>
@@ -2166,11 +2166,11 @@ function InstallPrompt() {
         {/* Instructions iOS */}
         <div style={{ background: "#F8F9FD", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
           {[
-            { icon: "1️⃣", text: <>Appuie sur le bouton <strong>Partager</strong> <span style={{ fontSize: 16 }}>⬆️</span> en bas de Safari</> },
-            { icon: "2️⃣", text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong> — l'icône avec un <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 5, border: "1.5px solid #2D3436", fontSize: 14, fontWeight: 900, lineHeight: 1, verticalAlign: "middle", marginLeft: 2 }}>+</span></> },
-            { icon: "3️⃣", text: <>Confirme en appuyant sur <strong>"Ajouter"</strong> en haut à droite</> },
+            { n: 1, text: <>Appuie sur le bouton <strong>Partager</strong> <Icon name="Share2" size={14} style={{verticalAlign: "middle"}} /> en bas de Safari</> },
+            { n: 2, text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong> — l'icône avec un <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 5, border: "1.5px solid #2D3436", fontSize: 14, fontWeight: 900, lineHeight: 1, verticalAlign: "middle", marginLeft: 2 }}>+</span></> },
+            { n: 3, text: <>Confirme en appuyant sur <strong>"Ajouter"</strong> en haut à droite</> },
           ].map((step, i) => <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
-            <span style={{ fontSize: 16 }}>{step.icon}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "#6C5CE7", color: "#fff", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{step.n}</span>
             <span style={{ fontSize: 14, color: "#2D3436", lineHeight: 1.5 }}>{step.text}</span>
           </div>)}
         </div>
@@ -2179,7 +2179,7 @@ function InstallPrompt() {
         {/* Bouton Android */}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={handleDismiss} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "2px solid #E0E0E0", background: "transparent", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 15, color: "#636E72", cursor: "pointer" }}>Plus tard</button>
-          <button onClick={handleInstall} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", boxShadow: "0 4px 15px rgba(108,92,231,0.4)" }}>📲 Installer l'app</button>
+          <button onClick={handleInstall} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", boxShadow: "0 4px 15px rgba(108,92,231,0.4)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Icon name="Download" size={18} color="#fff" />Installer l'app</button>
         </div>
       </>}
     </div>
