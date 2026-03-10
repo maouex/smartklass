@@ -33,6 +33,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes correctPop { 0% { transform: scale(0.7); opacity: 0; } 55% { transform: scale(1.18); } 80% { transform: scale(0.96); } 100% { transform: scale(1); opacity: 1; } }
         @keyframes wrongShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.85; } }
         input::placeholder { color: #B2BEC3; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -532,14 +533,226 @@ function BottomNav({ tabs, active, onChange }) {
 // LIVE QUIZ COMPONENTS
 // ============================================================================
 
+// ============================================================================
+// LIVE QUIZ v2 — Sound Engine, Confetti, Composants enrichis
+// ============================================================================
+
+// ── Sound Engine (Web Audio API — synthèse procédurale) ──
+const SoundEngine = (() => {
+  let ctx = null;
+  let enabled = true;
+  let musicEnabled = false;
+  let musicOsc = null;
+  let musicGain = null;
+
+  const getCtx = () => {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  };
+
+  const playNote = (freq, duration, type = 'sine', vol = 0.3, delay = 0) => {
+    if (!enabled) return;
+    const c = getCtx();
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, c.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(vol, c.currentTime + delay + 0.02);
+    gain.gain.linearRampToValueAtTime(0, c.currentTime + delay + duration);
+    osc.connect(gain);
+    gain.connect(c.destination);
+    osc.start(c.currentTime + delay);
+    osc.stop(c.currentTime + delay + duration + 0.05);
+  };
+
+  const playNoise = (duration, vol = 0.15) => {
+    if (!enabled) return;
+    const c = getCtx();
+    const bufSize = c.sampleRate * duration;
+    const buf = c.createBuffer(1, bufSize, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const gain = c.createGain();
+    const filter = c.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 800;
+    gain.gain.setValueAtTime(vol, c.currentTime);
+    gain.gain.linearRampToValueAtTime(0, c.currentTime + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(c.destination);
+    src.start();
+    src.stop(c.currentTime + duration + 0.05);
+  };
+
+  return {
+    setEnabled: (v) => { enabled = v; },
+    isEnabled: () => enabled,
+    setMusicEnabled: (v) => {
+      musicEnabled = v;
+      if (!v && musicOsc) { try { musicOsc.stop(); } catch(e){} musicOsc = null; }
+    },
+    isMusicEnabled: () => musicEnabled,
+
+    tick: () => playNote(800, 0.05, 'sine', 0.08),
+    countdown: () => playNote(440, 0.15, 'sine', 0.25),
+    countdownFinal: () => { playNote(880, 0.1, 'square', 0.2); playNote(880, 0.1, 'square', 0.2, 0.12); },
+    correct: () => { playNote(523, 0.12, 'sine', 0.3); playNote(659, 0.12, 'sine', 0.3, 0.1); playNote(784, 0.2, 'sine', 0.35, 0.2); },
+    wrong: () => { playNote(330, 0.15, 'sawtooth', 0.15); playNote(220, 0.25, 'sawtooth', 0.12, 0.12); },
+    streakUp: () => { playNote(660, 0.08, 'sine', 0.25); playNote(880, 0.08, 'sine', 0.25, 0.06); playNote(1100, 0.12, 'sine', 0.3, 0.12); playNote(1320, 0.15, 'triangle', 0.2, 0.18); },
+    rankUp: () => { [523,587,659,784,1047].forEach((f,i) => playNote(f, 0.1, 'sine', 0.25, i*0.07)); },
+    questionReveal: () => { playNoise(0.15, 0.1); playNote(1047, 0.15, 'sine', 0.2, 0.08); },
+    podiumFanfare: () => {
+      [523,659,784,1047].forEach((f,i) => playNote(f, 0.15, 'sine', 0.3, i*0.12));
+      playNote(1047, 0.5, 'sine', 0.35, 0.6);
+      playNote(1319, 0.5, 'sine', 0.3, 0.6);
+    },
+    joinPop: () => { playNote(1200, 0.06, 'sine', 0.15); playNote(1600, 0.08, 'sine', 0.12, 0.05); },
+
+    startMusic: () => {
+      if (!musicEnabled || !enabled) return;
+      const c = getCtx();
+      musicGain = c.createGain();
+      musicGain.gain.value = 0.06;
+      musicGain.connect(c.destination);
+      const notes = [261, 329, 392, 329, 261, 392, 329, 261, 349, 440, 349, 261, 329, 392, 329, 261];
+      let step = 0;
+      const playStep = () => {
+        if (!musicEnabled || !musicOsc) return;
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = notes[step % notes.length];
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.06, c.currentTime);
+        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.35);
+        osc.connect(g);
+        g.connect(c.destination);
+        osc.start();
+        osc.stop(c.currentTime + 0.4);
+        step++;
+        musicOsc = setTimeout(playStep, 350);
+      };
+      musicOsc = setTimeout(playStep, 100);
+    },
+    stopMusic: () => {
+      if (musicOsc) { clearTimeout(musicOsc); musicOsc = null; }
+    },
+  };
+})();
+
+// ── Confetti Canvas ──
+function ConfettiCanvas({ active, duration = 2000 }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const colors = ['#6C5CE7', '#00B894', '#FDCB6E', '#E17055', '#0984E3', '#FF6B81', '#A29BFE'];
+    const particles = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height * -0.5,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 6 + 3,
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 3 + 2,
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random() - 0.5) * 0.2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    let startTime = Date.now();
+    let animId;
+    const draw = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > duration) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const alpha = Math.max(0, 1 - elapsed / duration);
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.08;
+        p.rot += p.rotV;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      animId = requestAnimationFrame(draw);
+    };
+    animId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animId);
+  }, [active, duration]);
+  if (!active) return null;
+  return <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }} />;
+}
+
+// ── Countdown Circulaire SVG ──
+function CountdownCircle({ remaining, total, size = 80, danger = false }) {
+  const radius = (size - 8) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0 ? Math.max(0, remaining / total) : 0;
+  const offset = circumference * (1 - progress);
+  const isDanger = remaining <= 5 && remaining > 0;
+  const isUrgent = remaining <= 3 && remaining > 0;
+
+  return <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+      <circle cx={size/2} cy={size/2} r={radius} fill="none"
+        stroke={isDanger ? '#D63031' : '#00B894'}
+        strokeWidth="4" strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        style={{ transition: 'stroke-dashoffset 0.3s linear, stroke 0.3s' }}
+      />
+    </svg>
+    <div style={{
+      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: isUrgent ? 28 : isDanger ? 24 : 20,
+      fontWeight: 900, color: isDanger ? '#D63031' : '#fff',
+      animation: isUrgent ? 'pulse 0.5s ease-in-out infinite' : isDanger ? 'pulse 1s ease-in-out infinite' : 'none',
+    }}>
+      {remaining > 0 ? remaining : '⏱'}
+    </div>
+  </div>;
+}
+
+// ── Score Pop Animation ──
+function ScorePop({ score, streak }) {
+  if (!score) return null;
+  return <div style={{
+    animation: 'correctPop 0.6s ease',
+    textAlign: 'center', padding: '8px 16px',
+    background: 'rgba(0,184,148,0.2)', borderRadius: 12,
+    display: 'inline-flex', alignItems: 'center', gap: 8,
+  }}>
+    <span style={{ fontWeight: 900, fontSize: 22, color: '#00B894' }}>+{score}</span>
+    <span style={{ fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>pts</span>
+    {streak >= 2 && <span style={{
+      background: 'linear-gradient(135deg, #E17055, #FDCB6E)',
+      padding: '2px 10px', borderRadius: 20, fontWeight: 800, fontSize: 12,
+      animation: streak >= 5 ? 'pulse 0.5s ease-in-out infinite' : 'none',
+    }}>🔥 x{streak}</span>}
+  </div>;
+}
+
 function LiveQuizBanner({ session, onJoin, onDismiss }) {
-  return <div style={{ position: "fixed", top: 64, left: 0, right: 0, zIndex: 200, background: C.primary, color: "#fff", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 20px rgba(108,92,231,0.4)", animation: "fadeIn 0.3s" }}>
+  return <div style={{ position: "fixed", top: 64, left: 0, right: 0, zIndex: 200, background: "linear-gradient(135deg, #6C5CE7, #D63031)", color: "#fff", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 24px rgba(108,92,231,0.5)", animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <Icon name="Radio" size={22} color="#fff" />
-      <div><div style={{ fontWeight: 900, fontSize: 14 }}>Live Quiz en cours !</div><div style={{ fontSize: 12, opacity: 0.9 }}>{session.activityTitle}</div></div>
+      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff4444', animation: 'pulse 1s ease-in-out infinite', boxShadow: '0 0 8px rgba(255,68,68,0.6)' }} />
+      <div><div style={{ fontWeight: 900, fontSize: 14 }}>Live Quiz en cours !</div><div style={{ fontSize: 12, opacity: 0.9 }}>{session.activityTitle}{session.mode === 'team' ? ' — Mode Équipe' : ''}</div></div>
     </div>
     <div style={{ display: "flex", gap: 8 }}>
-      <button onClick={onJoin} style={{ background: "#fff", color: C.primary, border: "none", borderRadius: 10, padding: "8px 16px", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Rejoindre →</button>
+      <button onClick={onJoin} style={{ background: "#fff", color: C.primary, border: "none", borderRadius: 10, padding: "8px 16px", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer", animation: "pulse 2s ease-in-out infinite" }}>Rejoindre →</button>
       <button onClick={onDismiss} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 10px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
     </div>
   </div>;
@@ -551,9 +764,9 @@ function DistributionBar({ choices, distribution, correctAnswer, revealed }) {
   const maxVal = Math.max(...distribution, 1);
   return <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
     {(choices || []).map((choice, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ width: 28, height: 28, borderRadius: 8, background: colors[i], color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, border: revealed && i === correctAnswer ? "3px solid #00B894" : "3px solid transparent", boxSizing: "border-box" }}>{labels[i]}</div>
+      <div style={{ width: 28, height: 28, borderRadius: 8, background: colors[i % colors.length], color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, border: revealed && i === correctAnswer ? "3px solid #00B894" : "3px solid transparent", boxSizing: "border-box" }}>{labels[i] || i}</div>
       <div style={{ flex: 1, background: "#F0F0F8", borderRadius: 8, height: 28, overflow: "hidden", position: "relative" }}>
-        <div style={{ width: `${(distribution[i] / maxVal) * 100}%`, height: "100%", background: revealed && i === correctAnswer ? "#00B894" : `${colors[i]}80`, borderRadius: 8, transition: "width 0.4s ease", minWidth: distribution[i] > 0 ? 8 : 0 }} />
+        <div style={{ width: `${(distribution[i] / maxVal) * 100}%`, height: "100%", background: revealed && i === correctAnswer ? "#00B894" : `${colors[i % colors.length]}80`, borderRadius: 8, transition: "width 0.4s ease", minWidth: distribution[i] > 0 ? 8 : 0 }} />
         <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 700, color: C.text }}>{choice}</span>
       </div>
       <div style={{ width: 28, textAlign: "right", fontWeight: 800, fontSize: 14, color: revealed && i === correctAnswer ? "#00B894" : "rgba(255,255,255,0.75)" }}>{distribution[i]}</div>
@@ -665,24 +878,85 @@ void main(){
 function LiveQuizStudent({ sessionId, student, onExit }) {
   const [liveData, setLiveData] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [localStatus, setLocalStatus] = useState(null);
   const [localQ, setLocalQ] = useState(-1);
+  const [lastScore, setLastScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showScorePop, setShowScorePop] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+  const [prevRank, setPrevRank] = useState(null);
+  const [rankDelta, setRankDelta] = useState(null);
+  const [myTeam, setMyTeam] = useState(null);
+  const [reaction, setReaction] = useState(null);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const prevJoinedRef = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
   const labels = ["A", "B", "C", "D"];
 
+  // Timer countdown local
+  React.useEffect(() => {
+    if (!liveData || liveData.status !== 'active' || !liveData.questionStartedAt || !liveData.timerSeconds) {
+      setCountdown(null); return;
+    }
+    const update = () => {
+      const serverNow = new Date(liveData.serverTime).getTime();
+      const started = new Date(liveData.questionStartedAt).getTime();
+      const elapsed = (Date.now() - (Date.now() - serverNow) - started) / 1000;
+      const rem = Math.max(0, Math.ceil(liveData.timerSeconds - elapsed));
+      setCountdown(rem);
+      // Sons countdown
+      if (rem <= 5 && rem > 3 && rem !== countdown) SoundEngine.countdown();
+      if (rem <= 3 && rem > 0 && rem !== countdown) SoundEngine.countdownFinal();
+    };
+    update();
+    const iv = setInterval(update, 200);
+    return () => clearInterval(iv);
+  }, [liveData?.questionStartedAt, liveData?.timerSeconds, liveData?.serverTime, liveData?.status]);
+
+  // Polling
   React.useEffect(() => {
     let interval;
     const poll = async () => {
       try {
         const data = await api.get(`live-quiz/${sessionId}?studentId=${student.id}`);
-        setLiveData(data);
-        // Reset selectedAnswer si nouvelle question
+        // Son quand un nouvel élève rejoint
+        if (data.joinedCount > prevJoinedRef.current && prevJoinedRef.current > 0) SoundEngine.joinPop();
+        prevJoinedRef.current = data.joinedCount;
+
+        // Nouvelle question
         if (data.currentQ !== localQ) {
           setSelectedAnswer(null);
+          setShowScorePop(false);
+          setReaction(null);
+          if (localQ >= 0) SoundEngine.questionReveal();
+          // Calcul du delta de rang
+          if (prevRank !== null && data.leaderboard) {
+            const newRank = data.leaderboard.findIndex(l => l.studentId === student.id);
+            if (newRank >= 0) {
+              const delta = prevRank - newRank;
+              if (delta !== 0) setRankDelta(delta);
+              if (delta > 0) SoundEngine.rankUp();
+            }
+          }
           setLocalQ(data.currentQ);
         }
-        setLocalStatus(data.status);
-        if (data.status === 'finished') clearInterval(interval);
+
+        // Enregistrer le rang actuel
+        if (data.leaderboard) {
+          const myRankNow = data.leaderboard.findIndex(l => l.studentId === student.id);
+          if (myRankNow >= 0) setPrevRank(myRankNow);
+        }
+
+        // Équipe
+        if (data.myTeam) setMyTeam(data.myTeam);
+        if (data.myStreak !== undefined) setStreak(data.myStreak);
+
+        setLiveData(data);
+        if (data.status === 'finished') {
+          clearInterval(interval);
+          SoundEngine.podiumFanfare();
+          setShowConfetti(true);
+        }
       } catch(e) {}
     };
     poll();
@@ -690,127 +964,309 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
     return () => clearInterval(interval);
   }, [sessionId, localQ]);
 
+  // Musique de fond
+  React.useEffect(() => {
+    SoundEngine.startMusic();
+    return () => SoundEngine.stopMusic();
+  }, []);
+
   const handleAnswer = async (idx) => {
     if (selectedAnswer !== null || liveData?.hasAnswered) return;
     setSelectedAnswer(idx);
+    SoundEngine.tick();
     try {
-      await api.post(`live-quiz/${sessionId}/answer`, { studentId: student.id, questionIdx: liveData.currentQ, answerIdx: idx });
+      const res = await api.post(`live-quiz/${sessionId}/answer`, { studentId: student.id, questionIdx: liveData.currentQ, answerIdx: idx });
+      if (res.isCorrect) {
+        SoundEngine.correct();
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 1500);
+        if (res.streak >= 2) SoundEngine.streakUp();
+      } else {
+        SoundEngine.wrong();
+      }
+      setLastScore(res.score || 0);
+      setStreak(res.streak || 0);
+      setShowScorePop(true);
     } catch(e) {}
+  };
+
+  const handleTeamJoin = async (team) => {
+    try {
+      const res = await api.post(`live-quiz/${sessionId}/join-team`, { studentId: student.id, team });
+      if (res.success) setMyTeam(team);
+    } catch(e) {
+      // Équipe pleine
+    }
+  };
+
+  const toggleMute = () => {
+    const newVal = !soundMuted;
+    setSoundMuted(newVal);
+    SoundEngine.setEnabled(!newVal);
+    SoundEngine.setMusicEnabled(!newVal);
+    if (newVal) SoundEngine.stopMusic();
+    else SoundEngine.startMusic();
   };
 
   if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f0c29", display: "flex", alignItems: "center", justifyContent: "center" }}>
     <Aurora colorStops={["#6C5CE7","#a29bfe","#0984E3"]} amplitude={1.2} blend={0.6} speed={0.7} />
-    <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Radio" size={48} color="#fff" /></div><p style={{ fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Connexion au live...</p></div>
+    <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 1s ease-in-out infinite" }}><Icon name="Radio" size={48} color="#fff" /></div><p style={{ fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Connexion au live...</p></div>
   </div>;
 
-  const { status, currentQ, totalQuestions, question, hasAnswered, leaderboard } = liveData;
-  const myScore = leaderboard?.find(l => l.studentId === student.id)?.score || 0;
+  const { status, currentQ, totalQuestions, question, hasAnswered, leaderboard, mode, teams } = liveData;
+  const myTotalScore = leaderboard?.find(l => l.studentId === student.id)?.score || 0;
+  const myCorrectCount = leaderboard?.find(l => l.studentId === student.id)?.correctCount || 0;
+  const isTF = question?.isTrueFalse;
+  const teamColor = myTeam === 'A' ? '#0984E3' : myTeam === 'B' ? '#E17055' : null;
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f0c29", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: "#fff" }}>
-    <Aurora colorStops={["#6C5CE7","#a29bfe","#0984E3"]} amplitude={1.2} blend={0.6} speed={0.7} />
+    <Aurora colorStops={teamColor ? [teamColor, "#0f0c29", teamColor] : ["#6C5CE7","#a29bfe","#0984E3"]} amplitude={1.2} blend={0.6} speed={0.7} />
+    <ConfettiCanvas active={showConfetti} />
+
     {/* Header */}
-    <div style={{ position: "relative", zIndex: 1, background: "rgba(108,92,231,0.85)", backdropFilter: "blur(8px)", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <Icon name="Radio" size={22} color="#fff" />
-        <div><div style={{ fontWeight: 900, fontSize: 15 }}>Live Quiz</div><div style={{ fontSize: 11, opacity: 0.85 }}>{liveData.activityTitle}</div></div>
+    <div style={{ position: "relative", zIndex: 1, background: teamColor ? `${teamColor}dd` : "rgba(108,92,231,0.85)", backdropFilter: "blur(8px)", color: "#fff", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff4444', animation: 'pulse 1s ease-in-out infinite', boxShadow: '0 0 6px rgba(255,68,68,0.6)' }} />
+        <div><div style={{ fontWeight: 900, fontSize: 14 }}>Live Quiz{myTeam ? ` — Équipe ${myTeam}` : ''}</div><div style={{ fontSize: 11, opacity: 0.85 }}>{liveData.activityTitle}</div></div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, opacity: 0.85 }}>Mon score</div><div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}><Icon name="Zap" size={16} color="#fff" /> {myScore}</div></div>
-        <button onClick={onExit} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 10, padding: "6px 12px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Quitter</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {streak >= 2 && <div style={{ background: 'linear-gradient(135deg, #E17055, #FDCB6E)', padding: '3px 10px', borderRadius: 20, fontWeight: 800, fontSize: 11, animation: streak >= 5 ? 'pulse 0.5s ease-in-out infinite' : 'none' }}>🔥 x{streak}</div>}
+        <div style={{ textAlign: "right" }}><div style={{ fontSize: 10, opacity: 0.8 }}>Score</div><div style={{ fontWeight: 900, fontSize: 18 }}>{myTotalScore}</div></div>
+        <button onClick={toggleMute} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
+        <button onClick={onExit} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "none", borderRadius: 8, padding: "5px 10px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>✕</button>
       </div>
     </div>
 
     {/* Contenu */}
-    <div style={{ position: "relative", zIndex: 1, flex: 1, overflow: "auto", padding: "20px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
-      {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 2s ease-in-out infinite" }}><Icon name="Clock" size={64} color="#a29bfe" /></div>
-        <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>En attente du démarrage</h2>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>Le professeur va lancer le quiz dans quelques instants...</p>
-      </div>}
+    <div style={{ position: "relative", zIndex: 1, flex: 1, overflow: "auto", padding: "16px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
 
-      {(status === 'active' || status === 'paused') && question && <>
-        {/* Progression */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span>}</Chip>
-          <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
-        </div>
-        <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 20 }} />
-
-        {/* Question */}
-        <Card style={{ padding: 24, marginBottom: 16, textAlign: "center", color: C.text }}>
-          <p style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.4, margin: 0 }}>{question.q}</p>
-        </Card>
-
-        {/* Choix */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-          {(question.choices || []).map((choice, i) => {
-            const answered = hasAnswered || selectedAnswer !== null;
-            const isSelected = selectedAnswer === i;
-            const isCorrect = status === 'paused' && i === question.answer;
-            const isWrong = status === 'paused' && isSelected && i !== question.answer;
-            let bg = colors[i] + "30", border = `2px solid ${colors[i]}70`, color = "#fff";
-            if (isSelected && status === 'active') { bg = colors[i]; color = "#fff"; border = `2px solid ${colors[i]}`; }
-            if (isCorrect) { bg = "#00B894"; color = "#fff"; border = "2px solid #00B894"; }
-            if (isWrong) { bg = "#D63031"; color = "#fff"; border = "2px solid #D63031"; }
-            return <button key={i} onClick={() => handleAnswer(i)} disabled={answered} style={{ background: bg, border, borderRadius: 14, padding: "14px 10px", cursor: answered ? "default" : "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color, transition: "all 0.2s", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: answered ? "rgba(255,255,255,0.3)" : colors[i] + "90", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{labels[i]}</span>
-              {choice}
+      {/* ── Waiting ── */}
+      {status === 'waiting' && !myTeam && mode === 'team' && <div style={{ textAlign: "center", paddingTop: 40 }}>
+        <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Choisis ton équipe !</h2>
+        <p style={{ color: "rgba(255,255,255,0.7)", marginBottom: 24 }}>Les équipes doivent être équilibrées</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 400, margin: '0 auto' }}>
+          {['A', 'B'].map(t => {
+            const tCount = teams?.[t]?.count || 0;
+            const otherCount = teams?.[t === 'A' ? 'B' : 'A']?.count || 0;
+            const disabled = tCount - otherCount >= 2;
+            const tColor = t === 'A' ? '#0984E3' : '#E17055';
+            return <button key={t} onClick={() => !disabled && handleTeamJoin(t)} disabled={disabled}
+              style={{ background: disabled ? 'rgba(255,255,255,0.1)' : `${tColor}40`, border: `3px solid ${disabled ? 'rgba(255,255,255,0.2)' : tColor}`, borderRadius: 20, padding: '32px 16px', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: "'Nunito',sans-serif", color: '#fff', textAlign: 'center', transition: 'all 0.2s', opacity: disabled ? 0.5 : 1 }}>
+              <div style={{ fontSize: 32, fontWeight: 900, marginBottom: 8 }}>Équipe {t}</div>
+              <div style={{ fontSize: 14, opacity: 0.85 }}>{tCount} joueur{tCount > 1 ? 's' : ''}</div>
+              {disabled && <div style={{ fontSize: 12, marginTop: 8, color: '#FDCB6E' }}>Complète !</div>}
             </button>;
           })}
         </div>
+      </div>}
 
-        {/* Feedback après réponse */}
-        {(hasAnswered || selectedAnswer !== null) && status === 'active' && <div style={{ padding: 16, textAlign: "center", background: "rgba(0,184,148,0.2)", border: "1px solid rgba(0,184,148,0.5)", borderRadius: 16 }}>
-          <p style={{ fontWeight: 700, color: "#00B894", margin: 0 }}>✅ Réponse envoyée ! En attente des autres élèves...</p>
+      {status === 'waiting' && (mode !== 'team' || myTeam) && <div style={{ textAlign: "center", paddingTop: 40 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 2s ease-in-out infinite" }}><Icon name="Clock" size={64} color="#a29bfe" /></div>
+        <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>En attente du démarrage</h2>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600, marginBottom: 24 }}>Le professeur va lancer le quiz dans quelques instants...</p>
+        {/* Avatars des joueurs connectés */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, maxWidth: 400, margin: '0 auto' }}>
+          {(liveData.joinedStudents || []).map((s, i) => <div key={s.id} style={{
+            width: 40, height: 40, borderRadius: '50%',
+            background: `hsl(${(i * 47) % 360}, 65%, 55%)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 800, fontSize: 13, color: '#fff',
+            animation: `correctPop 0.4s ease ${i * 0.05}s both`,
+            border: s.id === student.id ? '2px solid #fff' : '2px solid transparent',
+          }}>{s.firstName?.[0]}{s.lastName?.[0]}</div>)}
+        </div>
+        <p style={{ fontSize: 12, opacity: 0.6, marginTop: 12 }}>{liveData.joinedCount} / {liveData.totalStudents} élèves</p>
+        {myTeam && <div style={{ marginTop: 12, background: teamColor + '30', border: `1px solid ${teamColor}60`, borderRadius: 12, padding: '8px 16px', display: 'inline-block' }}>Équipe {myTeam}</div>}
+      </div>}
+
+      {/* ── Active / Paused ── */}
+      {(status === 'active' || status === 'paused') && question && <>
+        {/* Progression + Timer */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span>}</Chip>
+            <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
+          </div>
+          {status === 'active' && countdown !== null && <CountdownCircle remaining={countdown} total={liveData.timerSeconds} size={56} />}
+        </div>
+        <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 16 }} />
+
+        {/* Rank delta */}
+        {rankDelta !== null && <div style={{ textAlign: 'center', marginBottom: 8, animation: 'fadeIn 0.3s' }}>
+          <span style={{ background: rankDelta > 0 ? 'rgba(0,184,148,0.25)' : 'rgba(214,48,49,0.25)', color: rankDelta > 0 ? '#00B894' : '#D63031', padding: '4px 14px', borderRadius: 20, fontWeight: 800, fontSize: 13 }}>
+            {rankDelta > 0 ? `↑ +${rankDelta} place${rankDelta > 1 ? 's' : ''}` : `↓ ${rankDelta} place${rankDelta < -1 ? 's' : ''}`}
+          </span>
+        </div>}
+
+        {/* Question */}
+        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 16, textAlign: "center", animation: "fadeIn 0.4s", border: question.isMatching ? '2px solid rgba(253,203,110,0.4)' : 'none' }}>
+          {question.isMatching && <div style={{ fontSize: 11, fontWeight: 700, color: '#FDCB6E', marginBottom: 8 }}>🔗 ASSOCIATION</div>}
+          <p style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.4, margin: 0 }}>{question.q}</p>
+        </div>
+
+        {/* Choix — Vrai/Faux ou QCM */}
+        {isTF ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {['Vrai', 'Faux'].map((label, i) => {
+              const answered = hasAnswered || selectedAnswer !== null;
+              const isSelected = selectedAnswer === i;
+              const isCorrect = status === 'paused' && i === question.answer;
+              const isWrong = status === 'paused' && isSelected && i !== question.answer;
+              const tfColor = i === 0 ? '#00B894' : '#D63031';
+              let bg = `${tfColor}30`, border = `3px solid ${tfColor}60`;
+              if (isSelected && status === 'active') { bg = tfColor; border = `3px solid ${tfColor}`; }
+              if (isCorrect) { bg = "#00B894"; border = "3px solid #00B894"; }
+              if (isWrong) { bg = "#D63031"; border = "3px solid #D63031"; }
+              return <button key={i} onClick={() => handleAnswer(i)} disabled={answered || (countdown !== null && countdown <= 0)}
+                style={{ background: bg, border, borderRadius: 20, padding: "28px 16px", cursor: answered ? "default" : "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 22, color: '#fff', transition: "all 0.2s", textAlign: "center", opacity: (countdown !== null && countdown <= 0 && !answered) ? 0.4 : 1 }}>
+                {i === 0 ? '✓' : '✗'} {label}
+              </button>;
+            })}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            {(question.choices || []).map((choice, i) => {
+              const answered = hasAnswered || selectedAnswer !== null;
+              const isSelected = selectedAnswer === i;
+              const isCorrect = status === 'paused' && i === question.answer;
+              const isWrong = status === 'paused' && isSelected && i !== question.answer;
+              let bg = colors[i % 4] + "30", border = `2px solid ${colors[i % 4]}70`, clr = "#fff";
+              if (isSelected && status === 'active') { bg = colors[i % 4]; clr = "#fff"; border = `2px solid ${colors[i % 4]}`; }
+              if (isCorrect) { bg = "#00B894"; clr = "#fff"; border = "2px solid #00B894"; }
+              if (isWrong) { bg = "#D63031"; clr = "#fff"; border = "2px solid #D63031"; }
+              return <button key={i} onClick={() => handleAnswer(i)} disabled={answered || (countdown !== null && countdown <= 0)}
+                style={{ background: bg, border, borderRadius: 14, padding: "14px 10px", cursor: answered ? "default" : "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: clr, transition: "all 0.2s", textAlign: "left", display: "flex", alignItems: "center", gap: 8, animation: `fadeIn ${0.1 + i * 0.08}s ease`, opacity: (countdown !== null && countdown <= 0 && !answered) ? 0.4 : 1 }}>
+                <span style={{ width: 24, height: 24, borderRadius: 6, background: answered ? "rgba(255,255,255,0.3)" : colors[i % 4] + "90", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{labels[i]}</span>
+                {choice}
+              </button>;
+            })}
+          </div>
+        )}
+
+        {/* Timer expired */}
+        {countdown !== null && countdown <= 0 && !hasAnswered && selectedAnswer === null && <div style={{ padding: 16, textAlign: "center", background: "rgba(214,48,49,0.2)", border: "1px solid rgba(214,48,49,0.5)", borderRadius: 16, marginBottom: 12 }}>
+          <p style={{ fontWeight: 700, color: "#D63031", margin: 0 }}>⏱ Temps écoulé !</p>
+        </div>}
+
+        {/* Feedback après réponse (active) */}
+        {(hasAnswered || selectedAnswer !== null) && status === 'active' && <div style={{ textAlign: "center" }}>
+          {showScorePop && lastScore > 0 && <div style={{ marginBottom: 8 }}><ScorePop score={lastScore} streak={streak} /></div>}
+          <div style={{ padding: 12, background: "rgba(0,184,148,0.15)", border: "1px solid rgba(0,184,148,0.4)", borderRadius: 14 }}>
+            <p style={{ fontWeight: 700, color: "#00B894", margin: 0, fontSize: 13 }}>✅ Réponse envoyée !</p>
+          </div>
         </div>}
 
         {/* Résultat révélé (pause) */}
         {status === 'paused' && selectedAnswer !== null && (() => {
           const correct = selectedAnswer === question.answer;
-          return <div style={{ animation: correct ? "correctPop 0.5s ease" : "wrongShake 0.45s ease", borderRadius: 18, padding: "20px 16px", textAlign: "center", background: correct ? "linear-gradient(135deg,#00B894,#00cec9)" : "linear-gradient(135deg,#D63031,#e17055)", color: "#fff", marginBottom: 4, boxShadow: correct ? "0 6px 24px rgba(0,184,148,0.45)" : "0 6px 24px rgba(214,48,49,0.4)" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>{correct ? <Icon name="CheckCircle2" size={52} color="#fff" /> : <Icon name="XCircle" size={52} color="#fff" />}</div>
+          return <div style={{ animation: correct ? "correctPop 0.5s ease" : "wrongShake 0.45s ease", borderRadius: 18, padding: "20px 16px", textAlign: "center", background: correct ? "linear-gradient(135deg,#00B894,#00cec9)" : "linear-gradient(135deg,#D63031,#e17055)", color: "#fff", marginBottom: 8, boxShadow: correct ? "0 6px 24px rgba(0,184,148,0.45)" : "0 6px 24px rgba(214,48,49,0.4)" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>{correct ? <Icon name="CheckCircle2" size={48} color="#fff" /> : <Icon name="XCircle" size={48} color="#fff" />}</div>
             <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{correct ? "Bonne réponse !" : "Mauvaise réponse"}</div>
-            {!correct && question.answer !== undefined && <div style={{ fontSize: 13, opacity: 0.9 }}>La bonne réponse était : <strong>{["A","B","C","D"][question.answer]}</strong></div>}
+            {correct && lastScore > 0 && <div style={{ marginTop: 4 }}><ScorePop score={lastScore} streak={streak} /></div>}
+            {!correct && question.answer !== undefined && <div style={{ fontSize: 13, opacity: 0.9 }}>La bonne réponse était : <strong>{isTF ? (question.answer === 0 ? 'Vrai' : 'Faux') : labels[question.answer]}</strong></div>}
           </div>;
         })()}
 
-        {/* Correction (pause) */}
-        {status === 'paused' && question.explanation && <div style={{ padding: 16, background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.45)", borderRadius: 16 }}>
-          <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color={C.warning} /> Explication</p>
-          <p style={{ margin: 0, lineHeight: 1.5, color: "rgba(255,255,255,0.9)" }}>{question.explanation}</p>
+        {/* Reactions (pause) */}
+        {status === 'paused' && <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+          {['😎', '🤯', '😅', '💪'].map(emoji => <button key={emoji} onClick={() => setReaction(emoji)}
+            style={{ fontSize: 24, background: reaction === emoji ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)', border: reaction === emoji ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent', borderRadius: 12, padding: '8px 12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+            {emoji}
+          </button>)}
+        </div>}
+
+        {/* Explication (pause) */}
+        {status === 'paused' && question.explanation && <div style={{ padding: 14, background: "rgba(253,203,110,0.12)", border: "1px solid rgba(253,203,110,0.35)", borderRadius: 14, marginBottom: 8 }}>
+          <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}><Icon name="Lightbulb" size={14} color={C.warning} /> Explication</p>
+          <p style={{ margin: 0, lineHeight: 1.5, color: "rgba(255,255,255,0.9)", fontSize: 13 }}>{question.explanation}</p>
+        </div>}
+
+        {/* Mini leaderboard (pause) */}
+        {status === 'paused' && leaderboard && leaderboard.length > 0 && <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 12, marginTop: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="Trophy" size={14} color={C.warning} /> Top 3</div>
+          {leaderboard.slice(0, 3).map((l, i) => {
+            const medalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
+            const isMe = l.studentId === student.id;
+            return <div key={l.studentId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8, background: isMe ? 'rgba(108,92,231,0.2)' : 'transparent', marginBottom: 2 }}>
+              <Icon name="Medal" size={16} color={medalColors[i]} />
+              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600, fontSize: 13 }}>{l.firstName} {l.lastName}{isMe ? ' (moi)' : ''}</span>
+              <span style={{ fontWeight: 800, fontSize: 13, color: '#a29bfe' }}>{l.score}</span>
+            </div>;
+          })}
         </div>}
       </>}
 
+      {/* ── Finished ── */}
       {status === 'finished' && (() => {
         const lb = leaderboard || [];
         const medalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
+        const podiumOrder = [1, 0, 2]; // 2ème, 1er, 3ème
+        const podiumHeights = [100, 140, 80];
         const top3 = lb.slice(0, 3);
         const myRank = lb.findIndex(l => l.studentId === student.id);
         const myEntry = lb[myRank];
-        return <div style={{ textAlign: "center", paddingTop: 20 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, animation: "correctPop 0.5s ease" }}><Icon name="Trophy" size={56} color={C.warning} /></div>
-          <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: "#a29bfe" }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
-          <Card style={{ padding: 20, marginBottom: 16, color: C.text }}>
-            <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Podium</h3>
-            {top3.map((l, i) => {
-              const isMe = l.studentId === student.id;
-              return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: isMe ? `${C.primary}15` : i % 2 === 0 ? "#F8F9FD" : "transparent", marginBottom: 4 }}>
-                <div style={{ width: 28, display: "flex", justifyContent: "center" }}><Icon name="Medal" size={20} color={medalColors[i]} /></div>
-                <span style={{ flex: 1, fontWeight: isMe ? 800 : 600 }}>{l.firstName} {l.lastName}{isMe ? " (moi)" : ""}</span>
-                <span style={{ fontWeight: 800, color: C.primary, display: "flex", alignItems: "center", gap: 4 }}>{l.score} <Icon name="Check" size={14} color={C.primary} /></span>
+
+        return <div style={{ textAlign: "center", paddingTop: 16 }}>
+          <div style={{ animation: "correctPop 0.6s ease" }}>
+            <Icon name="Trophy" size={64} color={C.warning} />
+          </div>
+          <h2 style={{ fontWeight: 900, fontSize: 26, marginBottom: 4, marginTop: 8 }}>Quiz terminé !</h2>
+
+          {/* Équipe gagnante */}
+          {mode === 'team' && teams && <div style={{ marginBottom: 16, animation: 'fadeIn 0.5s' }}>
+            {(() => {
+              const winner = (teams.A?.score || 0) >= (teams.B?.score || 0) ? 'A' : 'B';
+              const wColor = winner === 'A' ? '#0984E3' : '#E17055';
+              return <div style={{ background: `${wColor}30`, border: `2px solid ${wColor}`, borderRadius: 16, padding: 16 }}>
+                <div style={{ fontWeight: 900, fontSize: 20 }}>🏆 Équipe {winner} remporte la victoire !</div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 8 }}>
+                  <div><span style={{ fontWeight: 700, color: '#0984E3' }}>Équipe A</span><div style={{ fontWeight: 900, fontSize: 18 }}>{teams.A?.score || 0} pts</div></div>
+                  <div><span style={{ fontWeight: 700, color: '#E17055' }}>Équipe B</span><div style={{ fontWeight: 900, fontSize: 18 }}>{teams.B?.score || 0} pts</div></div>
+                </div>
+              </div>;
+            })()}
+          </div>}
+
+          {/* Score personnel */}
+          <div style={{ background: 'rgba(108,92,231,0.2)', border: '1px solid rgba(108,92,231,0.4)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, opacity: 0.8, marginBottom: 4 }}>Ton score</div>
+            <div style={{ fontWeight: 900, fontSize: 32, color: '#a29bfe' }}>{myTotalScore} pts</div>
+            <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>{myCorrectCount} / {totalQuestions} bonnes réponses</div>
+            {myRank >= 0 && <div style={{ marginTop: 8, fontWeight: 800, fontSize: 15 }}>
+              {myRank === 0 ? '🥇 1er !' : myRank === 1 ? '🥈 2ème !' : myRank === 2 ? '🥉 3ème !' : `${myRank + 1}ème`}
+            </div>}
+          </div>
+
+          {/* Podium visuel */}
+          {top3.length >= 2 && <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 8, marginBottom: 16, height: 180 }}>
+            {podiumOrder.map((rankIdx, displayIdx) => {
+              const entry = top3[rankIdx];
+              if (!entry) return <div key={displayIdx} style={{ width: 80 }} />;
+              const isMe = entry.studentId === student.id;
+              return <div key={entry.studentId} style={{ textAlign: 'center', animation: `fadeIn ${0.3 + displayIdx * 0.2}s ease` }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: medalColors[rankIdx], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff', margin: '0 auto 6px', border: isMe ? '2px solid #fff' : 'none' }}>
+                  {entry.firstName?.[0]}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: isMe ? 800 : 600, marginBottom: 4 }}>{entry.firstName}</div>
+                <div style={{
+                  width: 80, height: podiumHeights[displayIdx],
+                  background: `linear-gradient(180deg, ${medalColors[rankIdx]}60, ${medalColors[rankIdx]}20)`,
+                  borderRadius: '10px 10px 0 0', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10,
+                }}>
+                  <div style={{ fontSize: 20, fontWeight: 900 }}>{rankIdx + 1}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.8 }}>{entry.score} pts</div>
+                </div>
               </div>;
             })}
-            {myRank >= 3 && myEntry && <>
-              <div style={{ textAlign: "center", color: C.textLight, fontSize: 12, margin: "8px 0 4px" }}>· · ·</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: `${C.primary}15`, marginBottom: 4 }}>
-                <span style={{ width: 28, textAlign: "center", fontSize: 13, fontWeight: 800, color: C.textLight }}>{myRank + 1}</span>
-                <span style={{ flex: 1, fontWeight: 800 }}>{myEntry.firstName} {myEntry.lastName} (moi)</span>
-                <span style={{ fontWeight: 800, color: C.primary }}>{myEntry.score} ✓</span>
-              </div>
-            </>}
-          </Card>
-          <Btn onClick={onExit} fullWidth>Fermer</Btn>
+          </div>}
+
+          {myRank >= 3 && myEntry && <div style={{ background: 'rgba(108,92,231,0.15)', borderRadius: 12, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontWeight: 900, fontSize: 16, color: '#a29bfe' }}>{myRank + 1}e</span>
+            <span style={{ flex: 1, fontWeight: 700, textAlign: 'left' }}>{myEntry.firstName} {myEntry.lastName} (moi)</span>
+            <span style={{ fontWeight: 800, color: '#a29bfe' }}>{myEntry.score} pts</span>
+          </div>}
+
+          <Btn onClick={onExit} fullWidth style={{ marginTop: 8 }}>Fermer</Btn>
         </div>;
       })()}
     </div>
@@ -820,16 +1276,42 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
 function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, classStudents, onClose }) {
   const [liveData, setLiveData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [countdown, setCountdown] = useState(null);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const prevJoinedRef = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
   const labels = ["A", "B", "C", "D"];
 
+  // Timer countdown
+  React.useEffect(() => {
+    if (!liveData || liveData.status !== 'active' || !liveData.questionStartedAt || !liveData.timerSeconds) { setCountdown(null); return; }
+    const update = () => {
+      const serverNow = new Date(liveData.serverTime).getTime();
+      const started = new Date(liveData.questionStartedAt).getTime();
+      const elapsed = (Date.now() - (Date.now() - serverNow) - started) / 1000;
+      setCountdown(Math.max(0, Math.ceil(liveData.timerSeconds - elapsed)));
+    };
+    update();
+    const iv = setInterval(update, 200);
+    return () => clearInterval(iv);
+  }, [liveData?.questionStartedAt, liveData?.timerSeconds, liveData?.serverTime, liveData?.status]);
+
+  React.useEffect(() => {
+    if (countdown !== null && countdown <= 5 && countdown > 3) SoundEngine.countdown();
+    if (countdown !== null && countdown <= 3 && countdown > 0) SoundEngine.countdownFinal();
+  }, [countdown]);
+
+  // Polling
   React.useEffect(() => {
     let interval;
     const poll = async () => {
       try {
         const data = await api.get(`live-quiz/${sessionId}`);
+        if (data.joinedCount > prevJoinedRef.current && prevJoinedRef.current > 0) SoundEngine.joinPop();
+        prevJoinedRef.current = data.joinedCount;
         setLiveData(data);
-        if (data.status === 'finished') clearInterval(interval);
+        if (data.status === 'finished') { clearInterval(interval); SoundEngine.podiumFanfare(); setShowConfetti(true); }
       } catch(e) {}
     };
     poll();
@@ -837,11 +1319,18 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     return () => clearInterval(interval);
   }, [sessionId]);
 
+  React.useEffect(() => { SoundEngine.startMusic(); return () => SoundEngine.stopMusic(); }, []);
+
   const action = async (act) => {
     setLoading(true);
-    try { await api.put(`live-quiz/${sessionId}`, { action: act }); }
+    try { await api.put(`live-quiz/${sessionId}`, { action: act }); if (act === 'pause') SoundEngine.questionReveal(); }
     catch(e) {}
     setLoading(false);
+  };
+
+  const toggleMute = () => {
+    const v = !soundMuted; setSoundMuted(v); SoundEngine.setEnabled(!v); SoundEngine.setMusicEnabled(!v);
+    if (v) SoundEngine.stopMusic(); else SoundEngine.startMusic();
   };
 
   if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -849,23 +1338,32 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 1s ease-in-out infinite" }}><Icon name="Radio" size={48} color="#fff" /></div><p style={{ fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>Initialisation du Live Quiz...</p></div>
   </div>;
 
-  const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, joinedStudents, joinedCount, distribution, leaderboard } = liveData;
+  const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, joinedStudents, joinedCount, distribution, leaderboard, mode, teams, avgTimeMs, activityType } = liveData;
   const isLast = currentQ + 1 >= totalQuestions;
   const allAnswered = joinedCount > 0 && answeredCount >= joinedCount;
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#1a1a2e", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: "#fff" }}>
     <Aurora colorStops={["#1a1a2e","#6C5CE7","#D63031"]} amplitude={1.0} blend={0.55} speed={0.6} />
+    <ConfettiCanvas active={showConfetti} duration={3000} />
     {/* Header */}
-    <div style={{ position: "relative", zIndex: 1, background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Icon name="Radio" size={24} color="#fff" />
-        <div><div style={{ fontWeight: 900, fontSize: 16 }}>{activityTitle}</div><div style={{ fontSize: 12, opacity: 0.7 }}>Live Quiz — Panel Professeur</div></div>
-      </div>
+    <div style={{ position: "relative", zIndex: 1, background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
-          {status === 'active' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span> : status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : status === 'waiting' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Clock" size={12} /> En attente</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="CheckCircle2" size={12} /> Terminé</span>}
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: status === 'active' ? '#ff4444' : status === 'finished' ? '#636E72' : '#FDCB6E', animation: status === 'active' ? 'pulse 1s ease-in-out infinite' : 'none', boxShadow: status === 'active' ? '0 0 8px rgba(255,68,68,0.6)' : 'none' }} />
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>{activityTitle}</div>
+          <div style={{ fontSize: 11, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 6 }}>Panel Professeur
+            {mode === 'team' && <span style={{ background: 'rgba(255,255,255,0.15)', padding: '1px 8px', borderRadius: 10, fontSize: 10 }}>Équipes</span>}
+            {activityType && activityType !== 'qcm' && <span style={{ background: 'rgba(255,255,255,0.15)', padding: '1px 8px', borderRadius: 10, fontSize: 10 }}>{activityType === 'truefalse' ? 'V/F' : 'Assoc.'}</span>}
+          </div>
         </div>
-        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕ Fermer</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {countdown !== null && status === 'active' && <div style={{ fontWeight: 900, fontSize: 20, color: countdown <= 5 ? '#D63031' : '#fff', animation: countdown <= 3 ? 'pulse 0.5s ease-in-out infinite' : 'none', fontVariantNumeric: 'tabular-nums' }}>{countdown}s</div>}
+        <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+          {status === 'active' ? 'EN DIRECT' : status === 'paused' ? 'PAUSE' : status === 'waiting' ? 'ATTENTE' : 'TERMINÉ'}
+        </div>
+        <button onClick={toggleMute} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
+        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
     </div>
 
@@ -875,82 +1373,108 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
 
       {/* Colonne gauche */}
       <div>
-        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 40 }}>
+        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 32 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Icon name="Clock" size={56} color={C.primaryLight} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Quiz prêt à démarrer</h2>
-          <p style={{ opacity: 0.7, marginBottom: 20 }}>{joinedCount} / {totalStudents} élève(s) dans le salon</p>
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px auto", textAlign: "left" }}>
+          <p style={{ opacity: 0.7, marginBottom: 16 }}>{joinedCount} / {totalStudents} élève(s) dans le salon</p>
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16, marginBottom: 20, maxWidth: 500, margin: "0 auto 20px auto", textAlign: "left" }}>
             {joinedCount === 0
               ? <p style={{ opacity: 0.5, fontSize: 13, textAlign: "center", margin: 0 }}>En attente que les élèves rejoignent...</p>
               : <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {(joinedStudents || []).map(s => <span key={s.id} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 20, padding: "4px 12px", fontSize: 13, fontWeight: 600 }}>
+                  {(joinedStudents || []).map((s, i) => <span key={s.id} style={{ background: `hsl(${(i*47)%360},60%,45%)`, borderRadius: 20, padding: "5px 14px", fontSize: 13, fontWeight: 700, animation: `correctPop 0.3s ease ${i*0.05}s both`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800 }}>{s.firstName?.[0]}{s.lastName?.[0]}</span>
                     {s.firstName} {s.lastName}
                   </span>)}
                 </div>
             }
           </div>
-          <Btn onClick={() => action('start')} size="lg" disabled={loading || joinedCount === 0}>▶ Démarrer la question 1</Btn>
+          {mode === 'team' && teams && <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 16 }}>
+            <div style={{ background: 'rgba(9,132,227,0.2)', border: '1px solid rgba(9,132,227,0.4)', borderRadius: 12, padding: '10px 20px', textAlign: 'center' }}><div style={{ fontWeight: 800, color: '#0984E3' }}>Équipe A</div><div style={{ fontWeight: 900, fontSize: 20 }}>{teams.A?.count || 0}</div></div>
+            <div style={{ background: 'rgba(225,112,85,0.2)', border: '1px solid rgba(225,112,85,0.4)', borderRadius: 12, padding: '10px 20px', textAlign: 'center' }}><div style={{ fontWeight: 800, color: '#E17055' }}>Équipe B</div><div style={{ fontWeight: 900, fontSize: 20 }}>{teams.B?.count || 0}</div></div>
+          </div>}
+          <Btn onClick={() => action('start')} size="lg" disabled={loading || joinedCount === 0} style={{ background: '#00B894' }}>▶ Démarrer</Btn>
         </div>}
 
         {(status === 'active' || status === 'paused') && question && <div style={{ animation: "fadeIn 0.3s" }}>
+          {/* Timer bar */}
+          {status === 'active' && countdown !== null && <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 6, marginBottom: 10, overflow: "hidden" }}>
+            <div style={{ width: `${(countdown / (liveData.timerSeconds || 20)) * 100}%`, height: "100%", background: countdown <= 5 ? '#D63031' : countdown <= 10 ? '#FDCB6E' : '#00B894', borderRadius: 10, transition: "width 0.3s linear, background 0.3s" }} />
+          </div>}
           {/* Progression */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span style={{ fontWeight: 700, opacity: 0.8, fontSize: 14 }}>Question {currentQ + 1} / {totalQuestions}</span>
-            <span style={{ fontWeight: 700, color: allAnswered ? "#00B894" : C.warning, display: "flex", alignItems: "center", gap: 4 }}><Icon name="Users" size={14} color={allAnswered ? "#00B894" : C.warning} /> {answeredCount} / {joinedCount} ont répondu</span>
+            <span style={{ fontWeight: 700, color: allAnswered ? "#00B894" : answeredCount > 0 ? '#FDCB6E' : 'rgba(255,255,255,0.5)', display: "flex", alignItems: "center", gap: 4 }}><Icon name="Users" size={14} color={allAnswered ? "#00B894" : '#FDCB6E'} /> {answeredCount}/{joinedCount}{allAnswered && ' ✓'}</span>
           </div>
-          <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 8, marginBottom: 20, overflow: "hidden" }}>
+          <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 8, marginBottom: 16, overflow: "hidden" }}>
             <div style={{ width: `${((currentQ + 1) / totalQuestions) * 100}%`, height: "100%", background: C.primary, borderRadius: 10, transition: "width 0.4s" }} />
           </div>
 
           {/* Question */}
-          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 20, textAlign: "center" }}>
+          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 16, textAlign: "center" }}>
+            {question.isMatching && <div style={{ fontSize: 11, fontWeight: 700, color: '#FDCB6E', marginBottom: 8 }}>🔗 ASSOCIATION</div>}
             <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.4 }}>{question.q}</p>
           </div>
 
           {/* Distribution */}
           <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={true} />
 
+          {/* Stats (pause) */}
+          {status === 'paused' && <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+            {avgTimeMs != null && avgTimeMs > 0 && <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 14px', fontSize: 12 }}>⏱ Temps moyen : <strong>{(avgTimeMs / 1000).toFixed(1)}s</strong></div>}
+            {(() => { const total = distribution.reduce((a, b) => a + b, 0); const correct = total > 0 ? distribution[question.answer] || 0 : 0; const pct = total > 0 ? Math.round((correct / total) * 100) : 0; return <div style={{ background: pct >= 70 ? 'rgba(0,184,148,0.15)' : pct >= 40 ? 'rgba(253,203,110,0.15)' : 'rgba(214,48,49,0.15)', borderRadius: 10, padding: '8px 14px', fontSize: 12 }}>✓ Bonnes réponses : <strong>{pct}%</strong></div>; })()}
+          </div>}
+
           {/* Explication si pause */}
-          {status === 'paused' && question.explanation && <div style={{ background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 12, padding: 14, marginTop: 16 }}>
+          {status === 'paused' && question.explanation && <div style={{ background: "rgba(253,203,110,0.12)", border: "1px solid rgba(253,203,110,0.35)", borderRadius: 12, padding: 14, marginTop: 12 }}>
             <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color={C.warning} /> Explication</p>
             <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5, fontSize: 14 }}>{question.explanation}</p>
           </div>}
 
+          {/* En attente */}
+          {status === 'active' && !allAnswered && joinedCount > 0 && <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 14px', fontSize: 12, opacity: 0.7 }}>⏳ {joinedCount - answeredCount} élève(s) n'ont pas encore répondu</div>}
+
           {/* Boutons d'action */}
-          <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap", alignItems: "center" }}>
-            {status === 'active' && <Btn
-              onClick={() => action('pause')}
-              style={{ background: allAnswered ? "#00B894" : undefined, transition: "background 0.3s" }}
-              disabled={loading || !allAnswered}
-            >
-              {allAnswered ? <span style={{display:"flex",alignItems:"center",gap:6}}><Icon name="Eye" size={14} /> Montrer la réponse</span> : <span style={{display:"flex",alignItems:"center",gap:6}}><Icon name="Eye" size={14} /> Montrer la réponse ({answeredCount}/{joinedCount})</span>}
-            </Btn>}
-            {status === 'paused' && (!isLast
-              ? <Btn onClick={() => action('next')} disabled={loading}>Question suivante →</Btn>
-              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}><Icon name="FlagTriangleRight" size={14} /> Terminer le quiz</Btn>
-            )}
+          <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
+            {status === 'active' && <>
+              <Btn onClick={() => action('pause')} style={{ background: allAnswered ? "#00B894" : undefined, transition: "background 0.3s" }} disabled={loading}>
+                <span style={{display:"flex",alignItems:"center",gap:6}}><Icon name="Eye" size={14} /> Montrer la réponse{!allAnswered ? ` (${answeredCount}/${joinedCount})` : ''}</span>
+              </Btn>
+              {!isLast && <Btn onClick={() => action('skip')} variant="outline" disabled={loading} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}><span style={{display:"flex",alignItems:"center",gap:4}}>⏭ Skip</span></Btn>}
+            </>}
+            {status === 'paused' && <>
+              {!isLast ? <Btn onClick={() => action('next')} disabled={loading} style={{ background: '#00B894' }}>Question suivante →</Btn>
+                : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}><Icon name="FlagTriangleRight" size={14} /> Terminer le quiz</Btn>}
+            </>}
           </div>
         </div>}
 
-        {status === 'finished' && <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Trophy" size={64} color={C.warning} /></div>
+        {status === 'finished' && <div style={{ paddingTop: 24, textAlign: 'center' }}>
+          <div style={{ animation: "correctPop 0.6s ease", marginBottom: 12 }}><Icon name="Trophy" size={64} color={C.warning} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 8 }}>Quiz terminé !</h2>
-          <p style={{ opacity: 0.7, marginBottom: 24 }}>Résultats ci-contre</p>
-          <Btn onClick={onClose}>Fermer le panneau</Btn>
+          {mode === 'team' && teams && (() => { const winner = (teams.A?.score || 0) >= (teams.B?.score || 0) ? 'A' : 'B'; const wColor = winner === 'A' ? '#0984E3' : '#E17055'; return <div style={{ background: `${wColor}25`, border: `2px solid ${wColor}50`, borderRadius: 16, padding: 16, display: 'inline-block', marginBottom: 16 }}><div style={{ fontWeight: 900, fontSize: 18 }}>🏆 Équipe {winner} gagne !</div><div style={{ display: 'flex', gap: 20, marginTop: 8, justifyContent: 'center' }}><span style={{ color: '#0984E3', fontWeight: 800 }}>A: {teams.A?.score || 0} pts</span><span style={{ color: '#E17055', fontWeight: 800 }}>B: {teams.B?.score || 0} pts</span></div></div>; })()}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20 }}>
+            <Btn onClick={() => { const text = (leaderboard || []).map((l, i) => `${i+1}. ${l.firstName} ${l.lastName} — ${l.score} pts (${l.correctCount}/${totalQuestions})`).join('\n'); navigator.clipboard?.writeText(`Live Quiz: ${activityTitle}\n\n${text}`); }} variant="outline" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>📋 Copier</Btn>
+            <Btn onClick={onClose}>Fermer</Btn>
+          </div>
         </div>}
       </div>
 
       {/* Colonne droite — Classement */}
       <div>
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, position: "sticky", top: 0 }}>
-          <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Classement en direct</h3>
+          <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Classement</h3>
+          {mode === 'team' && teams && <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, background: 'rgba(9,132,227,0.2)', borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#0984E3' }}>Éq. A</div><div style={{ fontWeight: 900, fontSize: 16 }}>{teams.A?.score || 0}</div></div>
+            <div style={{ flex: 1, background: 'rgba(225,112,85,0.2)', borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}><div style={{ fontSize: 10, fontWeight: 700, color: '#E17055' }}>Éq. B</div><div style={{ fontWeight: 900, fontSize: 16 }}>{teams.B?.score || 0}</div></div>
+          </div>}
           {(!leaderboard || leaderboard.length === 0) && <p style={{ opacity: 0.5, fontSize: 13 }}>En attente des premières réponses...</p>}
           {(leaderboard || []).map((l, i) => {
             const lbMedalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
-            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: i === 0 ? "rgba(253,203,110,0.15)" : "transparent", marginBottom: 4 }}>
-              <span style={{ width: 26, display: "flex", justifyContent: "center" }}>{i < 3 ? <Icon name="Medal" size={18} color={lbMedalColors[i]} /> : <span style={{ fontSize: 12, fontWeight: 800 }}>{i + 1}</span>}</span>
-              <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{l.firstName} {l.lastName}</span>
-              <span style={{ fontWeight: 800, color: C.primaryLight, fontSize: 14, display: "flex", alignItems: "center", gap: 3 }}>{l.score} <Icon name="Check" size={12} color={C.primaryLight} /></span>
+            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 10, background: i === 0 ? "rgba(253,203,110,0.15)" : "transparent", marginBottom: 3, transition: 'all 0.3s' }}>
+              <span style={{ width: 22, display: "flex", justifyContent: "center" }}>{i < 3 ? <Icon name="Medal" size={16} color={lbMedalColors[i]} /> : <span style={{ fontSize: 11, fontWeight: 800, opacity: 0.6 }}>{i + 1}</span>}</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: 12 }}>{l.firstName} {l.lastName}</span>
+              <span style={{ fontWeight: 800, color: C.primaryLight, fontSize: 13 }}>{l.score}</span>
+              {l.correctCount !== undefined && <span style={{ fontSize: 10, opacity: 0.5 }}>({l.correctCount}✓)</span>}
             </div>;
           })}
         </div>
@@ -1609,6 +2133,9 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [liveTotalQ, setLiveTotalQ] = useState(0);
   const [liveModal, setLiveModal] = useState(null); // activityId en attente de lancement
   const [liveClassId, setLiveClassId] = useState("");
+  const [liveTimer, setLiveTimer] = useState(20);
+  const [liveMode, setLiveMode] = useState("individual");
+  const [liveActivityType, setLiveActivityType] = useState("qcm");
 
   const resetPassword = (id, name) => { setConfirmAction({ msg: `Réinitialiser le mot de passe de ${name} ? L'élève devra en créer un nouveau à sa prochaine connexion.`, action: async () => { await api.post('auth', { type: 'reset-password', studentId: id }); alert("✅ Mot de passe réinitialisé !"); refreshData(); } }); };
 
@@ -2077,7 +2604,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Layers" size={15} />Activités</h3>
               <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm"><Icon name="Plus" size={14} style={{marginRight: 4}} />Ajouter une activité</Btn>
             </div>
-            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={typeIcons[a.type]} size={20} color={sub?.color || C.primary} /></div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10, display: "flex", alignItems: "center", gap: 3 }} size="xs"><Icon name="Radio" size={10} />Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs"><Icon name="Eye" size={12} /></Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></Card>; })
+            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={typeIcons[a.type]} size={20} color={sub?.color || C.primary} /></div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{['qcm','truefalse','matching'].includes(a.type) && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); setLiveActivityType(a.type); setLiveTimer(20); setLiveMode("individual"); }} style={{ background: "#D63031", color: "#fff", fontSize: 10, display: "flex", alignItems: "center", gap: 3 }} size="xs"><Icon name="Radio" size={10} />Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs"><Icon name="Eye" size={12} /></Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></Card>; })
             : <Card style={{ textAlign: "center", padding: 20 }}><p style={{ color: C.textLight, fontWeight: 700, margin: 0 }}>Aucune activité liée à ce cours.</p></Card>}
           </>;
         })() : activeSubject ? (() => {
@@ -2529,19 +3056,49 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
 
     {/* Modal de lancement Live Quiz */}
-    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="Lancer un Live Quiz">
+    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="🚀 Lancer un Live Quiz">
       {liveModal && (() => {
         const act = data.activities.find(a => a.id === liveModal);
         const availableClasses = data.classes.filter(c => act?.classIds?.includes(c.id));
+        const typeLabel = { qcm: 'QCM', truefalse: 'Vrai / Faux', matching: 'Associations' };
         return <div>
-          <p style={{ color: C.textLight, fontSize: 14, marginBottom: 20 }}>QCM : <strong>{liveActivityTitle}</strong></p>
+          <div style={{ background: '#D6303115', border: '1px solid #D6303130', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#D63031', animation: 'pulse 1s ease-in-out infinite' }} />
+            <div><div style={{ fontWeight: 800, fontSize: 14 }}>{liveActivityTitle}</div><div style={{ fontSize: 12, color: C.textLight }}>{typeLabel[liveActivityType] || liveActivityType}</div></div>
+          </div>
+
           <Select label="Classe" value={liveClassId} onChange={setLiveClassId} options={availableClasses.map(c => ({ value: c.id, label: c.name }))} />
-          <Btn fullWidth size="lg" style={{ background: "#D63031", marginTop: 8 }} disabled={!liveClassId} onClick={async () => {
-            const res = await api.post('live-quiz', { activityId: liveModal, classId: liveClassId });
+
+          {/* Timer */}
+          <div style={{ marginTop: 12, marginBottom: 12 }}>
+            <label style={{ display: 'block', fontWeight: 700, fontSize: 13, marginBottom: 6, color: C.text }}>⏱ Timer par question : {liveTimer}s</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[10, 15, 20, 30, 60].map(t => <button key={t} onClick={() => setLiveTimer(t)} style={{
+                flex: 1, padding: '8px 4px', borderRadius: 10, border: `2px solid ${liveTimer === t ? C.primary : '#E0E0E0'}`,
+                background: liveTimer === t ? `${C.primary}15` : '#fff', color: liveTimer === t ? C.primary : C.text,
+                fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'Nunito',sans-serif", transition: 'all 0.2s'
+              }}>{t}s</button>)}
+            </div>
+          </div>
+
+          {/* Mode */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: 700, fontSize: 13, marginBottom: 6, color: C.text }}>Mode de jeu</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[{v: 'individual', l: '👤 Individuel', d: 'Chacun pour soi'}, {v: 'team', l: '👥 Équipes', d: 'A vs B'}].map(m => <button key={m.v} onClick={() => setLiveMode(m.v)} style={{
+                flex: 1, padding: '12px 10px', borderRadius: 12, border: `2px solid ${liveMode === m.v ? C.primary : '#E0E0E0'}`,
+                background: liveMode === m.v ? `${C.primary}15` : '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", textAlign: 'center', transition: 'all 0.2s'
+              }}><div style={{ fontWeight: 800, fontSize: 14, color: liveMode === m.v ? C.primary : C.text }}>{m.l}</div><div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{m.d}</div></button>)}
+            </div>
+          </div>
+
+          <Btn fullWidth size="lg" style={{ background: "linear-gradient(135deg, #D63031, #E17055)", marginTop: 4 }} disabled={!liveClassId} onClick={async () => {
+            const res = await api.post('live-quiz', { activityId: liveModal, classId: liveClassId, timerSeconds: liveTimer, mode: liveMode });
             if (res.sessionId) {
               setLiveSession(res.sessionId);
               setLiveTotalQ(res.totalQuestions);
               setLiveModal(null);
+              SoundEngine.questionReveal();
             }
           }}><Icon name="Radio" size={16} style={{marginRight: 6}} />Lancer le Live Quiz</Btn>
         </div>;
