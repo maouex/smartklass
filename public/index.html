@@ -41,7 +41,8 @@
         .loader { display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 16px; }
         .loader .spinner { width: 48px; height: 48px; border: 4px solid #E8E8F0; border-top-color: #6C5CE7; border-radius: 50%; animation: spin 0.8s linear infinite; }
         /* ── Magic Bento ── */
-        .magic-card { --glow-x:50%; --glow-y:50%; --glow-intensity:0; --glow-radius:260px; --glow-color:108,92,231; transition: transform 0.12s ease, box-shadow 0.3s ease; }
+        .magic-card { --glow-x:50%; --glow-y:50%; --glow-intensity:0; --glow-radius:260px; --glow-color:108,92,231; transition: transform 0.12s ease, box-shadow 0.3s ease; transform-style: preserve-3d; }
+        .magic-card-content { transform: translateZ(24px); transform-style: preserve-3d; }
         .magic-card::after { content:''; position:absolute; inset:0; padding:2px; background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y), rgba(var(--glow-color), calc(var(--glow-intensity) * 0.9)) 0%, rgba(var(--glow-color), calc(var(--glow-intensity) * 0.4)) 30%, transparent 65%); border-radius:inherit; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; pointer-events:none; z-index:1; }
     </style>
 </head>
@@ -413,7 +414,9 @@ function MagicCard({ children, className, style, glowColor = "108,92,231", enabl
     el.addEventListener('click', onClick);
     return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); el.removeEventListener('mousemove', onMove); el.removeEventListener('click', onClick); };
   }, [glowColor, enableTilt]);
-  return React.createElement('div', { ref, className: `magic-card${className ? ' '+className : ''}`, style: { '--glow-color': glowColor, position: 'relative', overflow: 'hidden', ...style } }, children);
+  return React.createElement('div', { ref, className: `magic-card${className ? ' '+className : ''}`, style: { '--glow-color': glowColor, position: 'relative', overflow: 'visible', ...style } },
+    React.createElement('div', { className: 'magic-card-content' }, children)
+  );
 }
 
 function BentoGrid({ children, style }) {
