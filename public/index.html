@@ -541,7 +541,7 @@ function BottomNav({ tabs, active, onChange }) {
 const SoundEngine = (() => {
   let ctx = null;
   let enabled = true;
-  let musicEnabled = false;
+  let musicEnabled = true;
   let musicOsc = null;
   let musicGain = null;
 
@@ -3093,12 +3093,18 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           </div>
 
           <Btn fullWidth size="lg" style={{ background: "linear-gradient(135deg, #D63031, #E17055)", marginTop: 4 }} disabled={!liveClassId} onClick={async () => {
-            const res = await api.post('live-quiz', { activityId: liveModal, classId: liveClassId, timerSeconds: liveTimer, mode: liveMode });
-            if (res.sessionId) {
-              setLiveSession(res.sessionId);
-              setLiveTotalQ(res.totalQuestions);
-              setLiveModal(null);
-              SoundEngine.questionReveal();
+            try {
+              const res = await api.post('live-quiz', { activityId: liveModal, classId: liveClassId, timerSeconds: liveTimer, mode: liveMode });
+              if (res.sessionId) {
+                setLiveSession(res.sessionId);
+                setLiveTotalQ(res.totalQuestions);
+                setLiveModal(null);
+                SoundEngine.questionReveal();
+              } else {
+                alert(res.error || 'Erreur lors du lancement du Live Quiz. Vérifiez que la migration v9 a été exécutée.');
+              }
+            } catch(e) {
+              alert('Erreur réseau lors du lancement du Live Quiz : ' + (e.message || e));
             }
           }}><Icon name="Radio" size={16} style={{marginRight: 6}} />Lancer le Live Quiz</Btn>
         </div>;
