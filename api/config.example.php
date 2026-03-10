@@ -15,6 +15,10 @@ define('DB_PASS', 'TON_MOT_DE_PASSE_BDD');
 
 define('DB_CHARSET', 'utf8mb4');
 
+// Clé API Anthropic (Claude) — pour la génération de cours/activités via IA
+// Crée ta clé sur https://console.anthropic.com/
+define('ANTHROPIC_API_KEY', 'sk-ant-YOUR_KEY_HERE');
+
 function getDB() {
     static $pdo = null;
     if ($pdo === null) {
