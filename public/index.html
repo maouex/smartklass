@@ -1735,7 +1735,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       setAiClassIds(data.classes.map(c => c.id));
       setAiLinkCourseId('');
       setAiStep('review');
-    } catch(e) { alert("❌ Erreur : " + e.message); setAiStep('upload'); }
+    } catch(e) { alert("❌ Erreur : " + (e.message || "La requête a expiré. Essaie avec un PDF plus léger ou moins de types d'activités.")); setAiStep('upload'); }
   };
 
   const handleAiSave = async () => {

@@ -860,6 +860,7 @@ try {
                 $generateActivities  = ($_POST['generateActivities'] ?? 'true') === 'true';
                 $activityTypes       = json_decode($_POST['activityTypes'] ?? '["qcm","flashcards","truefalse","fillblank","matching"]', true);
 
+                set_time_limit(180);
                 $pdfData = base64_encode(file_get_contents($_FILES['pdf']['tmp_name']));
 
                 // Construire le prompt
@@ -903,7 +904,7 @@ EOT;
 
                 $payload = json_encode([
                     'model'      => 'claude-haiku-4-5-20251001',
-                    'max_tokens' => 4096,
+                    'max_tokens' => 8192,
                     'messages'   => [[
                         'role'    => 'user',
                         'content' => [
