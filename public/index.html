@@ -471,7 +471,7 @@ function DistributionBar({ choices, distribution, correctAnswer, revealed }) {
         <div style={{ width: `${(distribution[i] / maxVal) * 100}%`, height: "100%", background: revealed && i === correctAnswer ? "#00B894" : `${colors[i]}80`, borderRadius: 8, transition: "width 0.4s ease", minWidth: distribution[i] > 0 ? 8 : 0 }} />
         <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, fontWeight: 700, color: C.text }}>{choice}</span>
       </div>
-      <div style={{ width: 28, textAlign: "right", fontWeight: 800, fontSize: 14, color: revealed && i === correctAnswer ? "#00B894" : C.textLight }}>{distribution[i]}</div>
+      <div style={{ width: 28, textAlign: "right", fontWeight: 800, fontSize: 14, color: revealed && i === correctAnswer ? "#00B894" : "rgba(255,255,255,0.75)" }}>{distribution[i]}</div>
     </div>)}
   </div>;
 }
@@ -621,7 +621,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
   const { status, currentQ, totalQuestions, question, hasAnswered, leaderboard } = liveData;
   const myScore = leaderboard?.find(l => l.studentId === student.id)?.score || 0;
 
-  return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f0c29", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif" }}>
+  return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f0c29", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: "#fff" }}>
     <Aurora colorStops={["#6C5CE7","#a29bfe","#0984E3"]} amplitude={1.2} blend={0.6} speed={0.7} />
     {/* Header */}
     <div style={{ position: "relative", zIndex: 1, background: "rgba(108,92,231,0.85)", backdropFilter: "blur(8px)", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -638,16 +638,16 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
     {/* Contenu */}
     <div style={{ position: "relative", zIndex: 1, flex: 1, overflow: "auto", padding: "20px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
       {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 2s ease-in-out infinite" }}><Icon name="Clock" size={64} color={C.primary} /></div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 2s ease-in-out infinite" }}><Icon name="Clock" size={64} color="#a29bfe" /></div>
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>En attente du démarrage</h2>
-        <p style={{ color: C.textLight, fontWeight: 600 }}>Le professeur va lancer le quiz dans quelques instants...</p>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>Le professeur va lancer le quiz dans quelques instants...</p>
       </div>}
 
       {(status === 'active' || status === 'paused') && question && <>
         {/* Progression */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span>}</Chip>
-          <span style={{ fontWeight: 700, color: C.textLight, fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
+          <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
         </div>
         <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 20 }} />
 
@@ -663,21 +663,21 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
             const isSelected = selectedAnswer === i;
             const isCorrect = status === 'paused' && i === question.answer;
             const isWrong = status === 'paused' && isSelected && i !== question.answer;
-            let bg = colors[i] + "20", border = `2px solid ${colors[i]}40`, color = C.text;
+            let bg = colors[i] + "30", border = `2px solid ${colors[i]}70`, color = "#fff";
             if (isSelected && status === 'active') { bg = colors[i]; color = "#fff"; border = `2px solid ${colors[i]}`; }
             if (isCorrect) { bg = "#00B894"; color = "#fff"; border = "2px solid #00B894"; }
             if (isWrong) { bg = "#D63031"; color = "#fff"; border = "2px solid #D63031"; }
             return <button key={i} onClick={() => handleAnswer(i)} disabled={answered} style={{ background: bg, border, borderRadius: 14, padding: "14px 10px", cursor: answered ? "default" : "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color, transition: "all 0.2s", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: answered ? "rgba(255,255,255,0.3)" : colors[i] + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: answered ? "inherit" : colors[i], flexShrink: 0 }}>{labels[i]}</span>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: answered ? "rgba(255,255,255,0.3)" : colors[i] + "90", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{labels[i]}</span>
               {choice}
             </button>;
           })}
         </div>
 
         {/* Feedback après réponse */}
-        {(hasAnswered || selectedAnswer !== null) && status === 'active' && <Card style={{ padding: 16, textAlign: "center", background: `${C.secondary}15`, border: `1px solid ${C.secondary}40` }}>
-          <p style={{ fontWeight: 700, color: C.secondary, margin: 0 }}>✅ Réponse envoyée ! En attente des autres élèves...</p>
-        </Card>}
+        {(hasAnswered || selectedAnswer !== null) && status === 'active' && <div style={{ padding: 16, textAlign: "center", background: "rgba(0,184,148,0.2)", border: "1px solid rgba(0,184,148,0.5)", borderRadius: 16 }}>
+          <p style={{ fontWeight: 700, color: "#00B894", margin: 0 }}>✅ Réponse envoyée ! En attente des autres élèves...</p>
+        </div>}
 
         {/* Résultat révélé (pause) */}
         {status === 'paused' && selectedAnswer !== null && (() => {
@@ -690,10 +690,10 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         })()}
 
         {/* Correction (pause) */}
-        {status === 'paused' && question.explanation && <Card style={{ padding: 16, background: `${C.warning}15`, border: `1px solid ${C.warning}40` }}>
-          <p style={{ fontWeight: 700, color: "#856404", margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color="#856404" /> Explication</p>
-          <p style={{ margin: 0, lineHeight: 1.5 }}>{question.explanation}</p>
-        </Card>}
+        {status === 'paused' && question.explanation && <div style={{ padding: 16, background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.45)", borderRadius: 16 }}>
+          <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color={C.warning} /> Explication</p>
+          <p style={{ margin: 0, lineHeight: 1.5, color: "rgba(255,255,255,0.9)" }}>{question.explanation}</p>
+        </div>}
       </>}
 
       {status === 'finished' && (() => {
@@ -705,7 +705,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         return <div style={{ textAlign: "center", paddingTop: 20 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, animation: "correctPop 0.5s ease" }}><Icon name="Trophy" size={56} color={C.warning} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
-          <p style={{ color: C.textLight, fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: C.primary }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: "#a29bfe" }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
           <Card style={{ padding: 20, marginBottom: 16 }}>
             <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Podium</h3>
             {top3.map((l, i) => {
