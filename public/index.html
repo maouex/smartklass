@@ -37,6 +37,16 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #DDD; border-radius: 4px; }
+        /* Markdown rendered */
+        .md h1, .md h2, .md h3 { font-weight: 800; margin: 10px 0 4px; }
+        .md h1 { font-size: 17px; } .md h2 { font-size: 15px; } .md h3 { font-size: 13px; }
+        .md p { margin: 0 0 6px; }
+        .md ul, .md ol { padding-left: 18px; margin: 4px 0 8px; }
+        .md li { margin-bottom: 2px; }
+        .md strong { font-weight: 800; }
+        .md em { font-style: italic; }
+        .md code { background: #F0F0F8; border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: monospace; }
+        .md hr { border: none; border-top: 1px solid #E8E8F0; margin: 10px 0; }
         #root { min-height: 100vh; }
         .loader { display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; gap: 16px; }
         .loader .spinner { width: 48px; height: 48px; border: 4px solid #E8E8F0; border-top-color: #6C5CE7; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -128,6 +138,7 @@
     };
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
       // Capture beforeinstallprompt tôt (avant React)
@@ -151,6 +162,13 @@
 // ============================================================================
 
 const { useState, useEffect, useRef, useCallback } = React;
+
+// --- Markdown renderer ---
+function Markdown({ content, style }) {
+  if (!content) return null;
+  const html = window.marked ? window.marked.parse(content) : content.replace(/\n/g, '<br>');
+  return <div className="md" style={{ fontSize: 13, lineHeight: 1.7, color: 'inherit', ...style }} dangerouslySetInnerHTML={{ __html: html }} />;
+}
 
 // --- Icon System (Lucide) ---
 function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, style, className }) {
@@ -1343,7 +1361,7 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
     </Card>
     {course.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
-      <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
+      <Markdown content={ch.content} style={{ color: C.text }} />
     </Card>)}
     {linkedActivities.length > 0 && <div style={{ marginTop: 20 }}>
       <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Layers" size={18} color={C.primary} /> Activités liées à ce cours</h3>
@@ -2053,7 +2071,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             </Card>
             {activeCourse.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
-              <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
+              <Markdown content={ch.content} style={{ color: C.text }} />
             </Card>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, marginBottom: 10 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Layers" size={15} />Activités</h3>
@@ -2318,8 +2336,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           {aiEditCourse.chapters?.length > 0 && <div style={{ marginTop: 8 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>{aiEditCourse.chapters.length} chapitre(s) généré(s) :</p>
             {aiEditCourse.chapters.map((ch, i) => <div key={i} style={{ background: '#F7F7FF', borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: '1px solid #E8E8F0' }}>
-              <p style={{ fontWeight: 800, fontSize: 13, margin: '0 0 4px' }}>{ch.title}</p>
-              <p style={{ fontSize: 12, color: C.textLight, margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6, maxHeight: 80, overflow: 'hidden' }}>{ch.content}</p>
+              <p style={{ fontWeight: 800, fontSize: 13, margin: '0 0 6px' }}>{ch.title}</p>
+              <Markdown content={ch.content} style={{ color: C.textLight }} />
             </div>)}
           </div>}
         </div>}
