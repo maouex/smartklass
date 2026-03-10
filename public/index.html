@@ -1668,6 +1668,17 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [importCourseId, setImportCourseId] = useState("");
   const [importParsed, setImportParsed] = useState(null);
   const [importStep, setImportStep] = useState("paste"); // paste | configure
+  // IA génération
+  const [aiStep, setAiStep] = useState('upload'); // upload | loading | review
+  const [aiPdfFile, setAiPdfFile] = useState(null);
+  const [aiGenerateCourse, setAiGenerateCourse] = useState(true);
+  const [aiGenerateActivities, setAiGenerateActivities] = useState(true);
+  const [aiActivityTypes, setAiActivityTypes] = useState(['qcm','flashcards','truefalse','fillblank','matching']);
+  const [aiEditCourse, setAiEditCourse] = useState(null);
+  const [aiEditActivities, setAiEditActivities] = useState([]);
+  const [aiSubjectId, setAiSubjectId] = useState('');
+  const [aiClassIds, setAiClassIds] = useState([]);
+  const [aiLinkCourseId, setAiLinkCourseId] = useState('');
   const [changePwdData, setChangePwdData] = useState({ current: "", next: "", confirm: "" });
   const [changePwdError, setChangePwdError] = useState("");
   const [editActivityData, setEditActivityData] = useState(null);
@@ -1700,6 +1711,51 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       alert("✅ Activité '" + importParsed.title + "' importée avec succès !");
       setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportCourseId(""); setModal(null); await refreshData();
     } catch (e) { alert("❌ Erreur API :\n" + e.message); }
+  };
+
+  const resetAiModal = () => { setAiStep('upload'); setAiPdfFile(null); setAiEditCourse(null); setAiEditActivities([]); };
+
+  const handleAiGenerate = async () => {
+    if (!aiPdfFile) { alert("Sélectionne un fichier PDF."); return; }
+    if (!aiGenerateCourse && !aiGenerateActivities) { alert("Coche au moins une option (cours ou activités)."); return; }
+    if (aiGenerateActivities && aiActivityTypes.length === 0) { alert("Sélectionne au moins un type d'activité."); return; }
+    setAiStep('loading');
+    const formData = new FormData();
+    formData.append('pdf', aiPdfFile);
+    formData.append('generateCourse', String(aiGenerateCourse));
+    formData.append('generateActivities', String(aiGenerateActivities));
+    formData.append('activityTypes', JSON.stringify(aiActivityTypes));
+    try {
+      const resp = await fetch(`${API_BASE}/ai/generate`, { method: 'POST', body: formData });
+      const result = await resp.json();
+      if (result.error) { alert("❌ " + result.error); setAiStep('upload'); return; }
+      setAiEditCourse(result.course || null);
+      setAiEditActivities((result.activities || []).map((a, i) => ({ ...a, _id: i, _dataStr: JSON.stringify(a.data, null, 2) })));
+      setAiSubjectId(data.subjects[0]?.id || '');
+      setAiClassIds(data.classes.map(c => c.id));
+      setAiLinkCourseId('');
+      setAiStep('review');
+    } catch(e) { alert("❌ Erreur : " + e.message); setAiStep('upload'); }
+  };
+
+  const handleAiSave = async () => {
+    if (!aiSubjectId || aiClassIds.length === 0) { alert("Sélectionne une matière et au moins une classe."); return; }
+    const errors = [];
+    let savedCourseId = aiLinkCourseId || null;
+    if (aiEditCourse) {
+      const res = await api.post('courses', { title: aiEditCourse.title, description: aiEditCourse.description || '', subjectId: aiSubjectId, classIds: aiClassIds, chapters: aiEditCourse.chapters || [], youtubeUrl: '' });
+      if (res.error) errors.push("Cours : " + res.error);
+      else if (res.id) savedCourseId = res.id;
+    }
+    for (const act of aiEditActivities) {
+      let dataContent;
+      try { dataContent = JSON.parse(act._dataStr); } catch(e) { errors.push(`"${act.title}" : JSON invalide`); continue; }
+      const res = await api.post('activities', { subjectId: aiSubjectId, classIds: aiClassIds, courseId: savedCourseId, title: act.title, type: act.type, difficulty: act.difficulty || 2, xpReward: act.xpReward || 40, data: dataContent });
+      if (res.error) errors.push(`"${act.title}" : ` + res.error);
+    }
+    if (errors.length > 0) alert("⚠️ Erreurs :\n" + errors.join("\n"));
+    else alert("✅ Tout a été sauvegardé avec succès !");
+    setModal(null); resetAiModal(); await refreshData();
   };
 
   const changeTeacherPassword = async () => {
@@ -2017,6 +2073,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm"><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer JSON</Btn>
+                <Btn onClick={() => { resetAiModal(); setAiSubjectId(activeSubject.id); setAiClassIds(data.classes.map(c => c.id)); setModal("aiGenerate"); }} variant="accent" size="sm"><Icon name="Sparkles" size={14} style={{marginRight: 4}} />Générer avec IA</Btn>
                 <Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: activeSubject.id, classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter un cours</Btn>
               </div>
             </div>
@@ -2205,6 +2262,103 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         </div>
       </>}
     </Modal>
+
+    {/* ── Modal : Génération IA depuis PDF ── */}
+    <Modal open={modal === "aiGenerate"} onClose={() => { if (aiStep !== 'loading') { setModal(null); resetAiModal(); } }} title={aiStep === 'upload' ? "Générer avec IA — PDF" : aiStep === 'loading' ? "Analyse en cours..." : "Vérifier et sauvegarder"} wide>
+      {/* Étape 1 : Upload + options */}
+      {aiStep === 'upload' && <>
+        <p style={{ fontSize: 13, color: C.textLight, marginBottom: 16 }}>Upload un PDF de cours. Claude analysera le document et générera automatiquement un cours structuré et/ou des activités pédagogiques prêtes à utiliser.</p>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Fichier PDF *</label>
+          <input type="file" accept=".pdf" onChange={e => setAiPdfFile(e.target.files[0] || null)} style={{ display: 'block', fontSize: 14, width: '100%' }} />
+          {aiPdfFile && <p style={{ fontSize: 12, color: C.secondary, marginTop: 6, marginBottom: 0 }}>{aiPdfFile.name} — {(aiPdfFile.size / 1024 / 1024).toFixed(2)} Mo</p>}
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Que générer ?</label>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[['course','Cours',aiGenerateCourse,setAiGenerateCourse],['activities','Activités',aiGenerateActivities,setAiGenerateActivities]].map(([k,l,checked,setter]) =>
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14, padding: '8px 16px', borderRadius: 10, background: checked ? `${C.primary}15` : '#F0F0F8', border: `2px solid ${checked ? C.primary : 'transparent'}`, transition: 'all 0.2s' }}>
+                <input type="checkbox" checked={checked} onChange={e => setter(e.target.checked)} style={{ display: 'none' }} />
+                {checked && <Icon name="CheckCircle2" size={14} color={C.primary} />}
+                <span style={{ fontWeight: 600, color: checked ? C.primary : C.textLight }}>{l}</span>
+              </label>
+            )}
+          </div>
+        </div>
+        {aiGenerateActivities && <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Types d'activités à générer</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[['qcm','QCM'],['flashcards','Flashcards'],['truefalse','Vrai/Faux'],['fillblank','Texte à trous'],['matching','Associations']].map(([k,l]) => {
+              const checked = aiActivityTypes.includes(k);
+              return <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 13, padding: '6px 12px', borderRadius: 8, background: checked ? `${C.secondary}20` : '#F0F0F8', border: `2px solid ${checked ? C.secondary : 'transparent'}`, transition: 'all 0.2s' }}>
+                <input type="checkbox" checked={checked} onChange={e => { if (e.target.checked) setAiActivityTypes(t => [...t,k]); else setAiActivityTypes(t => t.filter(x => x !== k)); }} style={{ display: 'none' }} />
+                {checked && <Icon name="Check" size={12} color={C.secondary} />}
+                <span style={{ fontWeight: 600, color: checked ? C.secondary : C.textLight }}>{l}</span>
+              </label>;
+            })}
+          </div>
+        </div>}
+        <Btn onClick={handleAiGenerate} variant="primary" fullWidth size="lg" disabled={!aiPdfFile}><Icon name="Sparkles" size={16} style={{marginRight: 6}} />Analyser le PDF avec Claude</Btn>
+      </>}
+
+      {/* Étape 2 : Chargement */}
+      {aiStep === 'loading' && <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div style={{ width: 48, height: 48, border: `4px solid ${C.primary}30`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 20px' }} />
+        <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Claude analyse votre PDF...</p>
+        <p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>Génération du contenu pédagogique en cours, cela peut prendre 15-30 secondes.</p>
+      </div>}
+
+      {/* Étape 3 : Révision + configuration */}
+      {aiStep === 'review' && <>
+        {/* Cours */}
+        {aiEditCourse && <div style={{ marginBottom: 20 }}>
+          <h4 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="BookOpen" size={16} color={C.primary} />Cours généré</h4>
+          <Input label="Titre" value={aiEditCourse.title} onChange={v => setAiEditCourse(c => ({ ...c, title: v }))} />
+          <Input label="Description" value={aiEditCourse.description || ''} onChange={v => setAiEditCourse(c => ({ ...c, description: v }))} />
+          <p style={{ fontSize: 12, color: C.textLight, marginTop: -8, marginBottom: 0 }}>{aiEditCourse.chapters?.length || 0} chapitre(s) généré(s) — le contenu sera modifiable après sauvegarde.</p>
+        </div>}
+        {/* Activités */}
+        {aiEditActivities.length > 0 && <div style={{ marginBottom: 20 }}>
+          <h4 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="Layers" size={16} color={C.secondary} />Activités générées ({aiEditActivities.length})</h4>
+          {aiEditActivities.map((act, idx) => <div key={act._id} style={{ background: '#F7F7FF', borderRadius: 14, padding: 16, marginBottom: 10, border: '1px solid #E8E8F0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Chip color={C.secondary}>{{ qcm:'QCM', flashcards:'Flashcards', truefalse:'Vrai/Faux', fillblank:'Texte à trous', matching:'Associations' }[act.type]}</Chip>
+                <Chip color={C.textMuted}>Diff. {act.difficulty || 2}/3</Chip>
+                <Chip color={C.warning}>+{act.xpReward || 40} XP</Chip>
+              </div>
+              <Btn onClick={() => setAiEditActivities(as => as.filter((_,i) => i !== idx))} variant="ghost" size="xs"><Icon name="Trash2" size={14} color={C.danger} /></Btn>
+            </div>
+            <Input label="Titre" value={act.title} onChange={v => setAiEditActivities(as => as.map((a,i) => i === idx ? { ...a, title: v } : a))} />
+            <div>
+              <label style={{ fontWeight: 700, fontSize: 13, display: 'block', marginBottom: 6 }}>Données (JSON)</label>
+              <textarea value={act._dataStr} onChange={e => setAiEditActivities(as => as.map((a,i) => i === idx ? { ...a, _dataStr: e.target.value } : a))} style={{ width: '100%', padding: 10, borderRadius: 10, border: 'none', background: '#1E1E2E', color: '#A6E3A1', fontFamily: 'monospace', fontSize: 11, minHeight: 120, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          </div>)}
+        </div>}
+        {/* Configuration */}
+        <div style={{ borderTop: '1px solid #E8E8F0', paddingTop: 20, marginBottom: 16 }}>
+          <h4 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Configuration</h4>
+          <Select label="Matière *" value={aiSubjectId} onChange={setAiSubjectId} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Classes *</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {data.classes.map(c => <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14, padding: '8px 14px', borderRadius: 10, background: aiClassIds.includes(c.id) ? `${C.primary}15` : '#F0F0F8', border: `2px solid ${aiClassIds.includes(c.id) ? C.primary : 'transparent'}`, transition: 'all 0.2s' }}>
+                <input type="checkbox" checked={aiClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setAiClassIds(ids => [...ids, c.id]); else setAiClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: 'none' }} />
+                {aiClassIds.includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}
+                <span style={{ fontWeight: 600, color: aiClassIds.includes(c.id) ? C.primary : C.textLight }}>{c.name}</span>
+              </label>)}
+            </div>
+          </div>
+          {!aiEditCourse && <Select label="Associer à un cours existant (optionnel)" value={aiLinkCourseId} onChange={setAiLinkCourseId} options={[{ value: '', label: '— Aucun cours —' }, ...data.courses.filter(c => c.subjectId === aiSubjectId).map(c => ({ value: c.id, label: c.title }))]} />}
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Btn onClick={() => setAiStep('upload')} variant="ghost" style={{ flex: 1 }}>← Recommencer</Btn>
+          <Btn onClick={handleAiSave} variant="primary" size="lg" style={{ flex: 2 }} disabled={!aiSubjectId || aiClassIds.length === 0 || (!aiEditCourse && aiEditActivities.length === 0)}><Icon name="Save" size={14} style={{marginRight: 6}} />Tout sauvegarder</Btn>
+        </div>
+      </>}
+    </Modal>
+
 
     <Modal open={modal === "exportIds"} onClose={() => setModal(null)} title="Export identifiants" wide>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>

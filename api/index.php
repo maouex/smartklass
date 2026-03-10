@@ -841,6 +841,126 @@ try {
             }
             break;
 
+        // =====================================================================
+        // AI - Génération de contenu via Claude
+        // =====================================================================
+        case 'ai':
+            if ($id === 'generate' && $method === 'POST') {
+                if (!defined('ANTHROPIC_API_KEY') || ANTHROPIC_API_KEY === 'sk-ant-YOUR_KEY_HERE') {
+                    jsonResponse(['error' => 'Clé API Anthropic non configurée dans config.php'], 503);
+                }
+                if (empty($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
+                    jsonResponse(['error' => 'Fichier PDF manquant ou invalide'], 400);
+                }
+                if ($_FILES['pdf']['size'] > 10 * 1024 * 1024) {
+                    jsonResponse(['error' => 'PDF trop volumineux (max 10 Mo)'], 400);
+                }
+
+                $generateCourse      = ($_POST['generateCourse'] ?? 'true') === 'true';
+                $generateActivities  = ($_POST['generateActivities'] ?? 'true') === 'true';
+                $activityTypes       = json_decode($_POST['activityTypes'] ?? '["qcm","flashcards","truefalse","fillblank","matching"]', true);
+
+                $pdfData = base64_encode(file_get_contents($_FILES['pdf']['tmp_name']));
+
+                // Construire le prompt
+                $parts = [];
+                if ($generateCourse) {
+                    $parts[] = <<<'EOT'
+- Un objet "course" avec : title (string), description (string, 1-2 phrases), chapters (array d'objets {title: string, content: string} — contenu détaillé en markdown simple, pas de HTML)
+EOT;
+                }
+                if ($generateActivities && !empty($activityTypes)) {
+                    $typeDescs = [];
+                    $typeMap = [
+                        'qcm'        => '{ title, type:"qcm",        difficulty:1-3, xpReward:int, data:{ questions:[{ q, choices:[4 items], answer:0-based-index, explanation }] } }',
+                        'flashcards' => '{ title, type:"flashcards",  difficulty:1-3, xpReward:int, data:{ cards:[{ front, back }] } }',
+                        'truefalse'  => '{ title, type:"truefalse",   difficulty:1-3, xpReward:int, data:{ questions:[{ q, answer:bool, explanation }] } }',
+                        'fillblank'  => '{ title, type:"fillblank",   difficulty:1-3, xpReward:int, data:{ sentences:[{ text:"phrase avec ___ à compléter", answer:"mot", hint:"indice" }] } }',
+                        'matching'   => '{ title, type:"matching",    difficulty:1-3, xpReward:int, data:{ pairs:[{ left, right }] } }',
+                    ];
+                    foreach ($activityTypes as $t) {
+                        if (isset($typeMap[$t])) $typeDescs[] = $typeMap[$t];
+                    }
+                    $parts[] = '- Un tableau "activities" contenant une activité par type demandé. Chaque activité : ' . implode(' | ', $typeDescs) . '. Minimum 5 items par activité.';
+                }
+
+                if (empty($parts)) {
+                    jsonResponse(['error' => 'Rien à générer'], 400);
+                }
+
+                $instructions = implode("\n", $parts);
+                $prompt = <<<EOT
+Tu es un assistant pédagogique expert. Analyse ce document PDF et génère du contenu pédagogique en français pour des lycéens de 1ère STMG.
+
+Génère UNIQUEMENT un objet JSON valide (sans markdown, sans ```json, sans explication). Structure attendue :
+{
+$instructions
+}
+
+Si un élément n'est pas demandé, mets null (pour course) ou [] (pour activities).
+Adapte le niveau au lycée, sois précis et pédagogique. Contenu entièrement en français.
+EOT;
+
+                $payload = json_encode([
+                    'model'      => 'claude-haiku-4-5-20251001',
+                    'max_tokens' => 4096,
+                    'messages'   => [[
+                        'role'    => 'user',
+                        'content' => [
+                            [
+                                'type'   => 'document',
+                                'source' => [
+                                    'type'       => 'base64',
+                                    'media_type' => 'application/pdf',
+                                    'data'       => $pdfData,
+                                ],
+                            ],
+                            ['type' => 'text', 'text' => $prompt],
+                        ],
+                    ]],
+                ], JSON_UNESCAPED_UNICODE);
+
+                $ch = curl_init('https://api.anthropic.com/v1/messages');
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => $payload,
+                    CURLOPT_HTTPHEADER     => [
+                        'Content-Type: application/json',
+                        'x-api-key: ' . ANTHROPIC_API_KEY,
+                        'anthropic-version: 2023-06-01',
+                        'anthropic-beta: pdfs-2024-09-25',
+                    ],
+                    CURLOPT_TIMEOUT => 120,
+                ]);
+                $raw      = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($raw === false) {
+                    jsonResponse(['error' => 'Impossible de contacter l\'API Claude'], 503);
+                }
+
+                $apiResp = json_decode($raw, true);
+                if ($httpCode !== 200 || empty($apiResp['content'][0]['text'])) {
+                    $msg = $apiResp['error']['message'] ?? $raw;
+                    jsonResponse(['error' => 'Erreur API Claude : ' . $msg], 502);
+                }
+
+                $text = trim($apiResp['content'][0]['text']);
+                // Nettoyer si Claude a quand même mis des backticks
+                $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+                $text = preg_replace('/\s*```$/', '', $text);
+
+                $generated = json_decode($text, true);
+                if ($generated === null) {
+                    jsonResponse(['error' => 'Réponse Claude invalide (JSON mal formé)', 'raw' => $text], 502);
+                }
+
+                jsonResponse($generated);
+            }
+            break;
+
         default:
             jsonResponse(['error' => 'Route non trouvée', 'path' => $resource], 404);
     }
