@@ -867,44 +867,94 @@ try {
                 $parts = [];
                 if ($generateCourse) {
                     $parts[] = <<<'EOT'
-- Un objet "course" avec : title (string), description (string, 1-2 phrases), chapters (array d'objets {title: string, content: string} — contenu détaillé en markdown simple, pas de HTML)
+- Un objet "course" avec :
+  - title (string) : titre du cours
+  - description (string) : résumé du cours en 1-2 phrases
+  - chapters (array) : minimum 3 chapitres, chaque chapitre = { title: string, content: string }
+  RÈGLES COURS :
+  * Chaque "content" doit faire au moins 200 mots
+  * Utilise du markdown simple : **gras**, *italique*, ## titres de section, - listes, \n pour les retours à la ligne
+  * Structure avec des paragraphes clairs, des exemples concrets du quotidien ou de l'entreprise
+  * Adapte le niveau lycée 1ère STMG : langage accessible, exemples parlants
+  * NE reproduis pas le contenu tel quel : synthétise, structure, pédagogise
 EOT;
                 }
                 if ($generateActivities && !empty($activityTypes)) {
                     $typeDescs = [];
-                    $typeMap = [
-                        'qcm'        => '{ title, type:"qcm",        difficulty:1-3, xpReward:int, data:{ questions:[{ q, choices:[4 items], answer:0-based-index, explanation }] } }',
-                        'flashcards' => '{ title, type:"flashcards",  difficulty:1-3, xpReward:int, data:{ cards:[{ front, back }] } }',
-                        'truefalse'  => '{ title, type:"truefalse",   difficulty:1-3, xpReward:int, data:{ questions:[{ q, answer:bool, explanation }] } }',
-                        'fillblank'  => '{ title, type:"fillblank",   difficulty:1-3, xpReward:int, data:{ sentences:[{ text:"phrase avec ___ à compléter", answer:"mot", hint:"indice" }] } }',
-                        'matching'   => '{ title, type:"matching",    difficulty:1-3, xpReward:int, data:{ pairs:[{ left, right }] } }',
+                    $typeRules = [
+                        'qcm' => <<<'EOT'
+  { title, type:"qcm", difficulty:2, xpReward:50, data:{ questions:[{ q, choices:[4 items], answer:0-based-index, explanation }] } }
+  RÈGLES QCM :
+  * Minimum 8 questions
+  * OBLIGATOIRE : répartir les bonnes réponses aléatoirement entre les positions 0, 1, 2 et 3 (~2 par position sur 8 questions)
+  * NE JAMAIS mettre toutes les bonnes réponses en position 0 ou 1
+  * Chaque "explanation" explique pourquoi cette réponse est correcte (1-2 phrases)
+  * Difficulté 2 = compréhension + application → XP : 50
+EOT,
+                        'flashcards' => <<<'EOT'
+  { title, type:"flashcards", difficulty:1, xpReward:30, data:{ cards:[{ front, back }] } }
+  RÈGLES FLASHCARDS :
+  * Minimum 10 cartes
+  * "front" = concept/terme court, "back" = définition claire en 1-2 phrases
+  * Difficulté 1 = mémorisation → XP : 30
+EOT,
+                        'truefalse' => <<<'EOT'
+  { title, type:"truefalse", difficulty:1, xpReward:35, data:{ questions:[{ q, answer:bool, explanation }] } }
+  RÈGLES VRAI/FAUX :
+  * Minimum 8 affirmations
+  * OBLIGATOIRE : alterner équitablement true et false (~50/50), ne pas mettre toutes les réponses à true
+  * "explanation" : explique pourquoi c'est vrai ou faux (1-2 phrases)
+  * Difficulté 1 = révision → XP : 35
+EOT,
+                        'fillblank' => <<<'EOT'
+  { title, type:"fillblank", difficulty:2, xpReward:45, data:{ sentences:[{ text:"phrase avec ___ à compléter", answer:"mot", hint:"indice" }] } }
+  RÈGLES TEXTE À TROUS :
+  * Minimum 8 phrases
+  * Le trou est représenté par ___ (3 underscores exactement) dans le "text"
+  * "answer" = le mot exact attendu (minuscule, sans accent optionnel)
+  * "hint" = indice utile sans donner la réponse directement
+  * Difficulté 2 = application → XP : 45
+EOT,
+                        'matching' => <<<'EOT'
+  { title, type:"matching", difficulty:2, xpReward:45, data:{ pairs:[{ left, right }] } }
+  RÈGLES ASSOCIATIONS :
+  * Minimum 6 paires
+  * "left" = concept/terme court (1-5 mots), "right" = définition ou exemple associé
+  * Les paires doivent couvrir des notions clés variées du cours
+  * Difficulté 2 = compréhension → XP : 45
+EOT,
                     ];
                     foreach ($activityTypes as $t) {
-                        if (isset($typeMap[$t])) $typeDescs[] = $typeMap[$t];
+                        if (isset($typeRules[$t])) $typeDescs[] = $typeRules[$t];
                     }
-                    $parts[] = '- Un tableau "activities" contenant une activité par type demandé. Chaque activité : ' . implode(' | ', $typeDescs) . '. Minimum 5 items par activité.';
+                    $parts[] = '- Un tableau "activities" contenant une activité par type demandé :' . "\n" . implode("\n", $typeDescs);
                 }
 
                 if (empty($parts)) {
                     jsonResponse(['error' => 'Rien à générer'], 400);
                 }
 
-                $instructions = implode("\n", $parts);
+                $instructions = implode("\n\n", $parts);
                 $prompt = <<<EOT
-Tu es un assistant pédagogique expert. Analyse ce document PDF et génère du contenu pédagogique en français pour des lycéens de 1ère STMG.
+Tu es un assistant pédagogique expert pour SmartKlass. Analyse ce document PDF et génère du contenu pédagogique en français pour des lycéens de 1ère STMG.
 
-Génère UNIQUEMENT un objet JSON valide (sans markdown, sans ```json, sans explication). Structure attendue :
+RÈGLES ABSOLUES :
+1. Génère UNIQUEMENT un objet JSON valide (sans markdown, sans ```json, sans aucun texte autour)
+2. Contenu entièrement en français, niveau lycée 1ère STMG
+3. Langage clair et accessible, exemples concrets du quotidien ou du monde de l'entreprise
+4. Respecte STRICTEMENT les règles spécifiques à chaque type de contenu ci-dessous
+
+STRUCTURE JSON ATTENDUE :
 {
 $instructions
 }
 
-Si un élément n'est pas demandé, mets null (pour course) ou [] (pour activities).
-Adapte le niveau au lycée, sois précis et pédagogique. Contenu entièrement en français.
+Si un élément n'est pas demandé, utilise null (pour course) ou [] (pour activities).
 EOT;
 
                 $payload = json_encode([
-                    'model'      => 'claude-haiku-4-5-20251001',
-                    'max_tokens' => 8192,
+                    'model'      => 'claude-sonnet-4-6',
+                    'max_tokens' => 16000,
                     'messages'   => [[
                         'role'    => 'user',
                         'content' => [
@@ -932,7 +982,7 @@ EOT;
                         'anthropic-version: 2023-06-01',
                         'anthropic-beta: pdfs-2024-09-25',
                     ],
-                    CURLOPT_TIMEOUT => 120,
+                    CURLOPT_TIMEOUT => 180,
                 ]);
                 $raw      = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
