@@ -563,7 +563,7 @@ try {
             break;
 
         // =====================================================================
-        // LIVE QUIZ — Sessions en direct (style Kahoot)
+        // LIVE QUIZ v2 — Sessions en direct (timer, scoring vitesse, streaks, XP, équipes, multi-types)
         // =====================================================================
         case 'live-quiz':
 
@@ -572,7 +572,7 @@ try {
                 $classId = $_GET['classId'] ?? null;
                 if (!$classId) jsonResponse(['error' => 'classId requis'], 400);
                 $stmt = $db->prepare(
-                    "SELECT ls.id, ls.status, ls.current_q, ls.updated_at, a.title AS activity_title
+                    "SELECT ls.id, ls.status, ls.current_q, ls.updated_at, ls.mode, a.title AS activity_title
                      FROM live_sessions ls
                      JOIN activities a ON a.id = ls.activity_id
                      WHERE ls.class_id = ? AND ls.status IN ('waiting','active','paused')
@@ -587,6 +587,7 @@ try {
                         'currentQ'      => (int)$row['current_q'],
                         'activityTitle' => $row['activity_title'],
                         'updatedAt'     => $row['updated_at'],
+                        'mode'          => $row['mode'],
                     ]]);
                 } else {
                     jsonResponse(['session' => null]);
@@ -606,7 +607,7 @@ try {
                 }
 
                 $stmt = $db->prepare(
-                    "SELECT ls.*, a.data AS activity_data, a.title AS activity_title,
+                    "SELECT ls.*, a.data AS activity_data, a.title AS activity_title, a.type AS activity_type_real, a.xp_reward,
                             (SELECT COUNT(*) FROM students WHERE class_id = ls.class_id) AS total_students
                      FROM live_sessions ls
                      JOIN activities a ON a.id = ls.activity_id
@@ -616,24 +617,76 @@ try {
                 $session = $stmt->fetch();
                 if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
 
-                $questions = json_decode($session['activity_data'], true)['questions'] ?? [];
+                $activityData = json_decode($session['activity_data'], true);
+                $actType = $session['activity_type'] ?? $session['activity_type_real'] ?? 'qcm';
+
+                // Construire la liste de questions selon le type
+                $questions = [];
+                if ($actType === 'matching') {
+                    // Transformation matching → QCM-like
+                    $pairs = $activityData['pairs'] ?? [];
+                    foreach ($pairs as $pi => $pair) {
+                        $wrongAnswers = [];
+                        foreach ($pairs as $oi => $other) {
+                            if ($oi !== $pi) $wrongAnswers[] = $other['right'];
+                        }
+                        shuffle($wrongAnswers);
+                        $choices = array_slice($wrongAnswers, 0, 3);
+                        $correctPos = rand(0, min(3, count($choices)));
+                        array_splice($choices, $correctPos, 0, [$pair['right']]);
+                        $choices = array_slice($choices, 0, 4);
+                        $questions[] = [
+                            'q' => $pair['left'],
+                            'choices' => $choices,
+                            'answer' => $correctPos,
+                            'explanation' => $pair['left'] . ' → ' . $pair['right'],
+                            'isMatching' => true,
+                        ];
+                    }
+                } elseif ($actType === 'truefalse') {
+                    $tfQuestions = $activityData['questions'] ?? [];
+                    foreach ($tfQuestions as $tfq) {
+                        $questions[] = [
+                            'q' => $tfq['q'],
+                            'choices' => ['Vrai', 'Faux'],
+                            'answer' => $tfq['answer'] ? 0 : 1,
+                            'explanation' => $tfq['explanation'] ?? '',
+                            'isTrueFalse' => true,
+                        ];
+                    }
+                } else {
+                    $questions = $activityData['questions'] ?? [];
+                }
+
                 $totalQ    = count($questions);
                 $currentQ  = (int)$session['current_q'];
                 $status    = $session['status'];
+                $timerSeconds = (int)($session['timer_seconds'] ?? 20);
+                $questionStartedAt = $session['question_started_at'];
+                $mode = $session['mode'] ?? 'individual';
 
-                // Question courante — réponse correcte toujours visible pour le prof (pas de studentId), sinon seulement si paused
+                // Temps serveur pour synchro timer client
+                $serverTime = date('Y-m-d H:i:s');
+
+                // Question courante
                 $isTeacher = ($studentId === null);
                 $qData = null;
                 if ($currentQ < $totalQ) {
                     $q = $questions[$currentQ];
-                    $qData = ['q' => $q['q'], 'choices' => $q['choices']];
+                    $qData = [
+                        'q' => $q['q'],
+                        'choices' => $q['choices'],
+                        'isTrueFalse' => !empty($q['isTrueFalse']),
+                        'isMatching' => !empty($q['isMatching']),
+                    ];
                     if ($isTeacher || $status === 'paused') {
                         $qData['answer']      = $q['answer'];
                         $qData['explanation'] = $q['explanation'] ?? '';
                     }
                 }
 
-                // Distribution des réponses pour la question courante
+                // Distribution des réponses
+                $numChoices = ($qData && !empty($qData['isTrueFalse'])) ? 2 : 4;
                 $distStmt = $db->prepare(
                     "SELECT answer_idx, COUNT(*) AS cnt
                      FROM live_responses
@@ -641,12 +694,13 @@ try {
                      GROUP BY answer_idx"
                 );
                 $distStmt->execute([$sessionId, $currentQ]);
-                $distribution = [0, 0, 0, 0];
+                $distribution = array_fill(0, $numChoices, 0);
                 foreach ($distStmt->fetchAll() as $r) {
-                    $distribution[(int)$r['answer_idx']] = (int)$r['cnt'];
+                    $idx = (int)$r['answer_idx'];
+                    if ($idx < $numChoices) $distribution[$idx] = (int)$r['cnt'];
                 }
 
-                // Nb d'élèves ayant répondu à la question courante
+                // Nb d'élèves ayant répondu
                 $answeredStmt = $db->prepare(
                     "SELECT COUNT(DISTINCT student_id) FROM live_responses
                      WHERE session_id = ? AND question_idx = ?"
@@ -654,39 +708,58 @@ try {
                 $answeredStmt->execute([$sessionId, $currentQ]);
                 $answeredCount = (int)$answeredStmt->fetchColumn();
 
-                // Classement
+                // Classement par score (points vitesse)
                 $lbStmt = $db->prepare(
                     "SELECT s.id, s.first_name, s.last_name,
-                            SUM(lr.is_correct) AS score
+                            SUM(lr.score) AS total_score,
+                            SUM(lr.is_correct) AS correct_count
                      FROM live_responses lr
                      JOIN students s ON s.id = lr.student_id
                      WHERE lr.session_id = ?
                      GROUP BY s.id
-                     ORDER BY score DESC
-                     LIMIT 15"
+                     ORDER BY total_score DESC
+                     LIMIT 30"
                 );
                 $lbStmt->execute([$sessionId]);
                 $leaderboard = array_map(function($r) {
                     return [
-                        'studentId' => $r['id'],
-                        'firstName' => $r['first_name'],
-                        'lastName'  => $r['last_name'],
-                        'score'     => (int)$r['score'],
+                        'studentId'    => $r['id'],
+                        'firstName'    => $r['first_name'],
+                        'lastName'     => $r['last_name'],
+                        'score'        => (int)$r['total_score'],
+                        'correctCount' => (int)$r['correct_count'],
                     ];
                 }, $lbStmt->fetchAll());
 
-                // L'élève a-t-il répondu à la question courante ?
+                // L'élève a-t-il répondu ?
                 $hasAnswered = false;
+                $myLastScore = 0;
+                $myStreak = 0;
                 if ($studentId) {
                     $haStmt = $db->prepare(
-                        "SELECT COUNT(*) FROM live_responses
+                        "SELECT score FROM live_responses
                          WHERE session_id = ? AND student_id = ? AND question_idx = ?"
                     );
                     $haStmt->execute([$sessionId, $studentId, $currentQ]);
-                    $hasAnswered = (bool)$haStmt->fetchColumn();
+                    $haRow = $haStmt->fetch();
+                    $hasAnswered = (bool)$haRow;
+                    $myLastScore = $haRow ? (int)$haRow['score'] : 0;
+
+                    // Calculer le streak actuel de l'élève
+                    $streakStmt = $db->prepare(
+                        "SELECT is_correct FROM live_responses
+                         WHERE session_id = ? AND student_id = ?
+                         ORDER BY question_idx DESC"
+                    );
+                    $streakStmt->execute([$sessionId, $studentId]);
+                    $myStreak = 0;
+                    foreach ($streakStmt->fetchAll() as $sr) {
+                        if ((int)$sr['is_correct'] === 1) $myStreak++;
+                        else break;
+                    }
                 }
 
-                // Élèves présents dans le salon
+                // Élèves présents
                 $joinedStmt = $db->prepare(
                     "SELECT s.id, s.first_name, s.last_name
                      FROM live_joined lj
@@ -704,35 +777,99 @@ try {
                 }, $joinedStmt->fetchAll());
                 $joinedCount = count($joinedStudents);
 
-                jsonResponse([
-                    'status'         => $status,
-                    'currentQ'       => $currentQ,
-                    'totalQuestions' => $totalQ,
-                    'activityTitle'  => $session['activity_title'],
-                    'question'       => $qData,
-                    'answeredCount'  => $answeredCount,
-                    'totalStudents'  => (int)$session['total_students'],
-                    'joinedStudents' => $joinedStudents,
-                    'joinedCount'    => $joinedCount,
-                    'distribution'   => $distribution,
-                    'leaderboard'    => $leaderboard,
-                    'hasAnswered'    => $hasAnswered,
-                ]);
+                // Données équipe si mode team
+                $teams = null;
+                if ($mode === 'team') {
+                    $teamStmt = $db->prepare(
+                        "SELECT team, COUNT(*) AS cnt, SUM(sub.score) AS team_score
+                         FROM live_teams lt
+                         LEFT JOIN (
+                             SELECT student_id, SUM(score) AS score FROM live_responses WHERE session_id = ? GROUP BY student_id
+                         ) sub ON sub.student_id = lt.student_id
+                         WHERE lt.session_id = ?
+                         GROUP BY team"
+                    );
+                    $teamStmt->execute([$sessionId, $sessionId]);
+                    $teams = ['A' => ['count' => 0, 'score' => 0], 'B' => ['count' => 0, 'score' => 0]];
+                    foreach ($teamStmt->fetchAll() as $tr) {
+                        $teams[$tr['team']] = ['count' => (int)$tr['cnt'], 'score' => (int)($tr['team_score'] ?? 0)];
+                    }
+
+                    // Équipe de l'élève
+                    if ($studentId) {
+                        $myTeamStmt = $db->prepare("SELECT team FROM live_teams WHERE session_id = ? AND student_id = ?");
+                        $myTeamStmt->execute([$sessionId, $studentId]);
+                        $myTeamRow = $myTeamStmt->fetch();
+                    }
+                }
+
+                // Temps moyen de réponse pour la question courante (prof)
+                $avgTimeMs = null;
+                if ($isTeacher) {
+                    $avgStmt = $db->prepare(
+                        "SELECT AVG(response_time_ms) AS avg_ms FROM live_responses
+                         WHERE session_id = ? AND question_idx = ? AND response_time_ms IS NOT NULL"
+                    );
+                    $avgStmt->execute([$sessionId, $currentQ]);
+                    $avgRow = $avgStmt->fetch();
+                    $avgTimeMs = $avgRow ? (int)($avgRow['avg_ms'] ?? 0) : null;
+                }
+
+                $response = [
+                    'status'             => $status,
+                    'currentQ'           => $currentQ,
+                    'totalQuestions'     => $totalQ,
+                    'activityTitle'      => $session['activity_title'],
+                    'activityType'       => $actType,
+                    'question'           => $qData,
+                    'answeredCount'      => $answeredCount,
+                    'totalStudents'      => (int)$session['total_students'],
+                    'joinedStudents'     => $joinedStudents,
+                    'joinedCount'        => $joinedCount,
+                    'distribution'       => $distribution,
+                    'leaderboard'        => $leaderboard,
+                    'hasAnswered'        => $hasAnswered,
+                    'timerSeconds'       => $timerSeconds,
+                    'questionStartedAt'  => $questionStartedAt,
+                    'serverTime'         => $serverTime,
+                    'mode'               => $mode,
+                    'myLastScore'        => $myLastScore,
+                    'myStreak'           => $myStreak,
+                    'teams'              => $teams,
+                    'myTeam'             => ($mode === 'team' && $studentId && isset($myTeamRow)) ? ($myTeamRow['team'] ?? null) : null,
+                    'avgTimeMs'          => $avgTimeMs,
+                ];
+                jsonResponse($response);
             }
 
             // ── POST /api/live-quiz  (créer une session — prof) ──
             elseif ($method === 'POST' && $id === null) {
-                $body       = getJsonBody();
-                $activityId = $body['activityId'] ?? '';
-                $classId    = $body['classId'] ?? '';
+                $body         = getJsonBody();
+                $activityId   = $body['activityId'] ?? '';
+                $classId      = $body['classId'] ?? '';
+                $timerSeconds = (int)($body['timerSeconds'] ?? 20);
+                $mode         = ($body['mode'] ?? 'individual') === 'team' ? 'team' : 'individual';
                 if (!$activityId || !$classId) jsonResponse(['error' => 'activityId et classId requis'], 400);
+                if ($timerSeconds < 5 || $timerSeconds > 120) $timerSeconds = 20;
 
-                // Vérifie que c'est un QCM
-                $actStmt = $db->prepare("SELECT type, data, title FROM activities WHERE id = ?");
+                // Vérifie le type d'activité
+                $actStmt = $db->prepare("SELECT type, data, title, xp_reward FROM activities WHERE id = ?");
                 $actStmt->execute([$activityId]);
                 $act = $actStmt->fetch();
                 if (!$act) jsonResponse(['error' => 'Activité introuvable'], 404);
-                if ($act['type'] !== 'qcm') jsonResponse(['error' => 'Seuls les QCM peuvent être lancés en live'], 400);
+
+                $allowedTypes = ['qcm', 'truefalse', 'matching'];
+                if (!in_array($act['type'], $allowedTypes)) {
+                    jsonResponse(['error' => 'Ce type d\'activité ne supporte pas le mode live'], 400);
+                }
+
+                // Déterminer le nombre de questions
+                $data = json_decode($act['data'], true);
+                if ($act['type'] === 'matching') {
+                    $totalQ = count($data['pairs'] ?? []);
+                } else {
+                    $totalQ = count($data['questions'] ?? []);
+                }
 
                 // Clôture les sessions actives existantes pour cette classe
                 $db->prepare(
@@ -741,11 +878,10 @@ try {
                 )->execute([$classId]);
 
                 $sessionId = generateId();
-                $totalQ = count(json_decode($act['data'], true)['questions'] ?? []);
                 $db->prepare(
-                    "INSERT INTO live_sessions (id, activity_id, class_id, status, current_q)
-                     VALUES (?, ?, ?, 'waiting', 0)"
-                )->execute([$sessionId, $activityId, $classId]);
+                    "INSERT INTO live_sessions (id, activity_id, class_id, status, current_q, timer_seconds, mode, activity_type)
+                     VALUES (?, ?, ?, 'waiting', 0, ?, ?, ?)"
+                )->execute([$sessionId, $activityId, $classId, $timerSeconds, $mode, $act['type']]);
 
                 jsonResponse([
                     'sessionId'      => $sessionId,
@@ -753,6 +889,9 @@ try {
                     'currentQ'       => 0,
                     'totalQuestions' => $totalQ,
                     'activityTitle'  => $act['title'],
+                    'mode'           => $mode,
+                    'timerSeconds'   => $timerSeconds,
+                    'activityType'   => $act['type'],
                 ]);
             }
 
@@ -762,19 +901,25 @@ try {
                 $body      = getJsonBody();
                 $actionReq = $body['action'] ?? '';
 
-                $sessStmt = $db->prepare("SELECT ls.*, a.data AS activity_data FROM live_sessions ls JOIN activities a ON a.id = ls.activity_id WHERE ls.id = ?");
+                $sessStmt = $db->prepare("SELECT ls.*, a.data AS activity_data, a.type AS activity_type_real, a.xp_reward FROM live_sessions ls JOIN activities a ON a.id = ls.activity_id WHERE ls.id = ?");
                 $sessStmt->execute([$sessionId]);
                 $session = $sessStmt->fetch();
                 if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
 
-                $totalQ   = count(json_decode($session['activity_data'], true)['questions'] ?? []);
+                $actType = $session['activity_type'] ?? $session['activity_type_real'] ?? 'qcm';
+                $actData = json_decode($session['activity_data'], true);
+                if ($actType === 'matching') {
+                    $totalQ = count($actData['pairs'] ?? []);
+                } else {
+                    $totalQ = count($actData['questions'] ?? []);
+                }
                 $currentQ = (int)$session['current_q'];
                 $status   = $session['status'];
 
                 switch ($actionReq) {
                     case 'start':
                         if ($status !== 'waiting') jsonResponse(['error' => 'La session est déjà démarrée'], 400);
-                        $db->prepare("UPDATE live_sessions SET status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        $db->prepare("UPDATE live_sessions SET status = 'active', question_started_at = NOW() WHERE id = ?")->execute([$sessionId]);
                         jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ]);
                         break;
                     case 'pause':
@@ -784,18 +929,57 @@ try {
                         break;
                     case 'resume':
                         if ($status !== 'paused') jsonResponse(['error' => 'La session n\'est pas en pause'], 400);
-                        $db->prepare("UPDATE live_sessions SET status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        $db->prepare("UPDATE live_sessions SET status = 'active', question_started_at = NOW() WHERE id = ?")->execute([$sessionId]);
                         jsonResponse(['success' => true, 'status' => 'active']);
                         break;
                     case 'next':
                         if (!in_array($status, ['active', 'paused'])) jsonResponse(['error' => 'Action impossible'], 400);
                         if ($currentQ + 1 >= $totalQ) jsonResponse(['error' => 'Déjà à la dernière question, utilisez finish'], 400);
-                        $db->prepare("UPDATE live_sessions SET current_q = current_q + 1, status = 'active' WHERE id = ?")->execute([$sessionId]);
+                        $db->prepare("UPDATE live_sessions SET current_q = current_q + 1, status = 'active', question_started_at = NOW() WHERE id = ?")->execute([$sessionId]);
                         jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ + 1]);
                         break;
                     case 'finish':
+                        // Attribuer XP aux élèves avant de terminer
+                        $xpReward = (int)($session['xp_reward'] ?? 40);
+                        $scoresStmt = $db->prepare(
+                            "SELECT student_id, SUM(score) AS total_score, SUM(is_correct) AS correct_count
+                             FROM live_responses WHERE session_id = ? GROUP BY student_id"
+                        );
+                        $scoresStmt->execute([$sessionId]);
+                        $maxPossibleScore = $totalQ * 1000; // Score max théorique
+                        foreach ($scoresStmt->fetchAll() as $sr) {
+                            // XP proportionnel au score, plafonné à xp_reward
+                            $xpGained = $maxPossibleScore > 0
+                                ? (int)ceil(((int)$sr['total_score'] / $maxPossibleScore) * $xpReward)
+                                : 0;
+                            $xpGained = min($xpGained, $xpReward);
+                            $xpGained = max($xpGained, 1); // Au minimum 1 XP pour avoir participé
+
+                            // Ajouter XP au profil
+                            $db->prepare("UPDATE students SET xp = xp + ? WHERE id = ?")->execute([$xpGained, $sr['student_id']]);
+
+                            // Créer une entrée dans results pour l'historique
+                            $scorePercent = $totalQ > 0 ? round(((int)$sr['correct_count'] / $totalQ) * 100) : 0;
+                            try {
+                                $db->prepare(
+                                    "INSERT INTO results (id, student_id, activity_id, score) VALUES (?, ?, ?, ?)"
+                                )->execute([generateId(), $sr['student_id'], $session['activity_id'], $scorePercent]);
+                            } catch (PDOException $e) {
+                                // Ignorer les doublons
+                            }
+                        }
+
                         $db->prepare("UPDATE live_sessions SET status = 'finished' WHERE id = ?")->execute([$sessionId]);
                         jsonResponse(['success' => true, 'status' => 'finished']);
+                        break;
+                    case 'skip':
+                        // Sauter une question sans la compter
+                        if (!in_array($status, ['active', 'paused'])) jsonResponse(['error' => 'Action impossible'], 400);
+                        if ($currentQ + 1 >= $totalQ) jsonResponse(['error' => 'Dernière question'], 400);
+                        // Supprimer les réponses de la question skippée
+                        $db->prepare("DELETE FROM live_responses WHERE session_id = ? AND question_idx = ?")->execute([$sessionId, $currentQ]);
+                        $db->prepare("UPDATE live_sessions SET current_q = current_q + 1, status = 'active', question_started_at = NOW() WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ + 1]);
                         break;
                     default:
                         jsonResponse(['error' => 'Action inconnue'], 400);
@@ -813,26 +997,150 @@ try {
                     jsonResponse(['error' => 'studentId, questionIdx et answerIdx requis'], 400);
                 }
 
-                $sessStmt = $db->prepare("SELECT ls.status, a.data AS activity_data FROM live_sessions ls JOIN activities a ON a.id = ls.activity_id WHERE ls.id = ?");
+                $sessStmt = $db->prepare(
+                    "SELECT ls.status, ls.timer_seconds, ls.question_started_at, ls.activity_type,
+                            a.data AS activity_data, a.type AS activity_type_real
+                     FROM live_sessions ls
+                     JOIN activities a ON a.id = ls.activity_id
+                     WHERE ls.id = ?"
+                );
                 $sessStmt->execute([$sessionId]);
                 $session = $sessStmt->fetch();
                 if (!$session) jsonResponse(['error' => 'Session introuvable'], 404);
                 if ($session['status'] !== 'active') jsonResponse(['error' => 'La session n\'est pas active'], 400);
 
-                $questions = json_decode($session['activity_data'], true)['questions'] ?? [];
+                $actType = $session['activity_type'] ?? $session['activity_type_real'] ?? 'qcm';
+                $actData = json_decode($session['activity_data'], true);
+
+                // Construire les questions selon le type
+                if ($actType === 'matching') {
+                    $pairs = $actData['pairs'] ?? [];
+                    // On doit reconstruire les questions matching→QCM de façon déterministe
+                    // Utiliser le session_id comme seed pour le shuffle
+                    $questions = [];
+                    foreach ($pairs as $pi => $pair) {
+                        $wrongAnswers = [];
+                        foreach ($pairs as $oi => $other) {
+                            if ($oi !== $pi) $wrongAnswers[] = $other['right'];
+                        }
+                        // Seed déterministe pour que les choix soient stables
+                        mt_srand(crc32($sessionId . '_' . $pi));
+                        shuffle($wrongAnswers);
+                        $choices = array_slice($wrongAnswers, 0, 3);
+                        $correctPos = mt_rand(0, min(3, count($choices)));
+                        array_splice($choices, $correctPos, 0, [$pair['right']]);
+                        $choices = array_slice($choices, 0, 4);
+                        mt_srand(); // Reset le seed
+                        $questions[] = ['q' => $pair['left'], 'choices' => $choices, 'answer' => $correctPos];
+                    }
+                } elseif ($actType === 'truefalse') {
+                    $tfQuestions = $actData['questions'] ?? [];
+                    $questions = [];
+                    foreach ($tfQuestions as $tfq) {
+                        $questions[] = ['q' => $tfq['q'], 'choices' => ['Vrai', 'Faux'], 'answer' => $tfq['answer'] ? 0 : 1];
+                    }
+                } else {
+                    $questions = $actData['questions'] ?? [];
+                }
+
                 $isCorrect = isset($questions[$questionIdx]) && (int)$questions[$questionIdx]['answer'] === (int)$answerIdx ? 1 : 0;
+
+                // Calcul du temps de réponse et du score vitesse
+                $responseTimeMs = null;
+                $score = 0;
+                $timerSeconds = (int)($session['timer_seconds'] ?? 20);
+                $timerMs = $timerSeconds * 1000;
+
+                if ($session['question_started_at']) {
+                    // Temps en millisecondes depuis le début de la question
+                    $startedAt = new DateTime($session['question_started_at']);
+                    $now = new DateTime();
+                    $diff = $now->getTimestamp() - $startedAt->getTimestamp();
+                    $responseTimeMs = max(0, (int)($diff * 1000));
+
+                    // Score basé sur la vitesse (seulement si correct)
+                    if ($isCorrect) {
+                        $speedRatio = min(1.0, $responseTimeMs / $timerMs);
+                        $score = max(100, (int)(1000 - floor($speedRatio * 900)));
+
+                        // Streak bonus
+                        $streakStmt = $db->prepare(
+                            "SELECT is_correct FROM live_responses
+                             WHERE session_id = ? AND student_id = ?
+                             ORDER BY question_idx DESC"
+                        );
+                        $streakStmt->execute([$sessionId, $studentId]);
+                        $streak = 0;
+                        foreach ($streakStmt->fetchAll() as $sr) {
+                            if ((int)$sr['is_correct'] === 1) $streak++;
+                            else break;
+                        }
+                        // Appliquer le multiplicateur de streak
+                        if ($streak >= 5)      $score = (int)($score * 2.0);
+                        elseif ($streak >= 3)  $score = (int)($score * 1.5);
+                        elseif ($streak >= 2)  $score = (int)($score * 1.2);
+                    }
+                }
 
                 try {
                     $db->prepare(
-                        "INSERT INTO live_responses (id, session_id, student_id, question_idx, answer_idx, is_correct)
-                         VALUES (?, ?, ?, ?, ?, ?)"
-                    )->execute([generateId(), $sessionId, $studentId, (int)$questionIdx, (int)$answerIdx, $isCorrect]);
-                    jsonResponse(['success' => true, 'isCorrect' => (bool)$isCorrect]);
+                        "INSERT INTO live_responses (id, session_id, student_id, question_idx, answer_idx, is_correct, response_time_ms, score)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                    )->execute([generateId(), $sessionId, $studentId, (int)$questionIdx, (int)$answerIdx, $isCorrect, $responseTimeMs, $score]);
+                    jsonResponse([
+                        'success'        => true,
+                        'isCorrect'      => (bool)$isCorrect,
+                        'score'          => $score,
+                        'responseTimeMs' => $responseTimeMs,
+                        'streak'         => ($isCorrect ? ($streak ?? 0) + 1 : 0),
+                    ]);
                 } catch (PDOException $e) {
                     if (str_contains($e->getMessage(), 'Duplicate') || $e->getCode() == 23000) {
                         jsonResponse(['error' => 'already_answered'], 409);
                     }
                     throw $e;
+                }
+            }
+
+            // ── POST /api/live-quiz/{sessionId}/join-team  (rejoindre une équipe) ──
+            elseif ($method === 'POST' && $id !== null && $action === 'join-team') {
+                $sessionId = $id;
+                $body      = getJsonBody();
+                $studentId = $body['studentId'] ?? '';
+                $team      = $body['team'] ?? '';
+                if (!$studentId || !in_array($team, ['A', 'B'])) {
+                    jsonResponse(['error' => 'studentId et team (A ou B) requis'], 400);
+                }
+
+                // Vérifier que la session est en mode team
+                $sessStmt = $db->prepare("SELECT mode FROM live_sessions WHERE id = ?");
+                $sessStmt->execute([$sessionId]);
+                $session = $sessStmt->fetch();
+                if (!$session || $session['mode'] !== 'team') {
+                    jsonResponse(['error' => 'Cette session n\'est pas en mode équipe'], 400);
+                }
+
+                // Vérifier l'équilibre : pas plus de 2 joueurs d'écart
+                $countStmt = $db->prepare(
+                    "SELECT team, COUNT(*) AS cnt FROM live_teams WHERE session_id = ? GROUP BY team"
+                );
+                $countStmt->execute([$sessionId]);
+                $counts = ['A' => 0, 'B' => 0];
+                foreach ($countStmt->fetchAll() as $r) $counts[$r['team']] = (int)$r['cnt'];
+
+                $otherTeam = $team === 'A' ? 'B' : 'A';
+                if ($counts[$team] - $counts[$otherTeam] >= 2) {
+                    jsonResponse(['error' => 'Cette équipe est complète, rejoins l\'autre !'], 400);
+                }
+
+                try {
+                    $db->prepare(
+                        "INSERT INTO live_teams (session_id, student_id, team) VALUES (?, ?, ?)
+                         ON DUPLICATE KEY UPDATE team = VALUES(team)"
+                    )->execute([$sessionId, $studentId, $team]);
+                    jsonResponse(['success' => true, 'team' => $team]);
+                } catch (PDOException $e) {
+                    jsonResponse(['error' => 'Erreur lors de la sélection d\'équipe'], 500);
                 }
             }
 
