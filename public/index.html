@@ -52,6 +52,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.469.0/dist/umd/lucide-react.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 
     <script>
@@ -76,6 +77,19 @@
 // ============================================================================
 
 const { useState, useEffect, useRef, useCallback } = React;
+
+// --- Icon System (Lucide React) ---
+function Icon({ name, size = 18, color, strokeWidth = 2, style }) {
+  const Comp = window.LucideReact && window.LucideReact[name];
+  if (!Comp) return null;
+  return React.createElement(Comp, { size, color, strokeWidth, style });
+}
+
+function SubjectIcon({ icon, size = 20, color }) {
+  if (!icon) return React.createElement(Icon, { name: "BookOpen", size, color });
+  if (window.LucideReact && window.LucideReact[icon]) return React.createElement(Icon, { name: icon, size, color });
+  return React.createElement('span', { style: { fontSize: size } }, icon);
+}
 
 // --- API Layer ---
 const API_BASE = '/api';
@@ -119,21 +133,21 @@ const api = {
 
 // --- BADGES ---
 const BADGES = [
-  { id: "first_activity", name: "Premier pas", icon: "🌟", desc: "Compléter sa première activité", condition: (r) => r.length >= 1 },
-  { id: "streak_3", name: "En forme !", icon: "🔥", desc: "3 jours consécutifs", condition: (r, s) => s >= 3 },
-  { id: "streak_7", name: "Inarrêtable", icon: "⚡", desc: "7 jours consécutifs", condition: (r, s) => s >= 7 },
-  { id: "perfect_score", name: "Sans faute", icon: "💎", desc: "100% à une activité", condition: (r) => r.some(x => x.score === 100) },
-  { id: "xp_100", name: "Débutant motivé", icon: "🎯", desc: "Atteindre 100 XP", condition: (r, s, xp) => xp >= 100 },
-  { id: "xp_500", name: "Expert en herbe", icon: "🏆", desc: "Atteindre 500 XP", condition: (r, s, xp) => xp >= 500 },
-  { id: "ten_activities", name: "Travailleur", icon: "📚", desc: "Compléter 10 activités", condition: (r) => r.length >= 10 },
+  { id: "first_activity", name: "Premier pas", icon: "Star", color: "#FDCB6E", desc: "Compléter sa première activité", condition: (r) => r.length >= 1 },
+  { id: "streak_3", name: "En forme !", icon: "Flame", color: "#E17055", desc: "3 jours consécutifs", condition: (r, s) => s >= 3 },
+  { id: "streak_7", name: "Inarrêtable", icon: "Zap", color: "#0984E3", desc: "7 jours consécutifs", condition: (r, s) => s >= 7 },
+  { id: "perfect_score", name: "Sans faute", icon: "Gem", color: "#00CEC9", desc: "100% à une activité", condition: (r) => r.some(x => x.score === 100) },
+  { id: "xp_100", name: "Débutant motivé", icon: "Target", color: "#E17055", desc: "Atteindre 100 XP", condition: (r, s, xp) => xp >= 100 },
+  { id: "xp_500", name: "Expert en herbe", icon: "Trophy", color: "#6C5CE7", desc: "Atteindre 500 XP", condition: (r, s, xp) => xp >= 500 },
+  { id: "ten_activities", name: "Travailleur", icon: "BookOpen", color: "#00B894", desc: "Compléter 10 activités", condition: (r) => r.length >= 10 },
 ];
 
 // --- NOTIFICATION TYPES (push) ---
 const NOTIF_TYPES = [
-  { id: 'new_course',  icon: '📖', title: 'Nouveau cours disponible !',  body: "Un nouveau cours vient d'être publié. Connecte-toi pour le découvrir !" },
-  { id: 'reminder',   icon: '🔥', title: "N'oublie pas de réviser !",   body: "Continue ton streak et garde ta place au classement 🏆" },
-  { id: 'new_act',    icon: '🎮', title: 'Nouvelle activité !',           body: "Une nouvelle activité est disponible. À toi de jouer !" },
-  { id: 'custom',     icon: '✉️', title: 'Message du professeur',        body: '' },
+  { id: 'new_course',  icon: 'BookOpen', title: 'Nouveau cours disponible !',  body: "Un nouveau cours vient d'être publié. Connecte-toi pour le découvrir !" },
+  { id: 'reminder',   icon: 'Flame',    title: "N'oublie pas de réviser !",   body: "Continue ton streak et garde ta place au classement" },
+  { id: 'new_act',    icon: 'Layers',   title: 'Nouvelle activité !',           body: "Une nouvelle activité est disponible. À toi de jouer !" },
+  { id: 'custom',     icon: 'Mail',     title: 'Message du professeur',        body: '' },
 ];
 
 // --- COLORS ---
@@ -159,7 +173,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-const EMOJI_OPTIONS = ["📊","📈","🎯","📚","🧠","💡","⚖️","💼","🏢","📝","🎓","🔬","💻","🌍","📱","🎨"];
+const ICON_OPTIONS = ["BarChart2","TrendingUp","Target","BookOpen","Brain","Lightbulb","Scale","Briefcase","Building2","FileText","GraduationCap","FlaskConical","Monitor","Globe","Smartphone","Palette"];
 const COLOR_OPTIONS = ["#6C5CE7","#00B894","#E17055","#0984E3","#E84393","#00CEC9","#FDCB6E","#636E72","#D63031"];
 
 function getYoutubeEmbedUrl(url) {
@@ -205,7 +219,7 @@ function ProgressBar({ value, max = 100, color = C.primary, height = 10, style }
 
 function StatCard({ icon, label, value, color, sub }) {
   return React.createElement(Card, { style: { textAlign: "center", flex: 1, minWidth: 130 } },
-    React.createElement('div', { style: { fontSize: 30, marginBottom: 4 } }, icon),
+    React.createElement('div', { style: { display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 8, height: 36 } }, icon),
     React.createElement('div', { style: { fontSize: 26, fontWeight: 800, color } }, value),
     React.createElement('div', { style: { fontSize: 12, color: C.textLight, fontWeight: 600 } }, label),
     sub && React.createElement('div', { style: { fontSize: 11, color: C.textMuted, marginTop: 2 } }, sub)
@@ -217,7 +231,7 @@ function Input({ label, value, onChange, type = "text", placeholder, style, icon
   return React.createElement('div', { style: { marginBottom: small ? 8 : 16, ...style } },
     label && React.createElement('label', { style: { display: "block", marginBottom: 6, fontWeight: 700, fontSize: small ? 12 : 14, color: C.text } }, label),
     React.createElement('div', { style: { display: "flex", alignItems: "center", background: "#F0F0F8", borderRadius: small ? 10 : 14, padding: `0 ${small ? 10 : 16}px`, border: `2px solid ${focus ? C.primary : "transparent"}`, transition: "border 0.2s" } },
-      icon && React.createElement('span', { style: { fontSize: small ? 16 : 20, marginRight: 10 } }, icon),
+      icon && React.createElement('span', { style: { display: "flex", alignItems: "center", marginRight: 10, color: C.textMuted, flexShrink: 0 } }, icon),
       React.createElement('input', { type, value, name, autoComplete, onChange: e => onChange(e.target.value), placeholder, onFocus: () => setFocus(true), onBlur: () => setFocus(false), onKeyDown, style: { border: "none", background: "transparent", padding: `${small ? 10 : 14}px 0`, fontSize: small ? 13 : 15, fontFamily: "'Nunito',sans-serif", outline: "none", width: "100%", color: C.text } })
     )
   );
@@ -247,7 +261,7 @@ function Modal({ open, onClose, title, children, wide }) {
 
 function Tabs({ tabs, active, onChange }) {
   return React.createElement('div', { style: { display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 20, flexWrap: "wrap" } },
-    tabs.map(t => React.createElement('button', { key: t.id, onClick: () => onChange(t.id), style: { flex: 1, padding: "11px 12px", borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 13, fontWeight: 700, transition: "all 0.2s", background: active === t.id ? C.card : "transparent", color: active === t.id ? C.primary : C.textLight, boxShadow: active === t.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none", minWidth: "fit-content" } }, t.icon + " " + t.label))
+    tabs.map(t => React.createElement('button', { key: t.id, onClick: () => onChange(t.id), style: { flex: 1, padding: "11px 12px", borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 13, fontWeight: 700, transition: "all 0.2s", background: active === t.id ? C.card : "transparent", color: active === t.id ? C.primary : C.textLight, boxShadow: active === t.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none", minWidth: "fit-content", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 } }, t.icon, t.label)))
   );
 }
 
@@ -260,7 +274,7 @@ function BottomNav({ tabs, active, onChange }) {
       style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", border: "none", background: "transparent", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: tabs.length > 4 ? 9 : 10, fontWeight: 700, color: active === t.id ? C.primary : C.textLight, transition: "color 0.2s", minWidth: 0, position: "relative" }
     },
       active === t.id && React.createElement('div', { style: { position: "absolute", top: 0, left: "20%", right: "20%", height: 3, background: C.primary, borderRadius: "0 0 3px 3px" } }),
-      React.createElement('span', { style: { fontSize: active === t.id ? 22 : 20, marginBottom: 2, transition: "font-size 0.15s", display: "block" } }, t.icon),
+      React.createElement('span', { style: { display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2, height: 24 } }, t.icon),
       React.createElement('span', { style: { lineHeight: 1, whiteSpace: "nowrap" } }, t.label)
     ))
   );
@@ -273,7 +287,7 @@ function BottomNav({ tabs, active, onChange }) {
 function LiveQuizBanner({ session, onJoin, onDismiss }) {
   return <div style={{ position: "fixed", top: 64, left: 0, right: 0, zIndex: 200, background: C.primary, color: "#fff", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 20px rgba(108,92,231,0.4)", animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 24 }}>🎮</span>
+      <Icon name="Radio" size={22} color="#fff" />
       <div><div style={{ fontWeight: 900, fontSize: 14 }}>Live Quiz en cours !</div><div style={{ fontSize: 12, opacity: 0.9 }}>{session.activityTitle}</div></div>
     </div>
     <div style={{ display: "flex", gap: 8 }}>
@@ -336,7 +350,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
   };
 
   if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-    <div style={{ textAlign: "center" }}><div style={{ fontSize: 48 }}>🎮</div><p style={{ fontWeight: 700, color: C.textLight }}>Connexion au live...</p></div>
+    <div style={{ textAlign: "center" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Radio" size={48} color={C.primary} /></div><p style={{ fontWeight: 700, color: C.textLight }}>Connexion au live...</p></div>
   </div>;
 
   const { status, currentQ, totalQuestions, question, hasAnswered, leaderboard } = liveData;
@@ -346,11 +360,11 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
     {/* Header */}
     <div style={{ background: C.primary, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 22 }}>🎮</span>
+        <Icon name="Radio" size={22} color="#fff" />
         <div><div style={{ fontWeight: 900, fontSize: 15 }}>Live Quiz</div><div style={{ fontSize: 11, opacity: 0.85 }}>{liveData.activityTitle}</div></div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, opacity: 0.85 }}>Mon score</div><div style={{ fontWeight: 900, fontSize: 18 }}>⚡ {myScore}</div></div>
+        <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, opacity: 0.85 }}>Mon score</div><div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}><Icon name="Zap" size={16} color="#fff" /> {myScore}</div></div>
         <button onClick={onExit} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 10, padding: "6px 12px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Quitter</button>
       </div>
     </div>
@@ -358,7 +372,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
     {/* Contenu */}
     <div style={{ flex: 1, overflow: "auto", padding: "20px 16px", maxWidth: 640, margin: "0 auto", width: "100%" }}>
       {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 60 }}>
-        <div style={{ fontSize: 64, marginBottom: 16, animation: "float 2s ease-in-out infinite" }}>⏳</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 2s ease-in-out infinite" }}><Icon name="Clock" size={64} color={C.primary} /></div>
         <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>En attente du démarrage</h2>
         <p style={{ color: C.textLight, fontWeight: 600 }}>Le professeur va lancer le quiz dans quelques instants...</p>
       </div>}
@@ -366,7 +380,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
       {(status === 'active' || status === 'paused') && question && <>
         {/* Progression */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? '⏸ Pause' : '🔴 En direct'}</Chip>
+          <Chip color={status === 'paused' ? C.warning : C.secondary}>{status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span>}</Chip>
           <span style={{ fontWeight: 700, color: C.textLight, fontSize: 13 }}>Question {currentQ + 1} / {totalQuestions}</span>
         </div>
         <ProgressBar value={currentQ + 1} max={totalQuestions} color={C.primary} height={6} style={{ marginBottom: 20 }} />
@@ -403,7 +417,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         {status === 'paused' && selectedAnswer !== null && (() => {
           const correct = selectedAnswer === question.answer;
           return <div style={{ animation: correct ? "correctPop 0.5s ease" : "wrongShake 0.45s ease", borderRadius: 18, padding: "20px 16px", textAlign: "center", background: correct ? "linear-gradient(135deg,#00B894,#00cec9)" : "linear-gradient(135deg,#D63031,#e17055)", color: "#fff", marginBottom: 4, boxShadow: correct ? "0 6px 24px rgba(0,184,148,0.45)" : "0 6px 24px rgba(214,48,49,0.4)" }}>
-            <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 8 }}>{correct ? "🎉" : "😬"}</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>{correct ? <Icon name="CheckCircle2" size={52} color="#fff" /> : <Icon name="XCircle" size={52} color="#fff" />}</div>
             <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{correct ? "Bonne réponse !" : "Mauvaise réponse"}</div>
             {!correct && question.answer !== undefined && <div style={{ fontSize: 13, opacity: 0.9 }}>La bonne réponse était : <strong>{["A","B","C","D"][question.answer]}</strong></div>}
           </div>;
@@ -411,29 +425,29 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
 
         {/* Correction (pause) */}
         {status === 'paused' && question.explanation && <Card style={{ padding: 16, background: `${C.warning}15`, border: `1px solid ${C.warning}40` }}>
-          <p style={{ fontWeight: 700, color: "#856404", margin: "0 0 4px 0" }}>💡 Explication</p>
+          <p style={{ fontWeight: 700, color: "#856404", margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color="#856404" /> Explication</p>
           <p style={{ margin: 0, lineHeight: 1.5 }}>{question.explanation}</p>
         </Card>}
       </>}
 
       {status === 'finished' && (() => {
         const lb = leaderboard || [];
-        const medals = ["🥇","🥈","🥉"];
+        const medalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
         const top3 = lb.slice(0, 3);
         const myRank = lb.findIndex(l => l.studentId === student.id);
         const myEntry = lb[myRank];
         return <div style={{ textAlign: "center", paddingTop: 20 }}>
-          <div style={{ fontSize: 56, marginBottom: 12, animation: "correctPop 0.5s ease" }}>🏆</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, animation: "correctPop 0.5s ease" }}><Icon name="Trophy" size={56} color={C.warning} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 4 }}>Quiz terminé !</h2>
           <p style={{ color: C.textLight, fontWeight: 600, marginBottom: 24 }}>Ton score : <strong style={{ color: C.primary }}>{myScore} / {totalQuestions}</strong> bonnes réponses</p>
           <Card style={{ padding: 20, marginBottom: 16 }}>
-            <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>🏆 Podium</h3>
+            <h3 style={{ fontWeight: 800, fontSize: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Podium</h3>
             {top3.map((l, i) => {
               const isMe = l.studentId === student.id;
               return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: isMe ? `${C.primary}15` : i % 2 === 0 ? "#F8F9FD" : "transparent", marginBottom: 4 }}>
-                <span style={{ width: 28, textAlign: "center", fontSize: 20, fontWeight: 800 }}>{medals[i]}</span>
+                <div style={{ width: 28, display: "flex", justifyContent: "center" }}><Icon name="Medal" size={20} color={medalColors[i]} /></div>
                 <span style={{ flex: 1, fontWeight: isMe ? 800 : 600 }}>{l.firstName} {l.lastName}{isMe ? " (moi)" : ""}</span>
-                <span style={{ fontWeight: 800, color: C.primary }}>{l.score} ✓</span>
+                <span style={{ fontWeight: 800, color: C.primary, display: "flex", alignItems: "center", gap: 4 }}>{l.score} <Icon name="Check" size={14} color={C.primary} /></span>
               </div>;
             })}
             {myRank >= 3 && myEntry && <>
@@ -480,7 +494,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   };
 
   if (!liveData) return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-    <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, animation: "float 1s ease-in-out infinite" }}>🎮</div><p style={{ fontWeight: 700, color: C.textLight }}>Initialisation du Live Quiz...</p></div>
+    <div style={{ textAlign: "center" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "float 1s ease-in-out infinite" }}><Icon name="Radio" size={48} color={C.primary} /></div><p style={{ fontWeight: 700, color: C.textLight }}>Initialisation du Live Quiz...</p></div>
   </div>;
 
   const { status, currentQ, totalQuestions, question, answeredCount, totalStudents, joinedStudents, joinedCount, distribution, leaderboard } = liveData;
@@ -491,12 +505,12 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     {/* Header */}
     <div style={{ background: "rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 24 }}>🎮</span>
+        <Icon name="Radio" size={24} color="#fff" />
         <div><div style={{ fontWeight: 900, fontSize: 16 }}>{activityTitle}</div><div style={{ fontSize: 12, opacity: 0.7 }}>Live Quiz — Panel Professeur</div></div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
-          {status === 'active' ? '🔴 En direct' : status === 'paused' ? '⏸ Pause' : status === 'waiting' ? '⏳ En attente' : '✅ Terminé'}
+          {status === 'active' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Radio" size={12} /> En direct</span> : status === 'paused' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="PauseCircle" size={12} /> Pause</span> : status === 'waiting' ? <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="Clock" size={12} /> En attente</span> : <span style={{display:"flex",alignItems:"center",gap:4}}><Icon name="CheckCircle2" size={12} /> Terminé</span>}
         </div>
         <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕ Fermer</button>
       </div>
@@ -509,7 +523,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
       {/* Colonne gauche */}
       <div>
         {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <div style={{ fontSize: 56, marginBottom: 12 }}>⏳</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Icon name="Clock" size={56} color={C.primaryLight} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>Quiz prêt à démarrer</h2>
           <p style={{ opacity: 0.7, marginBottom: 20 }}>{joinedCount} / {totalStudents} élève(s) dans le salon</p>
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px auto", textAlign: "left" }}>
@@ -529,7 +543,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           {/* Progression */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span style={{ fontWeight: 700, opacity: 0.8, fontSize: 14 }}>Question {currentQ + 1} / {totalQuestions}</span>
-            <span style={{ fontWeight: 700, color: allAnswered ? "#00B894" : C.warning }}>👥 {answeredCount} / {joinedCount} ont répondu</span>
+            <span style={{ fontWeight: 700, color: allAnswered ? "#00B894" : C.warning, display: "flex", alignItems: "center", gap: 4 }}><Icon name="Users" size={14} color={allAnswered ? "#00B894" : C.warning} /> {answeredCount} / {joinedCount} ont répondu</span>
           </div>
           <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 10, height: 8, marginBottom: 20, overflow: "hidden" }}>
             <div style={{ width: `${((currentQ + 1) / totalQuestions) * 100}%`, height: "100%", background: C.primary, borderRadius: 10, transition: "width 0.4s" }} />
@@ -545,7 +559,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
 
           {/* Explication si pause */}
           {status === 'paused' && question.explanation && <div style={{ background: "rgba(253,203,110,0.15)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 12, padding: 14, marginTop: 16 }}>
-            <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0" }}>💡 Explication</p>
+            <p style={{ fontWeight: 700, color: C.warning, margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color={C.warning} /> Explication</p>
             <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.5, fontSize: 14 }}>{question.explanation}</p>
           </div>}
 
@@ -556,17 +570,17 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
               style={{ background: allAnswered ? "#00B894" : undefined, transition: "background 0.3s" }}
               disabled={loading || !allAnswered}
             >
-              {allAnswered ? "👁 Montrer la réponse" : `👁 Montrer la réponse (${answeredCount}/${joinedCount})`}
+              {allAnswered ? <span style={{display:"flex",alignItems:"center",gap:6}}><Icon name="Eye" size={14} /> Montrer la réponse</span> : <span style={{display:"flex",alignItems:"center",gap:6}}><Icon name="Eye" size={14} /> Montrer la réponse ({answeredCount}/{joinedCount})</span>}
             </Btn>}
             {status === 'paused' && (!isLast
               ? <Btn onClick={() => action('next')} disabled={loading}>Question suivante →</Btn>
-              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}>🏁 Terminer le quiz</Btn>
+              : <Btn onClick={() => action('finish')} style={{ background: "#D63031" }} disabled={loading}><Icon name="FlagTriangleRight" size={14} /> Terminer le quiz</Btn>
             )}
           </div>
         </div>}
 
         {status === 'finished' && <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🏁</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Trophy" size={64} color={C.warning} /></div>
           <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 8 }}>Quiz terminé !</h2>
           <p style={{ opacity: 0.7, marginBottom: 24 }}>Résultats ci-contre</p>
           <Btn onClick={onClose}>Fermer le panneau</Btn>
@@ -576,14 +590,14 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
       {/* Colonne droite — Classement */}
       <div>
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, position: "sticky", top: 0 }}>
-          <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, margin: "0 0 12px 0" }}>🏆 Classement en direct</h3>
+          <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 12, margin: "0 0 12px 0", display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color={C.warning} /> Classement en direct</h3>
           {(!leaderboard || leaderboard.length === 0) && <p style={{ opacity: 0.5, fontSize: 13 }}>En attente des premières réponses...</p>}
           {(leaderboard || []).map((l, i) => {
-            const medals = ["🥇","🥈","🥉"];
+            const lbMedalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
             return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: i === 0 ? "rgba(253,203,110,0.15)" : "transparent", marginBottom: 4 }}>
-              <span style={{ width: 26, textAlign: "center", fontSize: i < 3 ? 16 : 12, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</span>
+              <span style={{ width: 26, display: "flex", justifyContent: "center" }}>{i < 3 ? <Icon name="Medal" size={18} color={lbMedalColors[i]} /> : <span style={{ fontSize: 12, fontWeight: 800 }}>{i + 1}</span>}</span>
               <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{l.firstName} {l.lastName}</span>
-              <span style={{ fontWeight: 800, color: C.primaryLight, fontSize: 14 }}>{l.score} ✓</span>
+              <span style={{ fontWeight: 800, color: C.primaryLight, fontSize: 14, display: "flex", alignItems: "center", gap: 3 }}>{l.score} <Icon name="Check" size={12} color={C.primaryLight} /></span>
             </div>;
           })}
         </div>
@@ -600,7 +614,7 @@ function Chip({ children, color = C.primary, style }) {
 function Confirm({ message, onYes, onNo }) {
   return React.createElement('div', { style: { position: "fixed", inset: 0, zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" } },
     React.createElement(Card, { style: { maxWidth: 400, textAlign: "center", padding: 32 } },
-      React.createElement('div', { style: { fontSize: 40, marginBottom: 12 } }, "⚠️"),
+      React.createElement('div', { style: { display: "flex", justifyContent: "center", marginBottom: 12 } }, React.createElement(Icon, { name: "AlertTriangle", size: 40, color: "#E67E22" })),
       React.createElement('p', { style: { fontSize: 15, fontWeight: 600, marginBottom: 20, lineHeight: 1.5 } }, message),
       React.createElement('div', { style: { display: "flex", gap: 12 } },
         React.createElement(Btn, { onClick: onNo, variant: "ghost", fullWidth: true }, "Annuler"),
@@ -614,7 +628,7 @@ function BadgeUnlock({ badge, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
   return <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
     <div style={{ background: C.card, borderRadius: 28, padding: "36px 48px", textAlign: "center", boxShadow: "0 25px 60px rgba(108,92,231,0.45)", animation: "fadeIn 0.5s", border: `3px solid ${C.warning}60` }}>
-      <div style={{ fontSize: 64, marginBottom: 8, animation: "float 1s ease-in-out infinite" }}>{badge.icon}</div>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, animation: "float 1s ease-in-out infinite" }}><Icon name={badge.icon} size={64} color={badge.color || "#FDCB6E"} /></div>
       <div style={{ fontSize: 12, fontWeight: 800, color: C.warning, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Badge débloqué !</div>
       <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>{badge.name}</div>
       <div style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{badge.desc}</div>
@@ -651,11 +665,11 @@ function QCMActivity({ activity, onComplete }) {
   if (finished) {
     const pct = Math.round(score / questions.length * 100);
     return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>
-      <div style={{ fontSize: 72, marginBottom: 16 }}>{pct >= 80 ? "🏆" : pct >= 50 ? "👍" : "💪"}</div>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Trophy" size={72} color="#FDCB6E" /> : pct >= 50 ? <Icon name="ThumbsUp" size={72} color={C.secondary} /> : <Icon name="Dumbbell" size={72} color={C.accent} />}</div>
       <h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Excellent !" : pct >= 50 ? "Bien joué !" : "Continue !"}</h2>
       <div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>
       <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length} bonnes réponses</p>
-      <div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{activity.xpReward || activity.xp_reward} XP ⚡</div><br />
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{activity.xpReward || activity.xp_reward} XP <Icon name="Zap" size={14} color={C.accent} /></div><br />
       <Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn>
     </div>;
   }
@@ -664,7 +678,7 @@ function QCMActivity({ activity, onComplete }) {
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
       <span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span>
       <ProgressBar value={current + 1} max={questions.length} style={{ flex: 1 }} />
-      <div style={{ background: timeLeft <= 10 ? "#FFE0E0" : "#F0F0F8", padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 15, color: timeLeft <= 10 ? C.danger : C.text, minWidth: 50, textAlign: "center" }}>⏱ {timeLeft}s</div>
+      <div style={{ background: timeLeft <= 10 ? "#FFE0E0" : "#F0F0F8", padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 15, color: timeLeft <= 10 ? C.danger : C.text, minWidth: 50, textAlign: "center", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Timer" size={14} color={timeLeft <= 10 ? C.danger : C.text} /> {timeLeft}s</div>
     </div>
     <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, lineHeight: 1.4 }}>{q.q}</h3>
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -676,7 +690,7 @@ function QCMActivity({ activity, onComplete }) {
         </button>;
       })}
     </div>
-    {showResult && <div style={{ marginTop: 16, padding: 16, borderRadius: 16, background: "#F8F9FD", borderLeft: `4px solid ${selected === q.answer ? C.secondary : C.accent}`, animation: "fadeIn 0.3s" }}><div style={{ fontWeight: 700, marginBottom: 4 }}>{selected === q.answer ? "✅ Correct !" : "❌ Pas cette fois"}</div><div style={{ fontSize: 14, color: C.textLight }}>{q.explanation}</div></div>}
+    {showResult && <div style={{ marginTop: 16, padding: 16, borderRadius: 16, background: "#F8F9FD", borderLeft: `4px solid ${selected === q.answer ? C.secondary : C.accent}`, animation: "fadeIn 0.3s" }}><div style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{selected === q.answer ? <><Icon name="CheckCircle2" size={16} color={C.secondary} /> Correct !</> : <><Icon name="XCircle" size={16} color={C.accent} /> Pas cette fois</>}</div><div style={{ fontSize: 14, color: C.textLight }}>{q.explanation}</div></div>}
     {showResult && <div style={{ marginTop: 16, textAlign: "right" }}><Btn onClick={next}>{current + 1 >= questions.length ? "Résultats" : "Suivant →"}</Btn></div>}
   </div>;
 }
@@ -686,15 +700,15 @@ function FlashcardsActivity({ activity, onComplete }) {
   const cards = activity.data.cards; const card = cards[current];
   const xp = activity.xpReward || activity.xp_reward;
   const handleKnow = (d) => { if (d) setKnown(k => [...k, current]); if (current + 1 >= cards.length) setFinished(true); else { setCurrent(c => c + 1); setFlipped(false); } };
-  if (finished) { const pct = Math.round(known.length / cards.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ fontSize: 72, marginBottom: 16 }}>{pct >= 80 ? "🌟" : "📝"}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>Révision terminée !</h2><p style={{ fontSize: 18, color: C.textLight, marginBottom: 8 }}>Tu connaissais <strong style={{ color: C.secondary }}>{known.length}</strong> cartes sur {cards.length}</p><div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(known.length / cards.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Star" size={72} color="#FDCB6E" /> : <Icon name="BookOpen" size={72} color={C.primary} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>Révision terminée !</h2><p style={{ fontSize: 18, color: C.textLight, marginBottom: 8 }}>Tu connaissais <strong style={{ color: C.secondary }}>{known.length}</strong> cartes sur {cards.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{cards.length}</span><ProgressBar value={current + 1} max={cards.length} style={{ flex: 1 }} /></div>
     <div onClick={() => setFlipped(!flipped)} style={{ background: flipped ? C.g2 : C.g1, borderRadius: 24, padding: 40, minHeight: 220, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", textAlign: "center", transition: "all 0.4s", boxShadow: "0 12px 40px rgba(108,92,231,0.3)" }}>
       <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7, marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>{flipped ? "Définition" : "Concept"}</div>
       <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.4 }}>{flipped ? card.back : card.front}</div>
-      {!flipped && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 16 }}>👆 Clique pour retourner</div>}
+      {!flipped && <div style={{ fontSize: 12, opacity: 0.6, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Icon name="MousePointerClick" size={12} color="#fff" /> Clique pour retourner</div>}
     </div>
-    {flipped && <div style={{ display: "flex", gap: 12, marginTop: 20, animation: "fadeIn 0.3s" }}><Btn onClick={() => handleKnow(false)} variant="accent" fullWidth size="lg">🤔 À revoir</Btn><Btn onClick={() => handleKnow(true)} variant="secondary" fullWidth size="lg">✅ Je sais !</Btn></div>}
+    {flipped && <div style={{ display: "flex", gap: 12, marginTop: 20, animation: "fadeIn 0.3s" }}><Btn onClick={() => handleKnow(false)} variant="accent" fullWidth size="lg"><Icon name="RotateCcw" size={16} /> À revoir</Btn><Btn onClick={() => handleKnow(true)} variant="secondary" fullWidth size="lg"><Icon name="CheckCircle2" size={16} /> Je sais !</Btn></div>}
   </div>;
 }
 
@@ -704,12 +718,12 @@ function TrueFalseActivity({ activity, onComplete }) {
   const xp = activity.xpReward || activity.xp_reward;
   const handleAnswer = (a) => { setSelected(a); setShowResult(true); if (a === q.answer) setScore(s => s + 1); };
   const next = () => { if (current + 1 >= questions.length) setFinished(true); else { setCurrent(c => c + 1); setSelected(null); setShowResult(false); } };
-  if (finished) { const pct = Math.round(score / questions.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ fontSize: 72, marginBottom: 16 }}>{pct >= 80 ? "🎉" : "💪"}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length}</p><div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(score / questions.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="PartyPopper" size={72} color="#FDCB6E" /> : <Icon name="Dumbbell" size={72} color={C.accent} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span><ProgressBar value={current + 1} max={questions.length} style={{ flex: 1 }} /></div>
     <Card style={{ textAlign: "center", padding: 32, marginBottom: 20 }}><h3 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.5 }}>{q.q}</h3></Card>
-    {!showResult && <div style={{ display: "flex", gap: 12 }}><Btn onClick={() => handleAnswer(true)} variant="secondary" fullWidth size="lg">✅ VRAI</Btn><Btn onClick={() => handleAnswer(false)} variant="accent" fullWidth size="lg">❌ FAUX</Btn></div>}
-    {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: selected === q.answer ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${selected === q.answer ? C.secondary : C.danger}`, animation: "fadeIn 0.3s" }}><div style={{ fontWeight: 700, marginBottom: 4 }}>{selected === q.answer ? "✅ Bonne réponse !" : `❌ Réponse : ${q.answer ? "VRAI" : "FAUX"}`}</div><div style={{ fontSize: 14, color: C.textLight }}>{q.explanation}</div></div><Btn onClick={next} fullWidth>{current + 1 >= questions.length ? "Résultats" : "Suivant →"}</Btn></>}
+    {!showResult && <div style={{ display: "flex", gap: 12 }}><Btn onClick={() => handleAnswer(true)} variant="secondary" fullWidth size="lg"><Icon name="CheckCircle2" size={18} /> VRAI</Btn><Btn onClick={() => handleAnswer(false)} variant="accent" fullWidth size="lg"><Icon name="XCircle" size={18} /> FAUX</Btn></div>}
+    {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: selected === q.answer ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${selected === q.answer ? C.secondary : C.danger}`, animation: "fadeIn 0.3s" }}><div style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{selected === q.answer ? <><Icon name="CheckCircle2" size={16} color={C.secondary} /> Bonne réponse !</> : <><Icon name="XCircle" size={16} color={C.danger} /> Réponse : {q.answer ? "VRAI" : "FAUX"}</>}</div><div style={{ fontSize: 14, color: C.textLight }}>{q.explanation}</div></div><Btn onClick={next} fullWidth>{current + 1 >= questions.length ? "Résultats" : "Suivant →"}</Btn></>}
   </div>;
 }
 
@@ -719,13 +733,13 @@ function FillBlankActivity({ activity, onComplete }) {
   const xp = activity.xpReward || activity.xp_reward;
   const handleCheck = () => { const c = input.trim().toLowerCase() === s.answer.toLowerCase(); setIsCorrect(c); if (c) setScore(sc => sc + 1); setShowResult(true); };
   const next = () => { if (current + 1 >= sentences.length) setFinished(true); else { setCurrent(c => c + 1); setInput(""); setShowResult(false); setShowHint(false); } };
-  if (finished) { const pct = Math.round(score / sentences.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ fontSize: 72, marginBottom: 16 }}>{pct >= 80 ? "✨" : "📖"}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{sentences.length}</p><div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(score / sentences.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Sparkles" size={72} color="#FDCB6E" /> : <Icon name="BookOpen" size={72} color={C.primary} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{sentences.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   const parts = s.text.split("___");
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{sentences.length}</span><ProgressBar value={current + 1} max={sentences.length} style={{ flex: 1 }} /></div>
     <Card style={{ padding: 28, marginBottom: 20, fontSize: 18, lineHeight: 2 }}>{parts[0]}<span style={{ display: "inline-block", borderBottom: `3px solid ${C.primary}`, minWidth: 120, padding: "2px 8px", fontWeight: 800, color: showResult ? (isCorrect ? C.secondary : C.danger) : C.primary }}>{showResult ? s.answer : input || "..."}</span>{parts[1]}</Card>
-    {!showResult && <><Input value={input} onChange={setInput} placeholder="Ta réponse..." icon="✏️" />{showHint && <div style={{ padding: "10px 16px", borderRadius: 12, background: `${C.warning}30`, color: "#856404", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>💡 {s.hint}</div>}<div style={{ display: "flex", gap: 12 }}>{!showHint && <Btn onClick={() => setShowHint(true)} variant="ghost">💡 Indice</Btn>}<Btn onClick={handleCheck} disabled={!input.trim()} style={{ flex: 1 }}>Vérifier</Btn></div></>}
-    {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: isCorrect ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${isCorrect ? C.secondary : C.danger}` }}>{isCorrect ? "✅ Parfait !" : `❌ Réponse : "${s.answer}"`}</div><Btn onClick={next} fullWidth>{current + 1 >= sentences.length ? "Résultats" : "Suivant →"}</Btn></>}
+    {!showResult && <><Input value={input} onChange={setInput} placeholder="Ta réponse..." icon={<Icon name="PenLine" size={16} color={C.textMuted} />} />{showHint && <div style={{ padding: "10px 16px", borderRadius: 12, background: `${C.warning}30`, color: "#856404", fontSize: 13, fontWeight: 600, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color="#856404" /> {s.hint}</div>}<div style={{ display: "flex", gap: 12 }}>{!showHint && <Btn onClick={() => setShowHint(true)} variant="ghost"><Icon name="Lightbulb" size={14} /> Indice</Btn>}<Btn onClick={handleCheck} disabled={!input.trim()} style={{ flex: 1 }}>Vérifier</Btn></div></>}
+    {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: isCorrect ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${isCorrect ? C.secondary : C.danger}`, display: "flex", alignItems: "center", gap: 8 }}>{isCorrect ? <><Icon name="CheckCircle2" size={18} color={C.secondary} /> Parfait !</> : <><Icon name="XCircle" size={18} color={C.danger} /> Réponse : "{s.answer}"</>}</div><Btn onClick={next} fullWidth>{current + 1 >= sentences.length ? "Résultats" : "Suivant →"}</Btn></>}
   </div>;
 }
 
@@ -753,9 +767,9 @@ function MatchingActivity({ activity, onComplete }) {
   const isRM = (t) => matched.some(m => m.right === t);
 
   if (finished) return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>
-    <div style={{ fontSize: 72, marginBottom: 16 }}>🎯</div>
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Target" size={72} color={C.secondary} /></div>
     <h2 style={{ fontSize: 28, fontWeight: 900 }}>Toutes les paires trouvées !</h2>
-    <div style={{ display: "inline-block", background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP ⚡</div>
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div>
     <br /><Btn onClick={() => onComplete(100)} size="lg">Terminer</Btn>
   </div>;
 
@@ -772,7 +786,7 @@ function MatchingActivity({ activity, onComplete }) {
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {/* Colonne gauche — Concepts */}
       <div>
-        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.primary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.primary}12`, borderRadius: 8 }}>📌 Concepts</div>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.primary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.primary}12`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}><Icon name="List" size={11} color={C.primary} /> Concepts</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {pairs.map((p, i) => <button key={i} onClick={() => !isLM(i) && setLeftSelected(i === leftSelected ? null : i)} disabled={isLM(i)} style={{
             padding: "11px 12px", borderRadius: 12, border: "none",
@@ -782,13 +796,13 @@ function MatchingActivity({ activity, onComplete }) {
             cursor: isLM(i) ? "default" : "pointer", textAlign: "left",
             transition: "all 0.18s", transform: leftSelected === i ? "scale(1.03)" : "scale(1)",
             boxShadow: leftSelected === i ? `0 4px 14px ${C.primary}40` : "none",
-            lineHeight: 1.3
-          }}>{isLM(i) ? "✅ " : leftSelected === i ? "▶ " : ""}{p.left}</button>)}
+            lineHeight: 1.3, display: "flex", alignItems: "center", gap: 6
+          }}>{isLM(i) ? <Icon name="CheckCircle2" size={14} color={C.secondary} /> : leftSelected === i ? <Icon name="ChevronRight" size={14} color="#fff" /> : null}{p.left}</button>)}
         </div>
       </div>
       {/* Colonne droite — Définitions */}
       <div>
-        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.accent, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.accent}12`, borderRadius: 8 }}>💡 Définitions</div>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 11, color: C.accent, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 7, padding: "5px 8px", background: `${C.accent}12`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}><Icon name="Lightbulb" size={11} color={C.accent} /> Définitions</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {shuffledRight.map((t, i) => <button key={i} onClick={() => handleRight(t)} disabled={isRM(t) || leftSelected === null} style={{
             padding: "11px 12px", borderRadius: 12,
@@ -798,8 +812,8 @@ function MatchingActivity({ activity, onComplete }) {
             fontSize: 12, fontWeight: 600, fontFamily: "'Nunito',sans-serif",
             cursor: isRM(t) || leftSelected === null ? "default" : "pointer", textAlign: "left",
             opacity: isRM(t) ? 0.7 : leftSelected === null ? 0.5 : 1,
-            transition: "all 0.18s", lineHeight: 1.3
-          }}>{isRM(t) ? "✅ " : ""}{t}</button>)}
+            transition: "all 0.18s", lineHeight: 1.3, display: "flex", alignItems: "center", gap: 6
+          }}>{isRM(t) ? <Icon name="CheckCircle2" size={13} color={C.secondary} /> : null}{t}</button>)}
         </div>
       </div>
     </div>
@@ -808,14 +822,14 @@ function MatchingActivity({ activity, onComplete }) {
 
 function ActivityPlayer({ activity, onComplete, onBack }) {
   const typeLabels = { qcm: "QCM", flashcards: "Flashcards", truefalse: "Vrai / Faux", fillblank: "Texte à trous", matching: "Associations" };
-  const typeIcons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+  const typeIcons = { qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" };
   const diffLabels = ["", "Facile", "Moyen", "Difficile"];
   const xp = activity.xpReward || activity.xp_reward;
   return <div style={{ maxWidth: 650, margin: "0 auto", padding: 20 }}>
-    <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, color: C.textLight, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>← Retour</button>
+    <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, color: C.textLight, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><Icon name="ArrowLeft" size={16} /> Retour</button>
     <Card style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 28 }}>{typeIcons[activity.type]}</span>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: `${C.primary}15`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={typeIcons[activity.type]} size={26} color={C.primary} /></div>
         <div><h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{activity.title}</h2><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.primary}>{typeLabels[activity.type]}</Chip><Chip color={activity.difficulty >= 3 ? C.danger : activity.difficulty >= 2 ? C.accent : C.secondary}>{diffLabels[activity.difficulty]}</Chip><Chip color={C.warning}>+{xp} XP</Chip></div></div>
       </div>
     </Card>
@@ -918,13 +932,13 @@ function LoginScreen({ onLogin, data }) {
     return <AnimatedBg>
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
-          <div style={{ fontSize: 56, marginBottom: 8 }}>🎉</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Icon name="PartyPopper" size={56} color={C.primary} /></div>
           <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Bienvenue {firstLoginStudent.firstName} !</h1>
           <p style={{ color: C.textLight, fontSize: 15, margin: "0 0 24px 0", fontWeight: 600 }}>C'est ta première connexion. Choisis un mot de passe pour sécuriser ton compte.</p>
           <Card style={{ padding: 32, textAlign: "left" }}>
             <form onSubmit={e => { e.preventDefault(); handleSetPassword(); }} autoComplete="on">
-              <Input icon="🔒" label="Choisis un mot de passe" value={newPwd} name="new-password" autoComplete="new-password" onChange={setNewPwd} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Minimum 4 caractères" />
-              <Input icon="🔒" label="Confirme le mot de passe" value={newPwdConfirm} name="new-password-confirm" autoComplete="new-password" onChange={setNewPwdConfirm} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Retape le même mot de passe" />
+              <Input icon={<Icon name="Lock" size={16} />} label="Choisis un mot de passe" value={newPwd} name="new-password" autoComplete="new-password" onChange={setNewPwd} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Minimum 4 caractères" />
+              <Input icon={<Icon name="Lock" size={16} />} label="Confirme le mot de passe" value={newPwdConfirm} name="new-password-confirm" autoComplete="new-password" onChange={setNewPwdConfirm} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Retape le même mot de passe" />
               {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
               <Btn onClick={handleSetPassword} fullWidth size="lg" disabled={loading}>{loading ? "..." : "Valider et entrer →"}</Btn>
             </form>
@@ -938,16 +952,16 @@ function LoginScreen({ onLogin, data }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
         <img src="/logo.png" alt="SmartKlass" style={{ width: 360, marginBottom: installPrompt ? 16 : 32, animation: "float 3s ease-in-out infinite" }} />
-        {installPrompt && !installed && <button onClick={handleInstall} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 auto 24px auto", padding: "10px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontFamily: "'Nunito',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.35)" }}>📲 Installer l'application</button>}
+        {installPrompt && !installed && <button onClick={handleInstall} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 auto 24px auto", padding: "10px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontFamily: "'Nunito',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.35)" }}><Icon name="Download" size={16} color="#fff" /> Installer l'application</button>}
         {installed && <p style={{ fontSize: 13, color: C.secondary, fontWeight: 700, marginBottom: 20 }}>Application installée !</p>}
 
         {mode === "teacher" ? (
           <Card style={{ padding: 32 }}>
             <button onClick={() => { setMode("student"); setError(""); setTeacherPwd(""); }} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 20, padding: 0 }}>← Retour</button>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 20px 0", color: C.text }}>👩‍🏫 Espace Professeur</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 20px 0", color: C.text, display: "flex", alignItems: "center", gap: 8 }}><Icon name="GraduationCap" size={20} color={C.primary} /> Espace Professeur</h2>
             <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
               <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
-                <Input icon="🔒" label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />
+                <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />
               </div>
               {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
               <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : "Se connecter →"}</Btn>
@@ -957,8 +971,8 @@ function LoginScreen({ onLogin, data }) {
           <Card style={{ padding: 32 }}>
             <form onSubmit={e => { e.preventDefault(); handleLogin(); }} autoComplete="on">
               <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
-                <Input icon="🔑" label="Ton identifiant" value={studentId} name="username" autoComplete="username" onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Ex: STMG-1ÈRE-MART1" />
-                {needPwd && <Input icon="🔒" label="Ton mot de passe" value={studentPwd} name="password" autoComplete="current-password" onChange={setStudentPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe" />}
+                <Input icon={<Icon name="Hash" size={16} />} label="Ton identifiant" value={studentId} name="username" autoComplete="username" onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Ex: STMG-1ÈRE-MART1" />
+                {needPwd && <Input icon={<Icon name="Lock" size={16} />} label="Ton mot de passe" value={studentPwd} name="password" autoComplete="current-password" onChange={setStudentPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe" />}
               </div>
               {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
               <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : "Suivant →"}</Btn>
@@ -980,30 +994,30 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
   const [showVideo, setShowVideo] = useState(false);
   const sub = data.subjects.find(s => s.id === course.subjectId);
   const linkedActivities = data.activities.filter(a => a.courseId === course.id);
-  const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+  const icons = { qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" };
   const embedUrl = getYoutubeEmbedUrl(course.youtubeUrl);
   return <div style={{ animation: "fadeIn 0.4s" }}>
-    <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Retour aux cours</button>
+    <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}><Icon name="ArrowLeft" size={14} /> Retour aux cours</button>
     <Card style={{ marginBottom: 14, padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: course.description || embedUrl ? 10 : 0 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{sub?.icon || "📖"}</div>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><SubjectIcon icon={sub?.icon} size={26} color={sub?.color || C.primary} /></div>
         <div><Chip color={sub?.color}>{sub?.name}</Chip><h2 style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0 0" }}>{course.title}</h2></div>
       </div>
       {course.description && <p style={{ fontSize: 14, color: C.textLight, margin: "0 0 10px 0", lineHeight: 1.6 }}>{course.description}</p>}
-      {embedUrl && <button onClick={() => setShowVideo(true)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF0000 0%, #CC0000 100%)", border: "none", borderRadius: 14, padding: "12px 20px", cursor: "pointer", color: "#fff", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 14, boxShadow: "0 4px 15px rgba(255,0,0,0.3)", transition: "all 0.2s" }}>🎬 Résumé vidéo du cours</button>}
+      {embedUrl && <button onClick={() => setShowVideo(true)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF0000 0%, #CC0000 100%)", border: "none", borderRadius: 14, padding: "12px 20px", cursor: "pointer", color: "#fff", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 14, boxShadow: "0 4px 15px rgba(255,0,0,0.3)", transition: "all 0.2s" }}><Icon name="Youtube" size={18} color="#fff" /> Résumé vidéo du cours</button>}
     </Card>
     {course.chapters?.map((ch, i) => <Card key={i} style={{ marginBottom: 10, padding: 20 }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, color: C.text }}>{ch.title}</h3>
       <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
     </Card>)}
     {linkedActivities.length > 0 && <div style={{ marginTop: 20 }}>
-      <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10 }}>🎮 Activités liées à ce cours</h3>
-      {linkedActivities.map(a => { const done = completedIds.includes(a.id); const res = myResults.find(r => r.activityId === a.id); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => onLaunchActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer", marginBottom: 8, border: done ? `2px solid ${C.secondary}40` : "2px solid transparent" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: done ? `${C.secondary}20` : `${sub?.color || C.primary}20`, fontSize: 22 }}>{done ? "✅" : icons[a.type]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.warning}>+{xp} XP</Chip>{done && res && <Chip color={C.secondary}>{res.score}%</Chip>}</div></div><span style={{ fontSize: 22, color: done ? C.secondary : C.primary }}>→</span></Card>; })}
+      <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Layers" size={18} color={C.primary} /> Activités liées à ce cours</h3>
+      {linkedActivities.map(a => { const done = completedIds.includes(a.id); const res = myResults.find(r => r.activityId === a.id); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => onLaunchActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer", marginBottom: 8, border: done ? `2px solid ${C.secondary}40` : "2px solid transparent" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: done ? `${C.secondary}20` : `${sub?.color || C.primary}20` }}>{done ? <Icon name="CheckCircle2" size={22} color={C.secondary} /> : <Icon name={icons[a.type]} size={22} color={sub?.color || C.primary} />}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={C.warning}>+{xp} XP</Chip>{done && res && <Chip color={C.secondary}>{res.score}%</Chip>}</div></div><Icon name="ChevronRight" size={20} color={done ? C.secondary : C.primary} /></Card>; })}
     </div>}
     {showVideo && embedUrl && <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)", padding: 20 }} onClick={() => setShowVideo(false)}>
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 800, background: "#000", borderRadius: 20, overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", background: "#111" }}>
-          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>🎬 Résumé vidéo du cours</span>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Youtube" size={16} color="#fff" /> Résumé vidéo du cours</span>
           <button onClick={() => setShowVideo(false)} style={{ border: "none", background: "rgba(255,255,255,0.15)", borderRadius: 10, width: 34, height: 34, fontSize: 18, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
@@ -1040,7 +1054,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const isNew = (dateStr) => dateStr && (Date.now() - new Date(dateStr).getTime()) < 7 * 24 * 60 * 60 * 1000;
 
   const isMobile = useIsMobile();
-  const studentTabs = [{ id: "home", icon: "🏠", label: "Accueil" }, { id: "courses", icon: "📚", label: "Matières" }, { id: "activities", icon: "🎮", label: "Activités" }, { id: "leaderboard", icon: "🏆", label: "Classement" }];
+  const studentTabs = [{ id: "home", icon: <Icon name="Home" size={20} />, label: "Accueil" }, { id: "courses", icon: <Icon name="BookOpen" size={20} />, label: "Matières" }, { id: "activities", icon: <Icon name="Layers" size={20} />, label: "Activités" }, { id: "leaderboard", icon: <Icon name="Trophy" size={20} />, label: "Classement" }];
   const handleTabChange = (tab) => { setView(tab); setActiveCourse(null); setActiveSubject(null); };
 
   // Live Quiz — détection et état
@@ -1090,18 +1104,18 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404" }}>🔥 {currentStudent.streak}j</div>
-          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>↩</button>
+          <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Flame" size={13} color="#E17055" /> {currentStudent.streak}j</div>
+          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
         </div>
       </div>
     </div>}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} ! 👋</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404" }}>🔥 {currentStudent.streak}j</div>
+          <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404", display: "flex", alignItems: "center", gap: 5 }}><Icon name="Flame" size={14} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>}
@@ -1109,25 +1123,25 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-          <StatCard icon="⚡" label="XP Total" value={currentStudent.xp} color={C.primary} />
-          <StatCard icon="🏅" label="Rang" value={`#${myRank}`} color={C.secondary} sub={`sur ${classStudents.length}`} />
-          <StatCard icon="✅" label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
-          <StatCard icon="🔥" label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
+          <StatCard icon={<Icon name="Zap" size={28} color={C.primary} />} label="XP Total" value={currentStudent.xp} color={C.primary} />
+          <StatCard icon={<Icon name="Medal" size={28} color={C.secondary} />} label="Rang" value={`#${myRank}`} color={C.secondary} sub={`sur ${classStudents.length}`} />
+          <StatCard icon={<Icon name="CheckCircle2" size={28} color={C.accent} />} label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
+          <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
         </div>
         <Card style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>🏆 Mes badges</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color="#FDCB6E" /> Mes badges</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
             {BADGES.map(b => { const earned = earnedBadges.includes(b); return <div key={b.id} title={b.desc} style={{ textAlign: "center", padding: "10px 14px", borderRadius: 14, background: earned ? `${C.warning}20` : "#F0F0F8", opacity: earned ? 1 : 0.4, cursor: "default", position: "relative", transition: "all 0.2s" }}>
-              <div style={{ fontSize: 28 }}>{b.icon}</div>
-              <div style={{ fontSize: 10, fontWeight: 800, marginTop: 4, color: earned ? C.text : C.textMuted }}>{b.name}</div>
-              <div style={{ fontSize: 9, color: earned ? C.secondary : C.textMuted, marginTop: 2, lineHeight: 1.3 }}>{earned ? "✅ Débloqué !" : b.desc}</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}><Icon name={b.icon} size={28} color={earned ? b.color : C.textMuted} /></div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: earned ? C.text : C.textMuted }}>{b.name}</div>
+              <div style={{ fontSize: 9, color: earned ? C.secondary : C.textMuted, marginTop: 2, lineHeight: 1.3 }}>{earned ? "Débloqué !" : b.desc}</div>
             </div>; })}
           </div>
         </Card>
-        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>🎯 À faire</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Target" size={16} color={C.accent} /> À faire</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {myActivities.filter(a => !completedIds.includes(a.id)).slice(0, 4).map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: `${sub?.color || C.primary}20`, fontSize: 22 }}>{sub?.icon || "📚"}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip></div></div><span style={{ fontSize: 22, color: C.primary }}>→</span></Card>; })}
-          {myActivities.filter(a => !completedIds.includes(a.id)).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div><p style={{ fontWeight: 700 }}>Tout est fait !</p></Card>}
+          {myActivities.filter(a => !completedIds.includes(a.id)).slice(0, 4).map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: `${sub?.color || C.primary}20` }}><SubjectIcon icon={sub?.icon} size={22} color={sub?.color || C.primary} /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip></div></div><Icon name="ChevronRight" size={22} color={C.primary} /></Card>; })}
+          {myActivities.filter(a => !completedIds.includes(a.id)).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="PartyPopper" size={44} color={C.secondary} /></div><p style={{ fontWeight: 700 }}>Tout est fait !</p></Card>}
         </div>
       </div>}
 
@@ -1138,9 +1152,9 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
             ? <>
                 {/* En-tête matière + retour */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-                  <button onClick={() => setActiveSubject(null)} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 14, color: C.text }}>← Retour</button>
+                  <button onClick={() => setActiveSubject(null)} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 14, color: C.text, display: "flex", alignItems: "center", gap: 6 }}><Icon name="ArrowLeft" size={14} /> Retour</button>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 24 }}>{activeSubject.icon}</span>
+                    <SubjectIcon icon={activeSubject.icon} size={24} color={activeSubject.color || C.primary} />
                     <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{activeSubject.name}</h2>
                   </div>
                 </div>
@@ -1159,19 +1173,19 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
                         <p style={{ fontSize: 13, color: C.textLight, margin: 0 }}>{c.description}</p>
                         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                           {c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chapitre{c.chapters.length > 1 ? "s" : ""}</Chip>}
-                          {nbActs > 0 && <Chip color={allDone ? C.secondary : C.accent}>{allDone ? "✅ " : ""}{doneActs}/{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}
+                          {nbActs > 0 && <Chip color={allDone ? C.secondary : C.accent}>{allDone ? <span style={{display:"flex",alignItems:"center",gap:3}}><Icon name="CheckCircle2" size={11} />{doneActs}/{nbActs} activité{nbActs > 1 ? "s" : ""}</span> : `${doneActs}/${nbActs} activité${nbActs > 1 ? "s" : ""}`}</Chip>}
                         </div>
                         {nbActs > 0 && <ProgressBar value={doneActs} max={nbActs} color={allDone ? C.secondary : C.accent} height={4} style={{ marginTop: 8 }} />}
                       </div>
-                      <span style={{ fontSize: 22, color: allDone ? C.secondary : C.primary, flexShrink: 0 }}>→</span>
+                      <Icon name="ChevronRight" size={22} color={allDone ? C.secondary : C.primary} style={{ flexShrink: 0 }} />
                     </div>
                   </Card>;
                 })}
-                {myCourses.filter(c => c.subjectId === activeSubject.id).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
+                {myCourses.filter(c => c.subjectId === activeSubject.id).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="Inbox" size={44} color={C.textMuted} /></div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
               </>
             : <>
                 {/* Grille des matières */}
-                <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 14 }}>📚 Mes matières</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><Icon name="BookOpen" size={20} color={C.primary} /> Mes matières</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).map(s => {
                     const count = myCourses.filter(c => c.subjectId === s.id).length;
@@ -1180,31 +1194,31 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
                     const subDone = subActs.filter(a => completedIds.includes(a.id)).length;
                     return <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", padding: "22px 16px", textAlign: "center", position: "relative" }}>
                       {hasNew && <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>NOUVEAU</div>}
-                      <div style={{ fontSize: 42, marginBottom: 10 }}>{s.icon}</div>
+                      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><SubjectIcon icon={s.icon} size={42} color={s.color || C.primary} /></div>
                       <div style={{ fontWeight: 900, fontSize: 15, color: C.text, marginBottom: 4 }}>{s.name}</div>
                       <div style={{ fontSize: 12, color: C.textLight, fontWeight: 600, marginBottom: subActs.length > 0 ? 6 : 0 }}>{count} cours</div>
                       {subActs.length > 0 && <><div style={{ fontSize: 11, color: subDone === subActs.length ? C.secondary : C.textMuted, fontWeight: 700, marginBottom: 4 }}>{subDone}/{subActs.length} activités</div><ProgressBar value={subDone} max={subActs.length} color={s.color || C.primary} height={4} /></>}
                     </Card>;
                   })}
                   {data.subjects.filter(s => myCourses.some(c => c.subjectId === s.id)).length === 0 &&
-                    <div style={{ gridColumn: "1/-1" }}><Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours disponible</p></Card></div>}
+                    <div style={{ gridColumn: "1/-1" }}><Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="Inbox" size={44} color={C.textMuted} /></div><p style={{ fontWeight: 700 }}>Aucun cours disponible</p></Card></div>}
                 </div>
               </>}
       </div>}
 
       {view === "activities" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14 }}>🎮 Activités</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Layers" size={20} color={C.primary} /> Activités</h2>
         <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
           <Btn onClick={() => setSubjectFilter("all")} variant={subjectFilter === "all" ? "primary" : "outline"} size="sm">Toutes</Btn>
-          {data.subjects.map(s => <Btn key={s.id} onClick={() => setSubjectFilter(s.id)} variant={subjectFilter === s.id ? "primary" : "outline"} size="sm">{s.icon} {s.name}</Btn>)}
+          {data.subjects.map(s => <Btn key={s.id} onClick={() => setSubjectFilter(s.id)} variant={subjectFilter === s.id ? "primary" : "outline"} size="sm" style={{display:"flex",alignItems:"center",gap:5}}><SubjectIcon icon={s.icon} size={14} color={subjectFilter === s.id ? "#fff" : s.color || C.primary} /> {s.name}</Btn>)}
         </div>
-        {filteredActivities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const done = completedIds.includes(a.id); const res = myResults.find(r => r.activityId === a.id); const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" }; const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer", marginBottom: 8, border: done ? `2px solid ${C.secondary}40` : "2px solid transparent" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: done ? `${C.secondary}20` : `${sub?.color || C.primary}20`, fontSize: 22 }}>{done ? "✅" : icons[a.type]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{done && res && <Chip color={C.secondary}>{res.score}%</Chip>}</div></div><span style={{ fontSize: 22, color: done ? C.secondary : C.primary }}>→</span></Card>; })}
+        {filteredActivities.map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const done = completedIds.includes(a.id); const res = myResults.find(r => r.activityId === a.id); const actIcons = { qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" }; const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer", marginBottom: 8, border: done ? `2px solid ${C.secondary}40` : "2px solid transparent" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: done ? `${C.secondary}20` : `${sub?.color || C.primary}20` }}>{done ? <Icon name="CheckCircle2" size={22} color={C.secondary} /> : <Icon name={actIcons[a.type]} size={22} color={sub?.color || C.primary} />}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{done && res && <Chip color={C.secondary}>{res.score}%</Chip>}</div></div><Icon name="ChevronRight" size={22} color={done ? C.secondary : C.primary} /></Card>; })}
       </div>}
 
       {view === "leaderboard" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14 }}>🏆 Classement — {myClass?.name}</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={20} color="#FDCB6E" /> Classement — {myClass?.name}</h2>
         <Card>
-          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const medals = ["🥇", "🥈", "🥉"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i < 3 ? `${C.warning}30` : "#F0F0F8", fontSize: i < 3 ? 18 : 13, fontWeight: 800 }}>{i < 3 ? medals[i] : i + 1}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight }}>🔥 {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
+          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i < 3 ? `${C.warning}30` : "#F0F0F8", fontWeight: 800, fontSize: 13 }}>{i < 3 ? <Icon name="Medal" size={18} color={lbMedals[i]} /> : i + 1}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
       {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} />}
@@ -1225,7 +1239,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const [editStudentData, setEditStudentData] = useState(null);
   const [newClass, setNewClass] = useState({ name: "", year: "2025-2026" });
   const [editClassData, setEditClassData] = useState(null);
-  const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "📊" });
+  const [newSubject, setNewSubject] = useState({ name: "", color: "#6C5CE7", icon: "BarChart2" });
   const [editSubjectData, setEditSubjectData] = useState(null);
   const [activeSubject, setActiveSubject] = useState(null);
   const [newCourse, setNewCourse] = useState({ title: "", description: "", subjectId: "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" });
@@ -1300,7 +1314,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const addClass = async () => { if (!newClass.name) return; await api.post('classes', newClass); setNewClass({ name: "", year: "2025-2026" }); setModal(null); refreshData(); };
   const updateClass = async () => { if (!editClassData) return; await api.put(`classes/${editClassData.id}`, editClassData); setModal(null); refreshData(); };
   const deleteClass = (id) => { const count = data.students.filter(s => s.classId === id).length; setConfirmAction({ msg: `Supprimer cette classe et ses ${count} élèves ?`, action: async () => { await api.del(`classes/${id}`); refreshData(); } }); };
-  const addSubject = async () => { if (!newSubject.name) return; await api.post('subjects', newSubject); setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal(null); refreshData(); };
+  const addSubject = async () => { if (!newSubject.name) return; await api.post('subjects', newSubject); setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal(null); refreshData(); };
   const updateSubject = async () => { if (!editSubjectData) return; await api.put(`subjects/${editSubjectData.id}`, editSubjectData); setModal(null); refreshData(); };
   const deleteSubject = (id) => { setConfirmAction({ msg: "Supprimer cette matière ?", action: async () => { await api.del(`subjects/${id}`); refreshData(); } }); };
   const addCourse = async () => { if (!newCourse.title) return; await api.post('courses', newCourse); setNewCourse({ title: "", description: "", subjectId: data.subjects[0]?.id || "", classIds: [], chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal(null); refreshData(); };
@@ -1367,15 +1381,15 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   const getStudentResults = (studentId) => { const student = data.students.find(s => s.id === studentId); if (!student) return null; const results = data.results.filter(r => r.studentId === studentId); const avgScore = results.length > 0 ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0; return { student, results, avgScore }; };
 
   const isMobile = useIsMobile();
-  const teacherTabs = [{ id: "overview", icon: "📊", label: "Résumé" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "subjects", icon: "📐", label: "Matières" }];
+  const teacherTabs = [{ id: "overview", icon: <Icon name="BarChart2" size={20} />, label: "Résumé" }, { id: "classes", icon: <Icon name="Users" size={20} />, label: "Classes" }, { id: "subjects", icon: <Icon name="BookMarked" size={20} />, label: "Matières" }];
 
   return <AnimatedBg>
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><p style={{ color: C.textLight, fontSize: 12, fontWeight: 700, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑</button>
-          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>↩</button>
+          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="Key" size={16} color={C.textLight} /></button>
+          <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
         </div>
       </div>
     </div>}
@@ -1383,11 +1397,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 48 }} /><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>🔑 Mot de passe</button>
+          <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Key" size={14} color={C.textLight} /> Mot de passe</button>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>}
-      {!isMobile && <Tabs tabs={[{ id: "overview", icon: "📊", label: "Vue d'ensemble" }, { id: "classes", icon: "🏫", label: "Classes" }, { id: "subjects", icon: "📐", label: "Matières" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); setActiveSubject(null); setActiveCourse(null); }} />}
+      {!isMobile && <Tabs tabs={[{ id: "overview", icon: <Icon name="BarChart2" size={16} />, label: "Vue d'ensemble" }, { id: "classes", icon: <Icon name="Users" size={16} />, label: "Classes" }, { id: "subjects", icon: <Icon name="BookMarked" size={16} />, label: "Matières" }]} active={view} onChange={tab => { setView(tab); setActiveClass(null); setActiveSubject(null); setActiveCourse(null); }} />}
 
       {/* OVERVIEW */}
       {view === "overview" && (() => {
@@ -1425,23 +1439,23 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         return <div style={{ animation: "fadeIn 0.4s" }}>
           {/* Rangée 1 — KPIs de base */}
           <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-            <StatCard icon="👩‍🎓" label="Élèves" value={totalStudents} color={C.primary} />
-            <StatCard icon="📖" label="Cours" value={data.courses.length} color={C.secondary} />
-            <StatCard icon="🎮" label="Activités" value={data.activities.length} color={C.accent} />
-            <StatCard icon="⚡" label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
+            <StatCard icon={<Icon name="GraduationCap" size={28} color={C.primary} />} label="Élèves" value={totalStudents} color={C.primary} />
+            <StatCard icon={<Icon name="BookOpen" size={28} color={C.secondary} />} label="Cours" value={data.courses.length} color={C.secondary} />
+            <StatCard icon={<Icon name="Layers" size={28} color={C.accent} />} label="Activités" value={data.activities.length} color={C.accent} />
+            <StatCard icon={<Icon name="Zap" size={28} color="#E67E22" />} label="XP moyen" value={totalStudents > 0 ? Math.round(data.students.reduce((a, s) => a + s.xp, 0) / totalStudents) : 0} color="#E67E22" />
           </div>
 
           {/* Rangée 2 — KPIs d'engagement */}
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-            <StatCard icon="📊" label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
-            <StatCard icon="🎯" label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
-            <StatCard icon="🔥" label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
-            <StatCard icon="⚡" label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
+            <StatCard icon={<Icon name="TrendingUp" size={28} color="#0984E3" />} label="Participation" value={`${participationRate}%`} color="#0984E3" sub={`${data.results.length} complétion${data.results.length !== 1 ? "s" : ""}`} />
+            <StatCard icon={<Icon name="Target" size={28} color="#00B894" />} label="Score moyen" value={data.results.length > 0 ? `${avgScore}%` : "—"} color="#00B894" sub={data.results.length > 0 ? (avgScore >= 70 ? "Bon niveau" : avgScore >= 40 ? "À améliorer" : "Difficultés") : "Pas encore de données"} />
+            <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Actifs (7 jours)" value={activeStudents} color="#E67E22" sub={`/ ${totalStudents} élève${totalStudents !== 1 ? "s" : ""}`} />
+            <StatCard icon={<Icon name="Flame" size={28} color="#A29BFE" />} label="Streak moyen" value={`${avgStreak}j`} color="#A29BFE" sub={`max : ${data.students.length > 0 ? Math.max(...data.students.map(s => s.streak || 0)) : 0}j`} />
           </div>
 
           {/* Aperçu par classe */}
           {data.classes.length > 0 && <Card style={{ marginBottom: 16, padding: 0, overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🏫 Aperçu par classe</div>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={16} />Aperçu par classe</div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
@@ -1467,7 +1481,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           {/* Colonnes : dernières activités + alertes */}
           <div style={{ display: "flex", gap: 14, marginBottom: 16, flexWrap: "wrap" }}>
             <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>🕐 Dernières activités</div>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Clock" size={16} />Dernières activités</div>
               {recentResults.length === 0
                 ? <p style={{ padding: "16px 18px", color: C.textMuted, fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune activité complétée pour l'instant.</p>
                 : recentResults.map((r, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: i > 0 ? "1px solid #F0F0F8" : "none" }}>
@@ -1483,9 +1497,9 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             </Card>
 
             <Card style={{ flex: 1, minWidth: 260, padding: 0, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15 }}>⚠️ Alertes engagement</div>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #EEEEF6", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}><Icon name="AlertTriangle" size={16} color="#E67E22" />Alertes engagement</div>
               {inactiveStudents.length === 0 && lowParticipationActs.length === 0
-                ? <p style={{ padding: "16px 18px", color: "#00B894", fontSize: 13, fontWeight: 700, margin: 0 }}>✅ Tout va bien — aucune alerte !</p>
+                ? <p style={{ padding: "16px 18px", color: "#00B894", fontSize: 13, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="CheckCircle2" size={14} color="#00B894" />Tout va bien — aucune alerte !</p>
                 : <div>
                     {inactiveStudents.length > 0 && <>
                       <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Inactifs depuis + 7 jours ({inactiveStudents.length})</div>
@@ -1509,7 +1523,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
           {/* Encart Import via Claude */}
           <Card style={{ background: `${C.primary}08`, border: `2px solid ${C.primary}20` }}>
-            <h3 style={{ fontWeight: 800, marginBottom: 6 }}>💡 Import via Claude</h3>
+            <h3 style={{ fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Lightbulb" size={18} color={C.primary} />Import via Claude</h3>
             <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6 }}>Générez des activités et des cours JSON avec Claude → Activités ou Cours → Importer JSON. Demandez à Claude d'analyser un PDF de cours pour l'adapter à SmartKlass !</p>
           </Card>
         </div>;
@@ -1524,19 +1538,19 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
               <button onClick={() => setActiveClass(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, padding: "6px 0", flexShrink: 0 }}>← Classes</button>
               <div style={{ flex: 1 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>🏫 {activeClass.name}</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={20} />{activeClass.name}</h2>
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0", fontWeight: 600 }}>{activeClass.year} — {classStudents.length} élève{classStudents.length > 1 ? "s" : ""}</p>
               </div>
-              <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm">✏️ Modifier</Btn>
-              <Btn onClick={async () => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setShowNotifHistory(false); setModal('sendNotif'); try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }} variant="secondary" size="sm">🔔 Notifier</Btn>
+              <Btn onClick={() => { setEditClassData({ ...activeClass }); setModal("editClass"); }} variant="outline" size="sm"><Icon name="Pencil" size={14} style={{marginRight: 4}} />Modifier</Btn>
+              <Btn onClick={async () => { setNotifData(d => ({ ...d, result: null, pwd: '' })); setShowNotifHistory(false); setModal('sendNotif'); try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }} variant="secondary" size="sm"><Icon name="Bell" size={14} style={{marginRight: 4}} />Notifier</Btn>
             </div>
 
             {/* Élèves */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>👩‍🎓 Élèves</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="GraduationCap" size={16} />Élèves</h3>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <Btn onClick={() => { setModal("exportIds"); }} variant="secondary" size="sm">📋 Export</Btn>
+                  <Btn onClick={() => { setModal("exportIds"); }} variant="secondary" size="sm"><Icon name="FileDown" size={14} style={{marginRight: 4}} />Export</Btn>
                   <Btn onClick={() => { setNewStudent({ firstName: "", lastName: "", classId: activeClass.id }); setModal("addStudent"); }} size="sm">+ Ajouter</Btn>
                 </div>
               </div>
@@ -1545,18 +1559,18 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 : <Card><div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Nunito',sans-serif", fontSize: 13 }}>
                       <thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Nom", "Prénom", "ID", "XP", "Actions"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead>
-                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}>🔑</Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs">🗑</Btn></div></td></tr>)}</tbody>
+                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
                     </table>
                   </div></Card>}
             </div>
 
             {/* Sections par matière */}
             <div style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>📚 Matières et cours</h3>
-              <Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} variant="outline" size="sm">+ Matière</Btn>
+              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="BookOpen" size={16} />Matières et cours</h3>
+              <Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal("addSubject"); }} variant="outline" size="sm">+ Matière</Btn>
             </div>
 
-            {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📐</div><p style={{ fontWeight: 700 }}>Aucune matière — commencez par en créer une</p></Card>}
+            {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="BookMarked" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucune matière — commencez par en créer une</p></Card>}
 
             {data.subjects.map(s => {
               const classCourses = data.courses.filter(c => c.classIds?.includes(activeClass.id) && c.subjectId === s.id);
@@ -1594,7 +1608,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         })() : <>
           {/* Liste des classes */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800 }}>🏫 Classes</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Users" size={20} />Classes</h2>
             <Btn onClick={() => { setNewClass({ name: "", year: "2025-2026" }); setModal("addClass"); }} size="sm">+ Ajouter</Btn>
           </div>
           {data.classes.map(c => {
@@ -1605,8 +1619,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 <p style={{ fontSize: 13, color: C.textLight, margin: "2px 0 0" }}>{c.year} — {count} élève{count > 1 ? "s" : ""}</p>
               </div>
               <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
-                <Btn onClick={() => { setEditClassData({ ...c }); setModal("editClass"); }} variant="outline" size="xs">✏️</Btn>
-                <Btn onClick={() => deleteClass(c.id)} variant="danger" size="xs">🗑</Btn>
+                <Btn onClick={() => { setEditClassData({ ...c }); setModal("editClass"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn>
+                <Btn onClick={() => deleteClass(c.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn>
               </div>
             </Card>;
           })}
@@ -1618,13 +1632,13 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         {activeCourse ? (() => {
           const sub = data.subjects.find(s => s.id === activeCourse.subjectId);
           const linkedActivities = data.activities.filter(a => a.courseId === activeCourse.id);
-          const icons = { qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" };
+          const typeIcons = { qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" };
           return <>
             <button onClick={() => setActiveCourse(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← {sub?.name || "Matière"}</button>
             <Card style={{ marginBottom: 14, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>{sub?.icon || "📖"}</div>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><SubjectIcon icon={sub?.icon} size={26} color={sub?.color || C.primary} /></div>
                   <div>
                     <Chip color={sub?.color}>{sub?.name}</Chip>
                     <h2 style={{ fontSize: 20, fontWeight: 900, margin: "4px 0 0 0" }}>{activeCourse.title}</h2>
@@ -1632,8 +1646,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" size="sm">✏️ Modifier</Btn>
-                  <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm">🗑 Supprimer</Btn>
+                  <Btn onClick={() => { setEditCourseData({ ...activeCourse }); setModal("editCourse"); }} variant="outline" size="sm"><Icon name="Pencil" size={14} style={{marginRight: 4}} />Modifier</Btn>
+                  <Btn onClick={() => deleteCourse(activeCourse.id)} variant="danger" size="sm"><Icon name="Trash2" size={14} style={{marginRight: 4}} />Supprimer</Btn>
                 </div>
               </div>
               {activeCourse.classIds?.length > 0 && <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
@@ -1641,7 +1655,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 {activeCourse.classIds.map(cid => { const cls = data.classes.find(c => c.id === cid); return cls ? <Chip key={cid} color={C.primary}>{cls.name}</Chip> : null; })}
               </div>}
               {activeCourse.youtubeUrl && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#FFF0F0", borderRadius: 12, border: "1px solid #FFCCCC" }}>
-                <span style={{ fontSize: 18 }}>🎬</span>
+                <Icon name="Youtube" size={18} color="#CC0000" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#CC0000" }}>Vidéo liée :</span>
                 <a href={activeCourse.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#CC0000", textDecoration: "underline", wordBreak: "break-all" }}>{activeCourse.youtubeUrl}</a>
               </div>}
@@ -1651,10 +1665,10 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               <p style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.7, margin: 0 }}>{ch.content}</p>
             </Card>)}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, marginBottom: 10 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>🎮 Activités</h3>
-              <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm">📥 Ajouter une activité</Btn>
+              <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Layers" size={15} />Activités</h3>
+              <Btn onClick={() => { setJsonImport(""); setImportParsed(null); setImportStep("paste"); setImportSubjectId(activeCourse.subjectId); setImportClassIds(activeCourse.classIds || []); setImportCourseId(activeCourse.id); setModal("importJson"); }} size="sm"><Icon name="Plus" size={14} style={{marginRight: 4}} />Ajouter une activité</Btn>
             </div>
-            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icons[a.type]}</div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10 }} size="xs">🔴 Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs">📊</Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs">👁</Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs">🗑</Btn></div></Card>; })
+            {linkedActivities.length > 0 ? linkedActivities.map(a => { const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; const xp = a.xpReward || a.xp_reward; const resCount = data.results.filter(r => r.activityId === a.id).length; return <Card key={a.id} style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14 }}><div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${sub?.color || C.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name={typeIcons[a.type]} size={20} color={sub?.color || C.primary} /></div><div><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{xp} XP</Chip>{resCount > 0 && <Chip color={C.secondary}>{resCount} rés.</Chip>}</div></div></div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{a.type === 'qcm' && <Btn onClick={() => { setLiveModal(a.id); setLiveActivityTitle(a.title); setLiveClassId(a.classIds?.[0] || ""); }} style={{ background: "#D63031", color: "#fff", fontSize: 10, display: "flex", alignItems: "center", gap: 3 }} size="xs"><Icon name="Radio" size={10} />Live</Btn>}<Btn onClick={() => { setModalData(a.id); setModal("activityStats"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setModalData(a); setModal("previewActivity"); }} variant="outline" size="xs"><Icon name="Eye" size={12} /></Btn><Btn onClick={() => { setEditActivityData({ ...a, data: JSON.stringify(a.data, null, 2) }); setModal("editActivity"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => deleteActivity(a.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></Card>; })
             : <Card style={{ textAlign: "center", padding: 20 }}><p style={{ color: C.textLight, fontWeight: 700, margin: 0 }}>Aucune activité liée à ce cours.</p></Card>}
           </>;
         })() : activeSubject ? (() => {
@@ -1663,11 +1677,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
             <button onClick={() => setActiveSubject(null)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 4, marginBottom: 14, padding: "6px 0" }}>← Matières</button>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: `${activeSubject.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{activeSubject.icon}</div>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: `${activeSubject.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><SubjectIcon icon={activeSubject.icon} size={24} color={activeSubject.color} /></div>
                 <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{activeSubject.name}</h2>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm">📥 Importer JSON</Btn>
+                <Btn onClick={() => { setCourseJsonImport(""); setModal("importCourseJson"); }} variant="secondary" size="sm"><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer JSON</Btn>
                 <Btn onClick={() => { setNewCourse({ title: "", description: "", subjectId: activeSubject.id, classIds: data.classes.map(c => c.id), chapters: [{ title: "", content: "" }], youtubeUrl: "" }); setModal("addCourse"); }} size="sm">+ Ajouter un cours</Btn>
               </div>
             </div>
@@ -1694,26 +1708,26 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                     <span style={{ fontSize: 18, color: "#CCC", cursor: "grab", padding: "0 4px", userSelect: "none" }} title="Glisser pour réorganiser">⠿</span>
                     <div><h3 style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px" }}>{c.title}</h3><p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>{c.description}</p><div style={{ display: "flex", gap: 6, marginTop: 4 }}>{c.chapters?.length > 0 && <Chip color={C.primary}>{c.chapters.length} chap.</Chip>}{nbActs > 0 && <Chip color={C.accent}>{nbActs} activité{nbActs > 1 ? "s" : ""}</Chip>}</div></div>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs">✏️</Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs">🗑</Btn></div>
+                  <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}><Btn onClick={e => { e.stopPropagation(); setEditCourseData({ ...c }); setModal("editCourse"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={e => { e.stopPropagation(); deleteCourse(c.id); }} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div>
                 </div>
               </Card>
             </div>;})}
-            {subCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📭</div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
+            {subCourses.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="Inbox" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucun cours dans cette matière</p></Card>}
           </>;
         })() : <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800 }}>📐 Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "📊" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
-          {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ fontSize: 44, marginBottom: 8 }}>📐</div><p style={{ fontWeight: 700 }}>Aucune matière créée</p></Card>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}><h2 style={{ fontSize: 20, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}><Icon name="BookMarked" size={20} />Matières</h2><Btn onClick={() => { setNewSubject({ name: "", color: "#6C5CE7", icon: "BarChart2" }); setModal("addSubject"); }} size="sm">+ Ajouter</Btn></div>
+          {data.subjects.length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="BookMarked" size={44} color="#CCC" /></div><p style={{ fontWeight: 700 }}>Aucune matière créée</p></Card>}
           {data.subjects.map(s => <Card key={s.id} hover onClick={() => setActiveSubject(s)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{s.icon}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${s.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><SubjectIcon icon={s.icon} size={24} color={s.color} /></div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{s.name}</h3>
                 <p style={{ fontSize: 12, color: C.textLight, margin: "2px 0 0 0" }}>{data.courses.filter(c => c.subjectId === s.id).length} cours · {data.activities.filter(a => a.subjectId === s.id).length} activités</p>
               </div>
             </div>
             <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
-              <Btn onClick={e => { e.stopPropagation(); setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs">✏️</Btn>
-              <Btn onClick={e => { e.stopPropagation(); deleteSubject(s.id); }} variant="danger" size="xs">🗑</Btn>
+              <Btn onClick={e => { e.stopPropagation(); setEditSubjectData({ ...s }); setModal("editSubject"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn>
+              <Btn onClick={e => { e.stopPropagation(); deleteSubject(s.id); }} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn>
             </div>
           </Card>)}
         </>}
@@ -1749,14 +1763,14 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
     <Modal open={modal === "addSubject"} onClose={() => setModal(null)} title="Ajouter une matière">
       <Input label="Nom" value={newSubject.name} onChange={v => setNewSubject(s => ({ ...s, name: v }))} placeholder="Économie" />
-      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{EMOJI_OPTIONS.map(e => <button key={e} onClick={() => setNewSubject(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: newSubject.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: newSubject.icon === e ? `${C.primary}15` : "#F0F0F8", fontSize: 20, cursor: "pointer" }}>{e}</button>)}</div></div>
+      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{ICON_OPTIONS.map(e => <button key={e} onClick={() => setNewSubject(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: newSubject.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: newSubject.icon === e ? `${C.primary}15` : "#F0F0F8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name={e} size={20} color={newSubject.icon === e ? C.primary : "#888"} /></button>)}</div></div>
       <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Couleur</label><div style={{ display: "flex", gap: 6 }}>{COLOR_OPTIONS.map(c => <button key={c} onClick={() => setNewSubject(s => ({ ...s, color: c }))} style={{ width: 36, height: 36, borderRadius: 10, background: c, border: newSubject.color === c ? "3px solid #333" : "3px solid transparent", cursor: "pointer" }} />)}</div></div>
       <Btn onClick={addSubject} fullWidth size="lg">Créer</Btn>
     </Modal>
 
     <Modal open={modal === "editSubject"} onClose={() => setModal(null)} title="Modifier la matière">
       {editSubjectData && <><Input label="Nom" value={editSubjectData.name} onChange={v => setEditSubjectData(s => ({ ...s, name: v }))} />
-      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{EMOJI_OPTIONS.map(e => <button key={e} onClick={() => setEditSubjectData(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: editSubjectData.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: editSubjectData.icon === e ? `${C.primary}15` : "#F0F0F8", fontSize: 20, cursor: "pointer" }}>{e}</button>)}</div></div>
+      <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Icône</label><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{ICON_OPTIONS.map(e => <button key={e} onClick={() => setEditSubjectData(s => ({ ...s, icon: e }))} style={{ width: 40, height: 40, borderRadius: 10, border: editSubjectData.icon === e ? `2px solid ${C.primary}` : "2px solid transparent", background: editSubjectData.icon === e ? `${C.primary}15` : "#F0F0F8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Icon name={e} size={20} color={editSubjectData.icon === e ? C.primary : "#888"} /></button>)}</div></div>
       <div style={{ marginBottom: 16 }}><label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Couleur</label><div style={{ display: "flex", gap: 6 }}>{COLOR_OPTIONS.map(c => <button key={c} onClick={() => setEditSubjectData(s => ({ ...s, color: c }))} style={{ width: 36, height: 36, borderRadius: 10, background: c, border: editSubjectData.color === c ? "3px solid #333" : "3px solid transparent", cursor: "pointer" }} />)}</div></div>
       <Btn onClick={updateSubject} fullWidth size="lg">Enregistrer</Btn></>}
     </Modal>
@@ -1764,12 +1778,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     <Modal open={modal === "addCourse"} onClose={() => setModal(null)} title="Ajouter un cours" wide>
       <Input label="Titre" value={newCourse.title} onChange={v => setNewCourse(c => ({ ...c, title: v }))} />
       <Input label="Description" value={newCourse.description} onChange={v => setNewCourse(c => ({ ...c, description: v }))} />
-      <Select label="Matière" value={newCourse.subjectId} onChange={v => setNewCourse(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+      <Select label="Matière" value={newCourse.subjectId} onChange={v => setNewCourse(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
       <div style={{ marginBottom: 16 }}><label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={newCourse.classIds.includes(c.id)} onChange={e => { if (e.target.checked) setNewCourse(nc => ({ ...nc, classIds: [...nc.classIds, c.id] })); else setNewCourse(nc => ({ ...nc, classIds: nc.classIds.filter(id => id !== c.id) })); }} /><span style={{ fontWeight: 600 }}>{c.name}</span></label>)}</div></div>
       <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
       {newCourse.chapters.map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}><Input small label={`Titre ${i + 1}`} value={ch.title} onChange={v => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], title: v }; setNewCourse(c => ({ ...c, chapters: chs })); }} /><textarea value={ch.content} onChange={e => { const chs = [...newCourse.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setNewCourse(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} /></div>)}
       <Btn onClick={() => setNewCourse(c => ({ ...c, chapters: [...c.chapters, { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
-      <Input label="🎬 Lien YouTube (optionnel)" value={newCourse.youtubeUrl || ""} onChange={v => setNewCourse(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
+      <Input label="Lien YouTube (optionnel)" value={newCourse.youtubeUrl || ""} onChange={v => setNewCourse(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon={<Icon name="Youtube" size={16} color="#CC0000" />} />
       <Btn onClick={addCourse} fullWidth size="lg">Créer</Btn>
     </Modal>
 
@@ -1777,7 +1791,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       {editCourseData && <>
         <Input label="Titre" value={editCourseData.title} onChange={v => setEditCourseData(c => ({ ...c, title: v }))} />
         <Input label="Description" value={editCourseData.description} onChange={v => setEditCourseData(c => ({ ...c, description: v }))} />
-        <Select label="Matière" value={editCourseData.subjectId} onChange={v => setEditCourseData(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière" value={editCourseData.subjectId} onChange={v => setEditCourseData(c => ({ ...c, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ marginBottom: 16 }}><label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes</label><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}><input type="checkbox" checked={(editCourseData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditCourseData(nc => ({ ...nc, classIds: [...(nc.classIds || []), c.id] })); else setEditCourseData(nc => ({ ...nc, classIds: (nc.classIds || []).filter(id => id !== c.id) })); }} /><span style={{ fontWeight: 600 }}>{c.name}</span></label>)}</div></div>
         <h4 style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>Chapitres</h4>
         {(editCourseData.chapters || []).map((ch, i) => <div key={i} style={{ padding: 10, background: "#F8F9FD", borderRadius: 10, marginBottom: 6 }}>
@@ -1788,12 +1802,12 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <textarea value={ch.content} onChange={e => { const chs = [...editCourseData.chapters]; chs[i] = { ...chs[i], content: e.target.value }; setEditCourseData(c => ({ ...c, chapters: chs })); }} placeholder="Contenu..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "none", background: "#F0F0F8", fontFamily: "'Nunito',sans-serif", fontSize: 13, minHeight: 80, resize: "vertical", outline: "none" }} />
         </div>)}
         <Btn onClick={() => setEditCourseData(c => ({ ...c, chapters: [...(c.chapters || []), { title: "", content: "" }] }))} variant="ghost" size="xs" style={{ marginBottom: 12 }}>+ Chapitre</Btn><br />
-        <Input label="🎬 Lien YouTube (optionnel)" value={editCourseData.youtubeUrl || ""} onChange={v => setEditCourseData(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon="🔗" />
+        <Input label="Lien YouTube (optionnel)" value={editCourseData.youtubeUrl || ""} onChange={v => setEditCourseData(c => ({ ...c, youtubeUrl: v }))} placeholder="https://www.youtube.com/watch?v=..." icon={<Icon name="Youtube" size={16} color="#CC0000" />} />
         <Btn onClick={updateCourse} fullWidth size="lg">Enregistrer</Btn>
       </>}
     </Modal>
 
-    <Modal open={modal === "importJson"} onClose={() => { setModal(null); setImportStep("paste"); setImportParsed(null); }} title={importStep === "paste" ? "📥 Importer JSON — Étape 1/2" : "⚙️ Configurer l'activité — Étape 2/2"} wide>
+    <Modal open={modal === "importJson"} onClose={() => { setModal(null); setImportStep("paste"); setImportParsed(null); }} title={importStep === "paste" ? "Importer JSON — Étape 1/2" : "Configurer l'activité — Étape 2/2"} wide>
       {importStep === "paste" && <>
         <p style={{ fontSize: 13, color: C.textLight, marginBottom: 10 }}>Collez le JSON généré par Claude, puis cliquez "Suivant" pour configurer la matière et la classe.</p>
         <textarea value={jsonImport} onChange={e => setJsonImport(e.target.value)} placeholder='{ "title": "...", "type": "qcm", "data": { ... } }' style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
@@ -1803,7 +1817,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         {/* Recap */}
         <Card style={{ padding: 16, marginBottom: 16, background: "#F8F9FD" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 28 }}>{{ qcm: "🧠", flashcards: "🃏", truefalse: "⚡", fillblank: "✏️", matching: "🔗" }[importParsed.type]}</span>
+            <Icon name={{ qcm: "ListChecks", flashcards: "CreditCard", truefalse: "ToggleLeft", fillblank: "PenLine", matching: "Link2" }[importParsed.type]} size={28} color={C.primary} />
             <div>
               <div style={{ fontWeight: 800, fontSize: 16 }}>{importParsed.title}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -1823,22 +1837,22 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
         </Card>
 
         {/* Matière */}
-        <Select label="📐 Matière *" value={importSubjectId} onChange={setImportSubjectId}
-          options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière *" value={importSubjectId} onChange={setImportSubjectId}
+          options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
 
         {/* Classes */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>🏫 Classes *</label>
+          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes *</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: importClassIds.includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: importClassIds.includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={importClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setImportClassIds(ids => [...ids, c.id]); else setImportClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: importClassIds.includes(c.id) ? C.primary : C.textLight }}>{importClassIds.includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: importClassIds.includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{importClassIds.includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
 
         {/* Cours associé (optionnel) */}
-        <Select label="📖 Associer à un cours (optionnel)" value={importCourseId} onChange={setImportCourseId}
+        <Select label="Associer à un cours (optionnel)" value={importCourseId} onChange={setImportCourseId}
           options={[
             { value: "", label: "— Aucun cours —" },
             ...data.courses
@@ -1851,21 +1865,21 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
 
         {/* Buttons */}
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <Btn onClick={() => { setImportStep("paste"); setImportParsed(null); }} variant="ghost" style={{ flex: 1 }}>← Retour</Btn>
-          <Btn onClick={importJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!importSubjectId || importClassIds.length === 0}>📥 Importer l'activité</Btn>
+          <Btn onClick={() => { setImportStep("paste"); setImportParsed(null); }} variant="ghost" style={{ flex: 1 }}><Icon name="ArrowLeft" size={14} style={{marginRight: 4}} />Retour</Btn>
+          <Btn onClick={importJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!importSubjectId || importClassIds.length === 0}><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer l'activité</Btn>
         </div>
       </>}
     </Modal>
 
-    <Modal open={modal === "exportIds"} onClose={() => setModal(null)} title="📋 Export identifiants" wide>
+    <Modal open={modal === "exportIds"} onClose={() => setModal(null)} title="Export identifiants" wide>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <Btn onClick={() => navigator.clipboard?.writeText(getExportText("all"))} variant="primary" size="sm">📋 Copier tout</Btn>
-        {data.classes.map(c => <Btn key={c.id} onClick={() => navigator.clipboard?.writeText(getExportText(c.id))} variant="outline" size="sm">📋 {c.name}</Btn>)}
+        <Btn onClick={() => navigator.clipboard?.writeText(getExportText("all"))} variant="primary" size="sm"><Icon name="Copy" size={14} style={{marginRight: 4}} />Copier tout</Btn>
+        {data.classes.map(c => <Btn key={c.id} onClick={() => navigator.clipboard?.writeText(getExportText(c.id))} variant="outline" size="sm"><Icon name="Copy" size={14} style={{marginRight: 4}} />{c.name}</Btn>)}
       </div>
       <pre style={{ background: "#1E1E2E", color: "#CDD6F4", padding: 16, borderRadius: 12, fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>{getExportText(selectedClass)}</pre>
     </Modal>
 
-    <Modal open={modal === "importCourseJson"} onClose={() => { setModal(null); setCourseImportStep("paste"); setCourseImportParsed(null); }} title={courseImportStep === "paste" ? "📥 Importer un cours (JSON) — Étape 1/2" : "⚙️ Configurer le cours — Étape 2/2"} wide>
+    <Modal open={modal === "importCourseJson"} onClose={() => { setModal(null); setCourseImportStep("paste"); setCourseImportParsed(null); }} title={courseImportStep === "paste" ? "Importer un cours (JSON) — Étape 1/2" : "Configurer le cours — Étape 2/2"} wide>
       {courseImportStep === "paste" && <>
         <p style={{ fontSize: 13, color: C.textLight, marginBottom: 6 }}>Collez le JSON généré par Claude. La matière et les classes seront choisies à l'étape suivante.</p>
         <code style={{ display: "block", background: "#1E1E2E", color: "#A6E3A1", padding: 12, borderRadius: 10, fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{`{
@@ -1883,49 +1897,49 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
       </>}
       {courseImportStep === "configure" && courseImportParsed && <>
         <Card style={{ padding: 16, marginBottom: 16, background: "#F8F9FD" }}>
-          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>📖 {courseImportParsed.title}</div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}><Icon name="BookOpen" size={16} color={C.primary} />{courseImportParsed.title}</div>
           {courseImportParsed.description && <div style={{ fontSize: 13, color: C.textLight, marginBottom: 6 }}>{courseImportParsed.description}</div>}
           <div style={{ fontSize: 12, color: C.textMuted }}>{courseImportParsed.chapters?.length || 0} chapitre(s)</div>
         </Card>
-        <Select label="📐 Matière *" value={courseImportSubjectId} onChange={setCourseImportSubjectId}
-          options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière *" value={courseImportSubjectId} onChange={setCourseImportSubjectId}
+          options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>🏫 Classes *</label>
+          <label style={{ fontWeight: 700, fontSize: 14, display: "block", marginBottom: 6 }}>Classes *</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: courseImportClassIds.includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: courseImportClassIds.includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={courseImportClassIds.includes(c.id)} onChange={e => { if (e.target.checked) setCourseImportClassIds(ids => [...ids, c.id]); else setCourseImportClassIds(ids => ids.filter(id => id !== c.id)); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: courseImportClassIds.includes(c.id) ? C.primary : C.textLight }}>{courseImportClassIds.includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: courseImportClassIds.includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{courseImportClassIds.includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <Btn onClick={() => { setCourseImportStep("paste"); setCourseImportParsed(null); }} variant="ghost" style={{ flex: 1 }}>← Retour</Btn>
-          <Btn onClick={importCourseJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!courseImportSubjectId || courseImportClassIds.length === 0}>📥 Importer le cours</Btn>
+          <Btn onClick={() => { setCourseImportStep("paste"); setCourseImportParsed(null); }} variant="ghost" style={{ flex: 1 }}><Icon name="ArrowLeft" size={14} style={{marginRight: 4}} />Retour</Btn>
+          <Btn onClick={importCourseJsonSubmit} variant="secondary" size="lg" style={{ flex: 2 }} disabled={!courseImportSubjectId || courseImportClassIds.length === 0}><Icon name="FileUp" size={14} style={{marginRight: 4}} />Importer le cours</Btn>
         </div>
       </>}
     </Modal>
 
-    <Modal open={modal === "previewActivity"} onClose={() => setModal(null)} title="👁 Aperçu" wide>
+    <Modal open={modal === "previewActivity"} onClose={() => setModal(null)} title="Aperçu" wide>
       {modal === "previewActivity" && modalData && (() => { const a = modalData; const tl = { qcm: "QCM", flashcards: "Flashcards", truefalse: "V/F", fillblank: "Trous", matching: "Assoc." }; return <><div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}><Chip color={C.primary}>{tl[a.type]}</Chip><Chip color={C.warning}>+{a.xpReward || a.xp_reward} XP</Chip></div><div style={{ background: "#F8F9FD", borderRadius: 12, padding: 16, maxHeight: 400, overflowY: "auto", fontSize: 14 }}>{a.type === "qcm" && a.data.questions.map((q, i) => <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #E8E8F0" }}><p style={{ fontWeight: 700 }}>Q{i + 1}: {q.q}</p>{q.choices.map((c, j) => <div key={j} style={{ fontSize: 13, color: j === q.answer ? C.secondary : C.textLight, fontWeight: j === q.answer ? 700 : 400, paddingLeft: 12 }}>{String.fromCharCode(65 + j)}) {c} {j === q.answer ? "✅" : ""}</div>)}</div>)}{a.type === "flashcards" && a.data.cards.map((c, i) => <div key={i} style={{ marginBottom: 8 }}><strong>{c.front}</strong> → <span style={{ color: C.textLight }}>{c.back}</span></div>)}{a.type === "truefalse" && a.data.questions.map((q, i) => <div key={i} style={{ marginBottom: 8 }}><strong>Q{i + 1}:</strong> {q.q} → <span style={{ color: q.answer ? C.secondary : C.danger, fontWeight: 700 }}>{q.answer ? "VRAI" : "FAUX"}</span></div>)}{a.type === "fillblank" && a.data.sentences.map((s, i) => <div key={i} style={{ marginBottom: 8 }}>{s.text.replace("___", `[${s.answer}]`)}</div>)}{a.type === "matching" && a.data.pairs.map((p, i) => <div key={i} style={{ marginBottom: 6 }}><strong>{p.left}</strong> ↔ <span style={{ color: C.textLight }}>{p.right}</span></div>)}</div></>; })()}
     </Modal>
 
-    <Modal open={modal === "activityStats"} onClose={() => setModal(null)} title="📊 Stats" wide>
+    <Modal open={modal === "activityStats"} onClose={() => setModal(null)} title="Stats" wide>
       {modal === "activityStats" && modalData && (() => { const stats = getActivityStats(modalData); if (!stats) return <p>Introuvable</p>; return <><h3 style={{ fontWeight: 800, marginBottom: 12 }}>{stats.act.title}</h3><div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Participation</div><div style={{ fontWeight: 800, fontSize: 22, color: C.primary }}>{stats.participation}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Moyenne</div><div style={{ fontWeight: 800, fontSize: 22, color: stats.avgScore >= 70 ? C.secondary : C.accent }}>{stats.avgScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Max</div><div style={{ fontWeight: 800, fontSize: 22, color: C.secondary }}>{stats.maxScore}%</div></div><div style={{ textAlign: "center", padding: "12px 20px", background: "#F8F9FD", borderRadius: 12 }}><div style={{ fontSize: 11, color: C.textLight }}>Min</div><div style={{ fontWeight: 800, fontSize: 22, color: C.danger }}>{stats.minScore}%</div></div></div>{stats.results.length > 0 && <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}><thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Élève", "Score", "Date"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead><tbody>{stats.results.sort((a, b) => b.score - a.score).map(r => { const st = data.students.find(s => s.id === r.studentId); return <tr key={r.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", fontWeight: 600 }}>{st ? `${st.lastName} ${st.firstName}` : "?"}</td><td style={{ padding: "6px 8px" }}><span style={{ fontWeight: 700, color: r.score >= 70 ? C.secondary : C.danger }}>{r.score}%</span></td><td style={{ padding: "6px 8px", color: C.textLight }}>{new Date(r.completedAt).toLocaleDateString("fr-FR")}</td></tr>; })}</tbody></table>}</>; })()}
     </Modal>
 
-    <Modal open={modal === "changeTeacherPwd"} onClose={() => setModal(null)} title="🔑 Changer le mot de passe">
-      <Input icon="🔒" label="Mot de passe actuel" value={changePwdData.current} onChange={v => setChangePwdData(d => ({ ...d, current: v }))} type="password" placeholder="Mot de passe actuel" />
-      <Input icon="🔑" label="Nouveau mot de passe" value={changePwdData.next} onChange={v => setChangePwdData(d => ({ ...d, next: v }))} type="password" placeholder="Minimum 4 caractères" />
-      <Input icon="🔑" label="Confirmer le nouveau mot de passe" value={changePwdData.confirm} onChange={v => setChangePwdData(d => ({ ...d, confirm: v }))} type="password" placeholder="Retape le nouveau mot de passe" />
+    <Modal open={modal === "changeTeacherPwd"} onClose={() => setModal(null)} title="Changer le mot de passe">
+      <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe actuel" value={changePwdData.current} onChange={v => setChangePwdData(d => ({ ...d, current: v }))} type="password" placeholder="Mot de passe actuel" />
+      <Input icon={<Icon name="Key" size={16} />} label="Nouveau mot de passe" value={changePwdData.next} onChange={v => setChangePwdData(d => ({ ...d, next: v }))} type="password" placeholder="Minimum 4 caractères" />
+      <Input icon={<Icon name="Key" size={16} />} label="Confirmer le nouveau mot de passe" value={changePwdData.confirm} onChange={v => setChangePwdData(d => ({ ...d, confirm: v }))} type="password" placeholder="Retape le nouveau mot de passe" />
       {changePwdError && <p style={{ color: C.danger, fontWeight: 700, fontSize: 13, margin: "4px 0 0" }}>{changePwdError}</p>}
       <Btn onClick={changeTeacherPassword} fullWidth style={{ marginTop: 8 }}>Valider</Btn>
     </Modal>
 
     {/* MODAL — Modifier une activité */}
-    <Modal open={modal === "editActivity"} onClose={() => { setModal(null); setEditActivityData(null); }} title="✏️ Modifier l'activité" wide>
+    <Modal open={modal === "editActivity"} onClose={() => { setModal(null); setEditActivityData(null); }} title="Modifier l'activité" wide>
       {editActivityData && <>
         <Input label="Titre" value={editActivityData.title} onChange={v => setEditActivityData(d => ({ ...d, title: v }))} />
-        <Select label="Matière" value={editActivityData.subjectId} onChange={v => setEditActivityData(d => ({ ...d, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: `${s.icon} ${s.name}` }))} />
+        <Select label="Matière" value={editActivityData.subjectId} onChange={v => setEditActivityData(d => ({ ...d, subjectId: v }))} options={data.subjects.map(s => ({ value: s.id, label: s.name }))} />
         <div style={{ display: "flex", gap: 12 }}>
           <Select label="Difficulté" value={String(editActivityData.difficulty)} onChange={v => setEditActivityData(d => ({ ...d, difficulty: parseInt(v) }))} options={[{ value: "1", label: "1 — Facile" }, { value: "2", label: "2 — Moyen" }, { value: "3", label: "3 — Difficile" }]} style={{ flex: 1 }} />
           <Input label="XP récompense" value={String(editActivityData.xpReward)} onChange={v => setEditActivityData(d => ({ ...d, xpReward: parseInt(v) || 40 }))} type="number" style={{ flex: 1 }} />
@@ -1935,11 +1949,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {data.classes.map(c => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14, padding: "8px 14px", borderRadius: 10, background: (editActivityData.classIds || []).includes(c.id) ? `${C.primary}15` : "#F0F0F8", border: (editActivityData.classIds || []).includes(c.id) ? `2px solid ${C.primary}` : "2px solid transparent", transition: "all 0.2s" }}>
               <input type="checkbox" checked={(editActivityData.classIds || []).includes(c.id)} onChange={e => { if (e.target.checked) setEditActivityData(d => ({ ...d, classIds: [...(d.classIds||[]), c.id] })); else setEditActivityData(d => ({ ...d, classIds: (d.classIds||[]).filter(id => id !== c.id) })); }} style={{ display: "none" }} />
-              <span style={{ fontWeight: 600, color: (editActivityData.classIds || []).includes(c.id) ? C.primary : C.textLight }}>{(editActivityData.classIds || []).includes(c.id) ? "✅ " : ""}{c.name}</span>
+              <span style={{ fontWeight: 600, color: (editActivityData.classIds || []).includes(c.id) ? C.primary : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>{(editActivityData.classIds || []).includes(c.id) && <Icon name="CheckCircle2" size={14} color={C.primary} />}{c.name}</span>
             </label>)}
           </div>
         </div>
-        <Select label="📖 Cours associé (optionnel)" value={editActivityData.courseId || ""} onChange={v => setEditActivityData(d => ({ ...d, courseId: v || null }))} options={[{ value: "", label: "— Aucun cours —" }, ...data.courses.filter(c => c.subjectId === editActivityData.subjectId).map(c => ({ value: c.id, label: c.title }))]} />
+        <Select label="Cours associé (optionnel)" value={editActivityData.courseId || ""} onChange={v => setEditActivityData(d => ({ ...d, courseId: v || null }))} options={[{ value: "", label: "— Aucun cours —" }, ...data.courses.filter(c => c.subjectId === editActivityData.subjectId).map(c => ({ value: c.id, label: c.title }))]} />
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Contenu (JSON) <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 400 }}>— modifier avec précaution</span></label>
           <textarea value={typeof editActivityData.data === 'string' ? editActivityData.data : JSON.stringify(editActivityData.data, null, 2)} onChange={e => setEditActivityData(d => ({ ...d, data: e.target.value }))} style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "#1E1E2E", color: "#A6E3A1", fontFamily: "monospace", fontSize: 12, minHeight: 200, resize: "vertical", outline: "none" }} />
@@ -1949,22 +1963,22 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     </Modal>
 
     {/* MODAL — Envoyer une notification push */}
-    <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="🔔 Envoyer une notification">
+    <Modal open={modal === 'sendNotif'} onClose={() => setModal(null)} title="Envoyer une notification">
       <p style={{ color: C.textLight, fontSize: 13, marginBottom: 14, fontWeight: 600 }}>
         Destinataires : élèves abonnés de <strong>{activeClass?.name}</strong>
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
         {NOTIF_TYPES.map(t => <label key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 12, border: `2px solid ${notifData.typeId === t.id ? C.primary : '#E4E4F0'}`, cursor: 'pointer', transition: 'border 0.15s', background: notifData.typeId === t.id ? `${C.primary}08` : 'transparent' }}>
           <input type="radio" name="notifType" value={t.id} checked={notifData.typeId === t.id} onChange={() => setNotifData(d => ({ ...d, typeId: t.id }))} style={{ marginTop: 3 }} />
-          <div><div style={{ fontWeight: 800, fontSize: 14 }}>{t.icon} {t.title}</div>{t.id !== 'custom' && <div style={{ color: C.textLight, fontSize: 12, marginTop: 2 }}>{t.body}</div>}</div>
+          <div><div style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}><Icon name={t.icon} size={14} />{t.title}</div>{t.id !== 'custom' && <div style={{ color: C.textLight, fontSize: 12, marginTop: 2 }}>{t.body}</div>}</div>
         </label>)}
       </div>
       {notifData.typeId === 'custom' && <Input label="Message personnalisé" value={notifData.customBody} onChange={v => setNotifData(d => ({ ...d, customBody: v }))} placeholder="Tapez votre message..." />}
-      <Input icon="🔒" label="Mot de passe prof (confirmation)" value={notifData.pwd} onChange={v => setNotifData(d => ({ ...d, pwd: v }))} type="password" placeholder="Mot de passe professeur" />
+      <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe prof (confirmation)" value={notifData.pwd} onChange={v => setNotifData(d => ({ ...d, pwd: v }))} type="password" placeholder="Mot de passe professeur" />
       {notifData.result && <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 12, background: notifData.result.success ? `${C.secondary}15` : '#FFE0E0', color: notifData.result.success ? C.secondary : C.danger, fontWeight: 700, fontSize: 13 }}>
         {notifData.result.success
-          ? `✅ ${notifData.result.sent} notification${notifData.result.sent !== 1 ? 's' : ''} envoyée${notifData.result.sent !== 1 ? 's' : ''} (${notifData.result.total} abonné${notifData.result.total !== 1 ? 's' : ''})`
-          : `❌ ${notifData.result.error || 'Erreur inconnue'}`}
+          ? `${notifData.result.sent} notification${notifData.result.sent !== 1 ? 's' : ''} envoyée${notifData.result.sent !== 1 ? 's' : ''} (${notifData.result.total} abonné${notifData.result.total !== 1 ? 's' : ''})`
+          : `${notifData.result.error || 'Erreur inconnue'}`}
       </div>}
       <Btn onClick={async () => {
         const t = NOTIF_TYPES.find(x => x.id === notifData.typeId);
@@ -1976,11 +1990,11 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
           if (res.success) { try { const h = await api.get(`notification-history?classId=${activeClass?.id}`); setNotifHistory(h); } catch(e) {} }
         } catch(e) { setNotifData(d => ({ ...d, sending: false, result: { success: false, error: 'Erreur serveur' } })); }
       }} fullWidth size="lg" disabled={notifData.sending || !notifData.pwd}>
-        {notifData.sending ? '⏳ Envoi en cours...' : '🔔 Envoyer la notification'}
+        {notifData.sending ? <><Icon name="Loader" size={16} style={{marginRight: 6}} />Envoi en cours...</> : <><Icon name="Bell" size={16} style={{marginRight: 6}} />Envoyer la notification</>}
       </Btn>
       {notifHistory.length > 0 && <div style={{ marginTop: 20 }}>
         <button onClick={() => setShowNotifHistory(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 6, padding: "6px 0", marginBottom: 8 }}>
-          🕐 Historique ({notifHistory.length}) {showNotifHistory ? "▲" : "▼"}
+          <Icon name="Clock" size={14} style={{marginRight: 4}} />Historique ({notifHistory.length}) {showNotifHistory ? "▲" : "▼"}
         </button>
         {showNotifHistory && <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {notifHistory.map((h, i) => <div key={i} style={{ padding: "10px 14px", borderRadius: 12, background: "#F8F9FD", border: "1px solid #E8E8F0" }}>
@@ -2002,7 +2016,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     {confirmAction && <Confirm message={confirmAction.msg} onYes={() => { confirmAction.action(); setConfirmAction(null); }} onNo={() => setConfirmAction(null)} />}
 
     {/* Modal de lancement Live Quiz */}
-    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="🔴 Lancer un Live Quiz">
+    <Modal open={!!liveModal} onClose={() => setLiveModal(null)} title="Lancer un Live Quiz">
       {liveModal && (() => {
         const act = data.activities.find(a => a.id === liveModal);
         const availableClasses = data.classes.filter(c => act?.classIds?.includes(c.id));
@@ -2016,7 +2030,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               setLiveTotalQ(res.totalQuestions);
               setLiveModal(null);
             }
-          }}>🔴 Lancer le Live Quiz</Btn>
+          }}><Icon name="Radio" size={16} style={{marginRight: 6}} />Lancer le Live Quiz</Btn>
         </div>;
       })()}
     </Modal>
@@ -2068,7 +2082,7 @@ function App() {
   if (error) return React.createElement(AnimatedBg, null,
     React.createElement('div', { style: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 } },
       React.createElement(Card, { style: { maxWidth: 500, textAlign: 'center', padding: 40 } },
-        React.createElement('div', { style: { fontSize: 56, marginBottom: 16 } }, '⚠️'),
+        React.createElement(Icon, { name: 'AlertTriangle', size: 56, color: '#E67E22', style: { marginBottom: 16 } }),
         React.createElement('h2', { style: { marginBottom: 12, fontWeight: 800 } }, 'Erreur de connexion'),
         React.createElement('p', { style: { color: C.textLight, marginBottom: 20, lineHeight: 1.6 } }, error),
         React.createElement(Btn, { onClick: loadData, size: 'lg' }, 'Réessayer')
@@ -2141,7 +2155,7 @@ function InstallPrompt() {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-        <div style={{ width: 54, height: 54, borderRadius: 14, background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>📚</div>
+        <div style={{ width: 54, height: 54, borderRadius: 14, background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="BookOpen" size={28} color="#fff" /></div>
         <div>
           <div style={{ fontWeight: 900, fontSize: 17, color: "#2D3436" }}>Installer SmartKlass</div>
           <div style={{ fontSize: 13, color: "#636E72", marginTop: 2 }}>Accès rapide depuis ton écran d'accueil</div>
@@ -2152,11 +2166,11 @@ function InstallPrompt() {
         {/* Instructions iOS */}
         <div style={{ background: "#F8F9FD", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
           {[
-            { icon: "1️⃣", text: <>Appuie sur le bouton <strong>Partager</strong> <span style={{ fontSize: 16 }}>⬆️</span> en bas de Safari</> },
-            { icon: "2️⃣", text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong> — l'icône avec un <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 5, border: "1.5px solid #2D3436", fontSize: 14, fontWeight: 900, lineHeight: 1, verticalAlign: "middle", marginLeft: 2 }}>+</span></> },
-            { icon: "3️⃣", text: <>Confirme en appuyant sur <strong>"Ajouter"</strong> en haut à droite</> },
+            { n: 1, text: <>Appuie sur le bouton <strong>Partager</strong> <Icon name="Share2" size={14} style={{verticalAlign: "middle"}} /> en bas de Safari</> },
+            { n: 2, text: <>Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong> — l'icône avec un <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 5, border: "1.5px solid #2D3436", fontSize: 14, fontWeight: 900, lineHeight: 1, verticalAlign: "middle", marginLeft: 2 }}>+</span></> },
+            { n: 3, text: <>Confirme en appuyant sur <strong>"Ajouter"</strong> en haut à droite</> },
           ].map((step, i) => <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
-            <span style={{ fontSize: 16 }}>{step.icon}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "#6C5CE7", color: "#fff", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{step.n}</span>
             <span style={{ fontSize: 14, color: "#2D3436", lineHeight: 1.5 }}>{step.text}</span>
           </div>)}
         </div>
@@ -2165,7 +2179,7 @@ function InstallPrompt() {
         {/* Bouton Android */}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={handleDismiss} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "2px solid #E0E0E0", background: "transparent", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 15, color: "#636E72", cursor: "pointer" }}>Plus tard</button>
-          <button onClick={handleInstall} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", boxShadow: "0 4px 15px rgba(108,92,231,0.4)" }}>📲 Installer l'app</button>
+          <button onClick={handleInstall} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #6C5CE7, #A29BFE)", fontFamily: "'Nunito',sans-serif", fontWeight: 800, fontSize: 15, color: "#fff", cursor: "pointer", boxShadow: "0 4px 15px rgba(108,92,231,0.4)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Icon name="Download" size={18} color="#fff" />Installer l'app</button>
         </div>
       </>}
     </div>
