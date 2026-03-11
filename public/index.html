@@ -1653,6 +1653,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
 }
 
 function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, classStudents, onClose }) {
+  const isMobile = useIsMobile();
   const [liveData, setLiveData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -1663,6 +1664,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   const [malusPoints, setMalusPoints] = useState(200);
   const [malusSending, setMalusSending] = useState(false);
   const [malusFlash, setMalusFlash] = useState(null); // studentId qui vient de recevoir un malus
+  const [showAllLb, setShowAllLb] = useState(false); // mobile: show full leaderboard
   const prevJoinedRef = React.useRef(0);
   const pollFailRef = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
@@ -1778,34 +1780,77 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#F8F9FD", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: C.text }}>
     <ConfettiCanvas active={showConfetti} duration={3000} />
     {/* Header minimaliste */}
-    <div style={{ position: "relative", zIndex: 1, background: "#fff", borderBottom: "1px solid #EEEEF5", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: status === 'active' ? '#ff4444' : status === 'finished' ? '#636E72' : '#FDCB6E', animation: status === 'active' ? 'pulse 1s ease-in-out infinite' : 'none', boxShadow: status === 'active' ? '0 0 8px rgba(255,68,68,0.6)' : 'none' }} />
-        <div>
-          <div style={{ fontWeight: 900, fontSize: 16, color: C.text }}>{activityTitle}</div>
-          <div style={{ fontSize: 11, color: C.textLight, display: 'flex', alignItems: 'center', gap: 6 }}>Panel Professeur
+    <div style={{ position: "relative", zIndex: 1, background: "#fff", borderBottom: "1px solid #EEEEF5", padding: isMobile ? "8px 12px" : "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, flex: 1, minWidth: 0 }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: status === 'active' ? '#ff4444' : status === 'finished' ? '#636E72' : '#FDCB6E', animation: status === 'active' ? 'pulse 1s ease-in-out infinite' : 'none', boxShadow: status === 'active' ? '0 0 8px rgba(255,68,68,0.6)' : 'none' }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 900, fontSize: isMobile ? 13 : 16, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activityTitle}</div>
+          {!isMobile && <div style={{ fontSize: 11, color: C.textLight, display: 'flex', alignItems: 'center', gap: 6 }}>Panel Professeur
             {mode === 'team' && <span style={{ background: `${C.primary}10`, color: C.primary, padding: '1px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700 }}>Équipes</span>}
             {activityType && activityType !== 'qcm' && <span style={{ background: `${C.primary}10`, color: C.primary, padding: '1px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700 }}>{activityType === 'truefalse' ? 'V/F' : 'Assoc.'}</span>}
-          </div>
+          </div>}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {countdown !== null && status === 'active' && <div style={{ fontWeight: 900, fontSize: 20, color: countdown <= 5 ? '#D63031' : C.text, animation: countdown <= 3 ? 'pulse 0.5s ease-in-out infinite' : 'none', fontVariantNumeric: 'tabular-nums' }}>{countdown}s</div>}
-        <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, color: '#fff' }}>
-          {status === 'active' ? 'EN DIRECT' : status === 'paused' ? 'PAUSE' : status === 'waiting' ? 'ATTENTE' : 'TERMINÉ'}
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8, flexShrink: 0 }}>
+        {countdown !== null && status === 'active' && <div style={{ fontWeight: 900, fontSize: isMobile ? 16 : 20, color: countdown <= 5 ? '#D63031' : C.text, animation: countdown <= 3 ? 'pulse 0.5s ease-in-out infinite' : 'none', fontVariantNumeric: 'tabular-nums' }}>{countdown}s</div>}
+        <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: isMobile ? "3px 8px" : "4px 12px", borderRadius: 20, fontSize: isMobile ? 10 : 12, fontWeight: 800, color: '#fff' }}>
+          {status === 'active' ? 'LIVE' : status === 'paused' ? 'PAUSE' : status === 'waiting' ? 'ATTENTE' : 'FIN'}
         </div>
-        <button onClick={toggleStudentSound} title={liveData.soundDisabled ? "Remettre le son aux élèves" : "Couper le son des élèves"} style={{ background: liveData.soundDisabled ? '#D6303120' : "#F0F0F8", color: liveData.soundDisabled ? '#D63031' : C.textLight, border: liveData.soundDisabled ? '2px solid #D6303140' : "2px solid transparent", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'Nunito',sans-serif", display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}><Icon name="Users" size={12} color={liveData.soundDisabled ? '#D63031' : C.textLight} />{liveData.soundDisabled ? '🔇' : '🔊'}</button>
-        <button onClick={toggleMute} title="Mon son" style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
-        <button onClick={handleClose} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
+        <button onClick={toggleStudentSound} title={liveData.soundDisabled ? "Remettre le son aux élèves" : "Couper le son des élèves"} style={{ background: liveData.soundDisabled ? '#D6303120' : "#F0F0F8", color: liveData.soundDisabled ? '#D63031' : C.textLight, border: liveData.soundDisabled ? '2px solid #D6303140' : "2px solid transparent", borderRadius: 8, padding: isMobile ? "4px 6px" : "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'Nunito',sans-serif", display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}>{!isMobile && <Icon name="Users" size={12} color={liveData.soundDisabled ? '#D63031' : C.textLight} />}{liveData.soundDisabled ? '🔇' : '🔊'}</button>
+        <button onClick={toggleMute} title="Mon son" style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: isMobile ? "4px 6px" : "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
+        <button onClick={handleClose} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 10, padding: isMobile ? "6px 10px" : "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
     </div>
 
     {/* Corps — 3 colonnes : Stats | Quiz | Classement */}
     <div style={{ position: "relative", zIndex: 1, flex: 1, overflow: "auto" }}>
-    <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 280px", gap: 16, maxWidth: 1280, margin: "0 auto", padding: "16px 20px", alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "260px 1fr 280px", gap: isMobile ? 10 : 16, maxWidth: 1280, margin: "0 auto", padding: isMobile ? "10px 12px" : "16px 20px", alignItems: "start" }}>
 
       {/* ══ COLONNE GAUCHE — Stats réponses ══ */}
-      <div style={{ position: 'sticky', top: 0 }}>
+      <div style={{ position: isMobile ? 'static' : 'sticky', top: 0 }}>
+        {isMobile ? (
+          /* Mobile : bandeau compact horizontal */
+          <div style={{ background: "#fff", borderRadius: 14, padding: '10px 12px', border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Participants inline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="Users" size={13} color={C.primary} />
+                <span style={{ fontWeight: 800, fontSize: 12, color: joinedCount > 0 ? C.primary : C.textLight }}>{joinedCount}/{totalStudents}</span>
+                {joinedCount > 0 && <div style={{ display: 'flex', gap: 2 }}>
+                  {(joinedStudents || []).slice(0, 6).map(s => <AvatarSVG key={s.id} avatar={s.avatar} size={22} name={`${s.firstName} ${s.lastName}`}/>)}
+                  {(joinedStudents || []).length > 6 && <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700, alignSelf: 'center' }}>+{joinedStudents.length - 6}</span>}
+                </div>}
+              </div>
+              {/* Séparateur */}
+              {(status === 'active' || status === 'paused') && question && <>
+                <div style={{ width: 1, height: 16, background: '#EEEEF5' }} />
+                <span style={{ fontSize: 11, color: C.textLight }}>Rép.</span>
+                <span style={{ fontWeight: 800, fontSize: 12, color: allAnswered ? '#00B894' : answeredCount > 0 ? '#E67E22' : C.textLight }}>{answeredCount}/{joinedCount}{allAnswered ? ' ✓' : ''}</span>
+                {avgTimeMs != null && avgTimeMs > 0 && <>
+                  <div style={{ width: 1, height: 16, background: '#EEEEF5' }} />
+                  <span style={{ fontWeight: 700, fontSize: 11, color: C.text }}>{(avgTimeMs / 1000).toFixed(1)}s</span>
+                </>}
+                {status === 'paused' && (() => { const total = distribution.reduce((a, b) => a + b, 0); const correct = total > 0 ? distribution[question.answer] || 0 : 0; const pct = total > 0 ? Math.round((correct / total) * 100) : 0; return <>
+                  <div style={{ width: 1, height: 16, background: '#EEEEF5' }} />
+                  <span style={{ fontWeight: 800, fontSize: 12, color: pct >= 70 ? '#00B894' : pct >= 40 ? '#E67E22' : '#D63031' }}>{pct}%</span>
+                </>; })()}
+              </>}
+            </div>
+            {/* Équipes compactes mobile */}
+            {mode === 'team' && teams && <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <div style={{ flex: 1, background: '#0984E308', border: '1px solid #0984E325', borderRadius: 8, padding: '4px 8px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontWeight: 800, fontSize: 10, color: '#0984E3' }}>A</span>
+                <span style={{ fontWeight: 900, fontSize: 16, color: '#0984E3' }}>{teams.A?.score || 0}</span>
+              </div>
+              <div style={{ flex: 1, background: '#E1705508', border: '1px solid #E1705525', borderRadius: 8, padding: '4px 8px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <span style={{ fontWeight: 800, fontSize: 10, color: '#E17055' }}>B</span>
+                <span style={{ fontWeight: 900, fontSize: 16, color: '#E17055' }}>{teams.B?.score || 0}</span>
+              </div>
+            </div>}
+          </div>
+        ) : (
+          /* Desktop : colonnes classiques */
+          <>
         {/* Participants */}
         <div style={{ background: "#fff", borderRadius: 16, padding: 14, border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -1859,13 +1904,15 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           <h4 style={{ fontWeight: 800, fontSize: 13, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6, color: C.text }}><Icon name="BarChart3" size={14} color={C.primary} /> Réponses</h4>
           <p style={{ color: C.textLight, fontSize: 12, margin: 0, textAlign: 'center' }}>Les stats apparaîtront quand le quiz démarrera.</p>
         </div>}
+          </>
+        )}
       </div>
 
       {/* ══ COLONNE CENTRALE — Quiz & Gestion ══ */}
       <div>
         {/* ── Waiting ── */}
-        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: 24 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: '40px 32px', border: '1px solid #EEEEF5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+        {status === 'waiting' && <div style={{ textAlign: "center", paddingTop: isMobile ? 12 : 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: isMobile ? '24px 16px' : '40px 32px', border: '1px solid #EEEEF5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
               <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${C.primary}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: "float 2s ease-in-out infinite" }}>
                 <Icon name="Clock" size={36} color={C.primary} />
@@ -1903,9 +1950,9 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           </div>
 
           {/* Question card + Distribution */}
-          <div style={{ background: "#fff", borderRadius: 18, padding: '28px 24px', marginBottom: 16, border: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+          <div style={{ background: "#fff", borderRadius: isMobile ? 14 : 18, padding: isMobile ? '16px 14px' : '28px 24px', marginBottom: isMobile ? 10 : 16, border: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
             {question.isMatching && <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 8, textAlign: 'center' }}>🔗 ASSOCIATION</div>}
-            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.5, color: C.text, textAlign: 'center' }}>{question.q}</p>
+            <p style={{ fontSize: isMobile ? 16 : 20, fontWeight: 800, margin: 0, lineHeight: 1.5, color: C.text, textAlign: 'center' }}>{question.q}</p>
             {status === 'paused' && question.answer !== undefined && <div style={{ marginTop: 12, textAlign: 'center' }}>
               <div style={{ padding: '8px 16px', background: '#00B89410', borderRadius: 12, display: 'inline-block' }}>
                 <span style={{ fontWeight: 800, fontSize: 13, color: '#00B894' }}>Réponse : {question.isTrueFalse ? (question.answer === 0 ? 'Vrai' : 'Faux') : (labels[question.answer] || '') + (question.choices?.[question.answer] ? ` — ${question.choices[question.answer]}` : '')}</span>
@@ -1953,8 +2000,8 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
         </div>}
 
         {/* ── Finished ── */}
-        {status === 'finished' && <div style={{ textAlign: 'center', paddingTop: 16 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: '32px 24px', border: '1px solid #EEEEF5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+        {status === 'finished' && <div style={{ textAlign: 'center', paddingTop: isMobile ? 8 : 16 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: isMobile ? '20px 16px' : '32px 24px', border: '1px solid #EEEEF5', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
             <div style={{ animation: "correctPop 0.6s ease", marginBottom: 12 }}><Icon name="Trophy" size={56} color={C.warning} /></div>
             <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 8, color: C.text }}>Quiz terminé !</h2>
             {mode === 'team' && teams && (() => { const winner = (teams.A?.score || 0) >= (teams.B?.score || 0) ? 'A' : 'B'; const wColor = winner === 'A' ? '#0984E3' : '#E17055'; return <div style={{ background: `${wColor}08`, border: `2px solid ${wColor}25`, borderRadius: 16, padding: 16, marginBottom: 16 }}><div style={{ fontWeight: 900, fontSize: 18, color: C.text }}>🏆 Équipe {winner} gagne !</div><div style={{ display: 'flex', gap: 20, marginTop: 8, justifyContent: 'center' }}><span style={{ color: '#0984E3', fontWeight: 800 }}>A: {teams.A?.score || 0} pts</span><span style={{ color: '#E17055', fontWeight: 800 }}>B: {teams.B?.score || 0} pts</span></div></div>; })()}
@@ -1967,11 +2014,11 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
       </div>
 
       {/* ══ COLONNE DROITE — Classement ══ */}
-      <div style={{ position: 'sticky', top: 0 }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: 14, border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ position: isMobile ? 'static' : 'sticky', top: 0 }}>
+        <div style={{ background: "#fff", borderRadius: isMobile ? 14 : 16, padding: isMobile ? 12 : 14, border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <h4 style={{ fontWeight: 800, fontSize: 13, margin: '0 0 10px', display: "flex", alignItems: "center", gap: 6, color: C.text }}><Icon name="Trophy" size={14} color={C.warning} /> Classement</h4>
           {(!leaderboard || leaderboard.length === 0) && <p style={{ color: C.textLight, fontSize: 12, margin: 0, textAlign: 'center' }}>En attente des réponses...</p>}
-          {(leaderboard || []).map((l, i) => {
+          {(leaderboard || []).slice(0, isMobile && !showAllLb ? 5 : undefined).map((l, i) => {
             const lbMedalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
             const isFlash = malusFlash === l.studentId;
             return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 10, background: isFlash ? '#D6303115' : i === 0 ? `${C.warning}10` : "transparent", marginBottom: 2, transition: 'all 0.3s' }}>
@@ -1979,9 +2026,10 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
               <span style={{ flex: 1, fontWeight: 600, fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.firstName} {l.lastName}</span>
               <span style={{ fontWeight: 800, color: l.score < 0 ? '#D63031' : C.primary, fontSize: 12, flexShrink: 0 }}>{l.score}</span>
               {l.correctCount !== undefined && <span style={{ fontSize: 9, color: C.textLight, flexShrink: 0 }}>({l.correctCount}✓)</span>}
-              <button onClick={() => setMalusTarget({ studentId: l.studentId, firstName: l.firstName, lastName: l.lastName })} title="Donner un malus" style={{ width: 20, height: 20, borderRadius: 6, border: 'none', background: '#D6303115', color: '#D63031', cursor: 'pointer', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.2s' }}>−</button>
+              {!isMobile && <button onClick={() => setMalusTarget({ studentId: l.studentId, firstName: l.firstName, lastName: l.lastName })} title="Donner un malus" style={{ width: 20, height: 20, borderRadius: 6, border: 'none', background: '#D6303115', color: '#D63031', cursor: 'pointer', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.2s' }}>−</button>}
             </div>;
           })}
+          {isMobile && leaderboard && leaderboard.length > 5 && <button onClick={() => setShowAllLb(v => !v)} style={{ width: '100%', padding: '6px 0', marginTop: 4, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 11, color: C.primary }}>{showAllLb ? 'Voir moins' : `Voir tout (${leaderboard.length})`}</button>}
         </div>
       </div>
     </div>
