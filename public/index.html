@@ -2353,19 +2353,19 @@ function LoginScreen({ onLogin, data }) {
       const res = await api.post('auth', { type: 'set-avatar', studentId: pendingLogin.student.id, avatar: avatarCfg });
       saveRememberMe();
       if (res.success && res.student) {
-        onLogin({ ...pendingLogin, student: res.student });
+        onLogin({ ...pendingLogin, student: res.student, isFirstLogin: true });
       } else {
-        onLogin(pendingLogin);
+        onLogin({ ...pendingLogin, isFirstLogin: true });
       }
     } catch (e) {
       saveRememberMe();
-      onLogin(pendingLogin);
+      onLogin({ ...pendingLogin, isFirstLogin: true });
     }
   };
 
   const handleSkipAvatar = () => {
     saveRememberMe();
-    onLogin(pendingLogin);
+    onLogin({ ...pendingLogin, isFirstLogin: true });
   };
 
   // Avatar setup step (first login) — inline version
@@ -2616,6 +2616,165 @@ function MascotMiniProgress({ value, max, color = C.primary, style }) {
 }
 
 // ============================================================================
+// KIBOU TUTORIAL — Tuto première connexion avec mascotte BD
+// ============================================================================
+function KibouTutorial({ studentName, onClose, onOpenAvatar }) {
+  const [step, setStep] = useState(0);
+  const [fadeDir, setFadeDir] = useState(null); // 'in' or 'out'
+
+  const steps = [
+    {
+      mascot: '/mascot/salue.svg',
+      title: `Bienvenue ${studentName} !`,
+      text: "Je suis Kibou, ta mascotte ! Je vais te faire visiter SmartKlass en 2 minutes.",
+      btn: "C'est parti !",
+    },
+    {
+      mascot: '/mascot/salue.svg',
+      title: "Ton avatar",
+      text: "Tu peux personnaliser ton avatar à tout moment en cliquant sur ta photo de profil en haut à gauche. Choisis ta coiffure, tes yeux, ta couleur de fond...",
+      btn: "Compris !",
+      action: 'avatar',
+    },
+    {
+      mascot: '/mascot/marche.svg',
+      title: "L'accueil",
+      text: "Sur la page d'accueil, tu verras tes XP, ton rang dans la classe, tes badges débloqués et les activités à faire. C'est ton QG !",
+      btn: "Suivant →",
+      highlight: 'home',
+    },
+    {
+      mascot: '/mascot/marche.svg',
+      title: "Les matières & cours",
+      text: "Dans l'onglet Matières, retrouve tous tes cours classés par matière. Chaque cours peut contenir des leçons et des activités liées.",
+      btn: "Suivant →",
+      highlight: 'courses',
+    },
+    {
+      mascot: '/mascot/marche.svg',
+      title: "Les activités",
+      text: "QCM, flashcards, vrai/faux, textes à trous, associations... Chaque activité complétée te rapporte des XP ! Plus tu es rapide, plus tu gagnes.",
+      btn: "Suivant →",
+      highlight: 'activities',
+    },
+    {
+      mascot: '/mascot/Saute de joie.svg',
+      title: "Le classement",
+      text: "Affronte tes camarades ! Le classement se met à jour en temps réel. Accumule les XP et les streaks pour grimper au sommet !",
+      btn: "Suivant →",
+      highlight: 'leaderboard',
+    },
+    {
+      mascot: '/mascot/Saute de joie.svg',
+      title: "Le Live Quiz",
+      text: "Quand ton prof lance un quiz en direct, une notification apparaît automatiquement. Rejoins le live pour jouer avec toute ta classe en temps réel !",
+      btn: "Suivant →",
+    },
+    {
+      mascot: '/mascot/Saute de joie.svg',
+      title: "C'est parti !",
+      text: "Tu sais tout ! Amuse-toi bien, gagne des XP, débloque des badges et deviens le champion de ta classe !",
+      btn: "Commencer l'aventure !",
+      last: true,
+    },
+  ];
+
+  const current = steps[step];
+  const progress = ((step + 1) / steps.length) * 100;
+
+  const goNext = () => {
+    if (current.action === 'avatar' && onOpenAvatar) onOpenAvatar();
+    if (current.last) { onClose(); return; }
+    setFadeDir('out');
+    setTimeout(() => {
+      setStep(s => s + 1);
+      setFadeDir('in');
+      setTimeout(() => setFadeDir(null), 400);
+    }, 250);
+  };
+
+  const goBack = () => {
+    if (step === 0) return;
+    setFadeDir('out');
+    setTimeout(() => {
+      setStep(s => s - 1);
+      setFadeDir('in');
+      setTimeout(() => setFadeDir(null), 400);
+    }, 250);
+  };
+
+  return <div style={{
+    position: "fixed", inset: 0, zIndex: 1100,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+  }}>
+    <style>{`
+      @keyframes kibouSlideIn { 0% { opacity:0; transform:translateY(20px) scale(0.95); } 100% { opacity:1; transform:translateY(0) scale(1); } }
+      @keyframes kibouSlideOut { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-10px); } }
+      @keyframes kibouBounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+    `}</style>
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      maxWidth: 420, width: "90%",
+      animation: fadeDir === 'out' ? 'kibouSlideOut 0.25s ease-in forwards' : fadeDir === 'in' ? 'kibouSlideIn 0.35s ease-out' : 'kibouSlideIn 0.5s ease-out',
+    }}>
+      {/* Mascotte */}
+      <img src={current.mascot} alt="Kibou" style={{
+        width: 160, height: "auto", marginBottom: -8, zIndex: 1,
+        filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.2))",
+        animation: "kibouBounce 2s ease-in-out infinite",
+      }} />
+
+      {/* Bulle BD */}
+      <div style={{
+        position: "relative", background: "#fff", borderRadius: 24,
+        padding: "24px 28px 20px", boxShadow: "0 16px 48px rgba(108,92,231,0.25)",
+        border: `3px solid ${C.primary}30`, width: "100%",
+      }}>
+        {/* Queue de bulle vers le haut (pointe vers Kibou) */}
+        <div style={{
+          position: "absolute", top: -12, left: "50%", marginLeft: -10, width: 0, height: 0,
+          borderLeft: "12px solid transparent", borderRight: "12px solid transparent",
+          borderBottom: "14px solid #fff", filter: "drop-shadow(0 -3px 2px rgba(108,92,231,0.1))"
+        }} />
+
+        {/* Barre de progression */}
+        <div style={{ height: 4, background: '#F0F0F8', borderRadius: 4, marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progress}%`, background: C.g1, borderRadius: 4, transition: 'width 0.4s ease' }} />
+        </div>
+
+        {/* Compteur d'étapes */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>{step + 1}/{steps.length}</span>
+          {current.highlight && <span style={{ fontSize: 11, fontWeight: 800, color: C.primary, background: `${C.primary}15`, padding: '3px 10px', borderRadius: 8 }}>
+            {current.highlight === 'home' ? '🏠 Accueil' : current.highlight === 'courses' ? '📚 Matières' : current.highlight === 'activities' ? '🎮 Activités' : '🏆 Classement'}
+          </span>}
+        </div>
+
+        {/* Contenu */}
+        <h3 style={{ margin: "0 0 8px", fontWeight: 900, fontSize: 20, color: C.text }}>{current.title}</h3>
+        <p style={{ margin: "0 0 20px", fontSize: 14, color: C.textLight, lineHeight: 1.7, fontWeight: 500 }}>{current.text}</p>
+
+        {/* Boutons */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          {step > 0 && <button onClick={goBack} style={{
+            flex: '0 0 auto', padding: '10px 16px', borderRadius: 12, border: '2px solid #E0E0E0',
+            background: '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight,
+          }}>← Retour</button>}
+          <Btn onClick={goNext} fullWidth size="lg">{current.btn}</Btn>
+        </div>
+
+        {/* Skip */}
+        {!current.last && <button onClick={onClose} style={{
+          display: 'block', margin: '12px auto 0', background: 'none', border: 'none',
+          cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontSize: 11, color: C.textMuted, fontWeight: 600,
+        }}>Passer le tutoriel</button>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================================
 // MASCOT GREETING — Bulle BD avec mascotte qui salue
 // ============================================================================
 function MascotGreeting({ studentName, news, onClose }) {
@@ -2707,7 +2866,7 @@ function MascotGreeting({ studentName, news, onClose }) {
 // ============================================================================
 // STUDENT DASHBOARD (uses data from props, API calls for results)
 // ============================================================================
-function StudentDashboard({ student, data, news, onLogout, onActivityComplete }) {
+function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActivityComplete }) {
   const [view, setView] = useState("home");
   const [activeActivity, setActiveActivity] = useState(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -2715,7 +2874,8 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
   const [activeSubject, setActiveSubject] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(student);
   const [newBadge, setNewBadge] = useState(null);
-  const [showMascot, setShowMascot] = useState(true);
+  const [showMascot, setShowMascot] = useState(!isFirstLogin); // pas de greeting si tuto
+  const [showTutorial, setShowTutorial] = useState(!!isFirstLogin);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
 
   const handleAvatarUpdate = async (avatarCfg) => {
@@ -2795,7 +2955,8 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
   return <AnimatedBg>
     {showAvatarEditor && <AvatarEditor avatar={currentStudent.avatar} studentName={currentStudent.firstName} onSave={handleAvatarUpdate} onClose={() => setShowAvatarEditor(false)} />}
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
-    {showMascot && <MascotGreeting studentName={currentStudent.firstName} news={news} onClose={() => setShowMascot(false)} />}
+    {showTutorial && <KibouTutorial studentName={currentStudent.firstName} onClose={() => setShowTutorial(false)} onOpenAvatar={() => { setShowTutorial(false); setTimeout(() => setShowAvatarEditor(true), 400); }} />}
+    {showMascot && !showTutorial && <MascotGreeting studentName={currentStudent.firstName} news={news} onClose={() => setShowMascot(false)} />}
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -4008,7 +4169,7 @@ function App() {
   if (!user) return <LoginScreen onLogin={u => { setUser(u); if (u.type === 'student') registerPush(u.student.id); }} data={data} />;
   const handleLogout = () => { localStorage.removeItem('sk_session'); if (user?.type === 'student') unregisterPush(user.student?.id); setUser(null); };
   if (user.type === "teacher") return <TeacherDashboard data={data} refreshData={refreshData} onLogout={handleLogout} />;
-  return <StudentDashboard student={user.student} data={data} news={user.news} onLogout={handleLogout} onActivityComplete={handleActivityComplete} />;
+  return <StudentDashboard student={user.student} data={data} news={user.news} isFirstLogin={!!user.isFirstLogin} onLogout={handleLogout} onActivityComplete={handleActivityComplete} />;
 }
 
 // ============================================================================
