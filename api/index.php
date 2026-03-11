@@ -45,26 +45,42 @@ try {
                     $stmt->execute([$identifier]);
                     $student = $stmt->fetch();
                     if ($student) {
+                        // Sauvegarder la date de dernière connexion AVANT mise à jour (pour compter les nouveautés)
+                        $previousLastActive = $student['last_active'];
+
                         // Calcul du streak basé sur les jours consécutifs
                         $today     = date('Y-m-d');
                         $yesterday = date('Y-m-d', strtotime('-1 day'));
-                        $lastDate  = $student['last_active'] ? date('Y-m-d', strtotime($student['last_active'])) : null;
+                        $lastDate  = $previousLastActive ? date('Y-m-d', strtotime($previousLastActive)) : null;
                         if ($lastDate === null)             $newStreak = 1;
                         elseif ($lastDate === $today)       $newStreak = $student['streak']; // déjà connecté aujourd'hui
                         elseif ($lastDate === $yesterday)   $newStreak = $student['streak'] + 1;
                         else                               $newStreak = 1; // jour sauté
 
+                        // Compter les nouveaux cours et activités depuis la dernière connexion
+                        $newCourses = 0;
+                        $newActivities = 0;
+                        if ($previousLastActive) {
+                            $stmtC = $db->prepare('SELECT COUNT(*) FROM courses c INNER JOIN course_classes cc ON c.id = cc.course_id WHERE cc.class_id = ? AND c.created_at > ?');
+                            $stmtC->execute([$student['class_id'], $previousLastActive]);
+                            $newCourses = (int)$stmtC->fetchColumn();
+                            $stmtA = $db->prepare('SELECT COUNT(*) FROM activities a INNER JOIN activity_classes ac ON a.id = ac.activity_id WHERE ac.class_id = ? AND a.created_at > ?');
+                            $stmtA->execute([$student['class_id'], $previousLastActive]);
+                            $newActivities = (int)$stmtA->fetchColumn();
+                        }
+                        $newsData = ['newCourses' => $newCourses, 'newActivities' => $newActivities];
+
                         // Pas de mdp encore = première connexion
                         if (empty($student['password'])) {
                             $db->prepare('UPDATE students SET streak = ?, last_active = NOW() WHERE id = ?')->execute([$newStreak, $student['id']]);
                             $s2 = $db->prepare('SELECT * FROM students WHERE id = ?'); $s2->execute([$student['id']]); $student = $s2->fetch();
-                            jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => true]);
+                            jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => true, 'news' => $newsData]);
                         } else {
                             // Vérifier le mot de passe
                             if ($password === $student['password']) {
                                 $db->prepare('UPDATE students SET streak = ?, last_active = NOW() WHERE id = ?')->execute([$newStreak, $student['id']]);
                                 $s2 = $db->prepare('SELECT * FROM students WHERE id = ?'); $s2->execute([$student['id']]); $student = $s2->fetch();
-                                jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => false]);
+                                jsonResponse(['success' => true, 'type' => 'student', 'student' => formatStudent($student), 'needsPassword' => false, 'news' => $newsData]);
                             } else {
                                 jsonResponse(['success' => false, 'error' => 'Mot de passe incorrect.'], 401);
                             }
