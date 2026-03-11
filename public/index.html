@@ -1681,8 +1681,8 @@ function BadgeUnlock({ badge, onClose }) {
         <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>{badge.name}</div>
         <div style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{badge.desc}</div>
       </div>
-      <img src="/mascot/saute.svg" alt="" style={{
-        width: 72, height: 72, marginTop: -8,
+      <img src="/mascot/salue.svg" alt="" style={{
+        width: 90, height: "auto", marginTop: -8,
         animation: "mascotJump 0.8s ease-in-out infinite",
         filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))"
       }} />
@@ -1731,9 +1731,9 @@ function QCMActivity({ activity, onComplete }) {
   }
 
   return <div style={{ animation: "fadeIn 0.3s" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: 18 }}>
       <span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span>
-      <ProgressBar value={current + 1} max={questions.length} style={{ flex: 1 }} />
+      <MascotMiniProgress value={current + 1} max={questions.length} color={C.primary} />
       <div style={{ background: timeLeft <= 10 ? "#FFE0E0" : "#F0F0F8", padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 15, color: timeLeft <= 10 ? C.danger : C.text, minWidth: 50, textAlign: "center", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Timer" size={14} color={timeLeft <= 10 ? C.danger : C.text} /> {timeLeft}s</div>
     </div>
     <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, lineHeight: 1.4 }}>{q.q}</h3>
@@ -1758,7 +1758,7 @@ function FlashcardsActivity({ activity, onComplete }) {
   const handleKnow = (d) => { if (d) setKnown(k => [...k, current]); if (current + 1 >= cards.length) setFinished(true); else { setCurrent(c => c + 1); setFlipped(false); } };
   if (finished) { const pct = Math.round(known.length / cards.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Toutes les cartes maîtrisées !" : "Belle mémoire !"} sub={`${known.length}/${cards.length} cartes connues`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="BookOpen" size={72} color={C.primary} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>Révision terminée !</h2>{pct < 80 && <p style={{ fontSize: 18, color: C.textLight, marginBottom: 8 }}>Tu connaissais <strong style={{ color: C.secondary }}>{known.length}</strong> cartes sur {cards.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{cards.length}</span><ProgressBar value={current + 1} max={cards.length} style={{ flex: 1 }} /></div>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: 18 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{cards.length}</span><MascotMiniProgress value={current + 1} max={cards.length} color={C.primary} /></div>
     <div onClick={() => setFlipped(!flipped)} style={{ background: flipped ? C.g2 : C.g1, borderRadius: 24, padding: 40, minHeight: 220, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", textAlign: "center", transition: "all 0.4s", boxShadow: "0 12px 40px rgba(108,92,231,0.3)" }}>
       <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.7, marginBottom: 12, textTransform: "uppercase", letterSpacing: 2 }}>{flipped ? "Définition" : "Concept"}</div>
       <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.4 }}>{flipped ? card.back : card.front}</div>
@@ -1776,7 +1776,7 @@ function TrueFalseActivity({ activity, onComplete }) {
   const next = () => { if (current + 1 >= questions.length) setFinished(true); else { setCurrent(c => c + 1); setSelected(null); setShowResult(false); } };
   if (finished) { const pct = Math.round(score / questions.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Parfait, aucune erreur !" : "Tu assures en vrai/faux !"} sub={`${score}/${questions.length} bonnes réponses`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Dumbbell" size={72} color={C.accent} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Bravo !" : pct >= 50 ? "Pas mal !" : "Continue !"}</h2><div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>{pct < 80 && <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span><ProgressBar value={current + 1} max={questions.length} style={{ flex: 1 }} /></div>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: 18 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span><MascotMiniProgress value={current + 1} max={questions.length} color={C.primary} /></div>
     <Card style={{ textAlign: "center", padding: 32, marginBottom: 20 }}><h3 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.5 }}>{q.q}</h3></Card>
     {!showResult && <div style={{ display: "flex", gap: 12 }}><Btn onClick={() => handleAnswer(true)} variant="secondary" fullWidth size="lg"><Icon name="CheckCircle2" size={18} /> VRAI</Btn><Btn onClick={() => handleAnswer(false)} variant="accent" fullWidth size="lg"><Icon name="XCircle" size={18} /> FAUX</Btn></div>}
     {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: selected === q.answer ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${selected === q.answer ? C.secondary : C.danger}`, animation: "fadeIn 0.3s" }}><div style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{selected === q.answer ? <><Icon name="CheckCircle2" size={16} color={C.secondary} /> Bonne réponse !</> : <><Icon name="XCircle" size={16} color={C.danger} /> Réponse : {q.answer ? "VRAI" : "FAUX"}</>}</div><div style={{ fontSize: 14, color: C.textLight }}>{q.explanation}</div></div><Btn onClick={next} fullWidth>{current + 1 >= questions.length ? "Résultats" : "Suivant →"}</Btn></>}
@@ -1792,7 +1792,7 @@ function FillBlankActivity({ activity, onComplete }) {
   if (finished) { const pct = Math.round(score / sentences.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Tous les trous remplis parfaitement !" : "Super boulot !"} sub={`${score}/${sentences.length} bonnes réponses`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="BookOpen" size={72} color={C.primary} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Bravo !" : pct >= 50 ? "Pas mal !" : "Continue !"}</h2><div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>{pct < 80 && <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{sentences.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   const parts = s.text.split("___");
   return <div style={{ animation: "fadeIn 0.3s" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{sentences.length}</span><ProgressBar value={current + 1} max={sentences.length} style={{ flex: 1 }} /></div>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, paddingTop: 18 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{sentences.length}</span><MascotMiniProgress value={current + 1} max={sentences.length} color={C.primary} /></div>
     <Card style={{ padding: 28, marginBottom: 20, fontSize: 18, lineHeight: 2 }}>{parts[0]}<span style={{ display: "inline-block", borderBottom: `3px solid ${C.primary}`, minWidth: 120, padding: "2px 8px", fontWeight: 800, color: showResult ? (isCorrect ? C.secondary : C.danger) : C.primary }}>{showResult ? s.answer : input || "..."}</span>{parts[1]}</Card>
     {!showResult && <><Input value={input} onChange={setInput} placeholder="Ta réponse..." icon={<Icon name="PenLine" size={16} color={C.textMuted} />} />{showHint && <div style={{ padding: "10px 16px", borderRadius: 12, background: `${C.warning}30`, color: "#856404", fontSize: 13, fontWeight: 600, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Lightbulb" size={14} color="#856404" /> {s.hint}</div>}<div style={{ display: "flex", gap: 12 }}>{!showHint && <Btn onClick={() => setShowHint(true)} variant="ghost"><Icon name="Lightbulb" size={14} /> Indice</Btn>}<Btn onClick={handleCheck} disabled={!input.trim()} style={{ flex: 1 }}>Vérifier</Btn></div></>}
     {showResult && <><div style={{ padding: 16, borderRadius: 16, marginBottom: 16, background: isCorrect ? "#D4EDDA" : "#FFE0E0", borderLeft: `4px solid ${isCorrect ? C.secondary : C.danger}`, display: "flex", alignItems: "center", gap: 8 }}>{isCorrect ? <><Icon name="CheckCircle2" size={18} color={C.secondary} /> Parfait !</> : <><Icon name="XCircle" size={18} color={C.danger} /> Réponse : "{s.answer}"</>}</div><Btn onClick={next} fullWidth>{current + 1 >= sentences.length ? "Résultats" : "Suivant →"}</Btn></>}
@@ -1838,7 +1838,7 @@ function MatchingActivity({ activity, onComplete }) {
           </div>
         : <p style={{ color: C.textLight, fontWeight: 600, fontSize: 13, margin: 0 }}>Appuie sur un concept à gauche, puis sa définition à droite</p>}
     </div>
-    <ProgressBar value={matched.length} max={pairs.length} color={C.secondary} style={{ marginBottom: 14 }} />
+    <div style={{ marginBottom: 14, paddingTop: 22 }}><MascotMiniProgress value={matched.length} max={pairs.length} color={C.secondary} /></div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {/* Colonne gauche — Concepts */}
       <div>
@@ -2117,8 +2117,8 @@ function MascotCelebration({ message, sub, visible = true }) {
         borderTop: "10px solid #fff", filter: "drop-shadow(0 2px 1px rgba(108,92,231,0.08))"
       }} />
     </div>
-    <img src="/mascot/saute.svg" alt="" style={{
-      width: 80, height: 80,
+    <img src="/mascot/salue.svg" alt="" style={{
+      width: 100, height: "auto",
       animation: "mascotJump 0.8s ease-in-out infinite",
       filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.15))"
     }} />
@@ -2126,67 +2126,31 @@ function MascotCelebration({ message, sub, visible = true }) {
 }
 
 // ============================================================================
-// MASCOT PROGRESS BAR — Mascotte qui marche le long d'une barre de progression
+// MASCOT MINI PROGRESS — Barre compacte avec mascotte pour les activités en cours
 // ============================================================================
-function MascotProgressBar({ done, total, label, color }) {
-  const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0;
-  const isComplete = pct >= 100;
-  const barColor = color || C.primary;
-
-  return <div style={{ position: "relative", padding: "32px 0 10px" }}>
-    <style>{`
-      @keyframes mascotWalk {
-        0%, 100% { transform: translateY(0) scaleX(-1); }
-        50% { transform: translateY(-3px) scaleX(-1); }
-      }
-      @keyframes mascotDance {
-        0%, 100% { transform: translateY(0) scaleX(-1) rotate(0deg); }
-        25% { transform: translateY(-4px) scaleX(-1) rotate(-5deg); }
-        75% { transform: translateY(-4px) scaleX(-1) rotate(5deg); }
-      }
-    `}</style>
-    {/* Mascotte positionnée sur la barre */}
+function MascotMiniProgress({ value, max, color = C.primary, style }) {
+  const pct = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
+  return <div style={{ position: "relative", flex: 1, height: 10, ...style }}>
+    {/* Mascotte qui marche */}
     <div style={{
-      position: "absolute", top: 0, left: `calc(${pct}% - 16px)`,
-      transition: "left 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
-      zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center"
+      position: "absolute", top: -20, left: `calc(${pct}% - 16px)`,
+      transition: "left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)", zIndex: 2
     }}>
-      <img src={isComplete ? "/mascot/salue.svg" : "/mascot/marche.svg"} alt=""
-        style={{
-          width: 32, height: 32,
-          animation: isComplete ? "mascotDance 0.8s ease-in-out infinite" : "mascotWalk 0.6s ease-in-out infinite",
-          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
-        }}
-      />
-    </div>
-    {/* Label + pourcentage */}
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 800, color: barColor }}>{done}/{total} — {pct}%</span>
-    </div>
-    {/* Barre de fond */}
-    <div style={{
-      position: "relative", height: 10, borderRadius: 10,
-      background: "#EEEEF5", overflow: "hidden"
-    }}>
-      {/* Remplissage */}
-      <div style={{
-        height: "100%", borderRadius: 10,
-        width: `${pct}%`, background: `linear-gradient(90deg, ${barColor}, ${barColor}CC)`,
-        transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        boxShadow: pct > 0 ? `0 0 8px ${barColor}40` : "none"
+      <img src="/mascot/marche.svg" alt="" style={{
+        width: 32, height: "auto",
+        animation: "mascotWalk 0.6s ease-in-out infinite",
+        filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.15))"
       }} />
     </div>
-    {/* Petites étapes / jalons */}
-    {total <= 20 && total > 1 && <div style={{ position: "relative", height: 0 }}>
-      {Array.from({ length: total - 1 }, (_, i) => {
-        const pos = ((i + 1) / total) * 100;
-        return <div key={i} style={{
-          position: "absolute", top: -10, left: `${pos}%`,
-          width: 2, height: 10, background: "#fff", opacity: 0.6, marginLeft: -1
-        }} />;
-      })}
-    </div>}
+    {/* Barre */}
+    <div style={{ background: "#E8E8F0", borderRadius: 10, height: 10, overflow: "hidden", width: "100%" }}>
+      <div style={{
+        width: `${pct}%`, height: "100%", borderRadius: 10,
+        background: `linear-gradient(90deg, ${color}, ${color}88)`,
+        transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)"
+      }} />
+    </div>
+    <style>{`@keyframes mascotWalk { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }`}</style>
   </div>;
 }
 
@@ -2249,7 +2213,7 @@ function MascotGreeting({ studentName, news, onClose }) {
       maxWidth: 400, width: "90%"
     }}>
       <img src="/mascot/salue.svg" alt="Mascotte" style={{
-        width: 140, height: 140, marginBottom: -12, zIndex: 1,
+        width: 180, height: "auto", marginBottom: -12, zIndex: 1,
         filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.2))"
       }} />
       <div style={{
@@ -2388,14 +2352,6 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
           <StatCard icon={<Icon name="CheckCircle2" size={28} color={C.accent} />} label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
           <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
         </BentoGrid>
-        <Card style={{ marginBottom: 20, padding: "16px 20px" }}>
-          <MascotProgressBar done={completedIds.length} total={myActivities.length} label="Progression globale" color={C.accent} />
-          {data.subjects.filter(s => myActivities.some(a => a.subjectId === s.id)).map(sub => {
-            const subActs = myActivities.filter(a => a.subjectId === sub.id);
-            const subDone = subActs.filter(a => completedIds.includes(a.id)).length;
-            return <MascotProgressBar key={sub.id} done={subDone} total={subActs.length} label={sub.name} color={sub.color || C.primary} />;
-          })}
-        </Card>
         <Card style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color="#FDCB6E" /> Mes badges</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
