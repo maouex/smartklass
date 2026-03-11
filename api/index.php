@@ -775,7 +775,7 @@ try {
                     // Malus reçus par l'élève
                     $malusStmt = $db->prepare(
                         "SELECT COUNT(*) AS cnt, COALESCE(SUM(ABS(score)), 0) AS total
-                         FROM live_responses WHERE session_id = ? AND student_id = ? AND question_idx = 255"
+                         FROM live_responses WHERE session_id = ? AND student_id = ? AND question_idx >= 200"
                     );
                     $malusStmt->execute([$sessionId, $studentId]);
                     $malusRow = $malusStmt->fetch();
@@ -783,7 +783,7 @@ try {
                     // Calculer le streak actuel de l'élève
                     $streakStmt = $db->prepare(
                         "SELECT is_correct FROM live_responses
-                         WHERE session_id = ? AND student_id = ? AND question_idx < 255
+                         WHERE session_id = ? AND student_id = ? AND question_idx < 200
                          ORDER BY question_idx DESC"
                     );
                     $streakStmt->execute([$sessionId, $studentId]);
@@ -987,7 +987,7 @@ try {
                         $xpReward = (int)($session['xp_reward'] ?? 40);
                         $scoresStmt = $db->prepare(
                             "SELECT student_id, SUM(score) AS total_score, SUM(is_correct) AS correct_count
-                             FROM live_responses WHERE session_id = ? AND question_idx < 255 GROUP BY student_id"
+                             FROM live_responses WHERE session_id = ? AND question_idx < 200 GROUP BY student_id"
                         );
                         $scoresStmt->execute([$sessionId]);
                         $maxPossibleScore = $totalQ * 1000; // Score max théorique
@@ -1033,17 +1033,23 @@ try {
                         jsonResponse(['success' => true, 'soundDisabled' => (bool)$newVal]);
                         break;
                     case 'malus':
-                        // Le prof donne un malus de points à un élève
+                        // Le prof donne un malus de points à un élève (multiple malus possibles)
                         $targetStudentId = $body['studentId'] ?? '';
                         $malusPoints = abs((int)($body['points'] ?? 200));
                         if (!$targetStudentId) jsonResponse(['error' => 'studentId requis'], 400);
                         if ($malusPoints < 1 || $malusPoints > 5000) jsonResponse(['error' => 'Points invalides (1-5000)'], 400);
-                        // Insérer une réponse malus (question_idx = 255 = malus marker)
+                        // question_idx 200-254 = malus (permet 55 malus par élève)
+                        $nextIdx = $db->prepare(
+                            "SELECT COALESCE(MAX(question_idx), 199) + 1 FROM live_responses
+                             WHERE session_id = ? AND student_id = ? AND question_idx >= 200 AND question_idx < 200"
+                        );
+                        $nextIdx->execute([$sessionId, $targetStudentId]);
+                        $malusIdx = min((int)$nextIdx->fetchColumn(), 254);
                         $malusId = generateId();
                         $db->prepare(
                             "INSERT INTO live_responses (id, session_id, student_id, question_idx, answer_idx, is_correct, score)
-                             VALUES (?, ?, ?, 255, 0, 0, ?)"
-                        )->execute([$malusId, $sessionId, $targetStudentId, -$malusPoints]);
+                             VALUES (?, ?, ?, ?, 0, 0, ?)"
+                        )->execute([$malusId, $sessionId, $targetStudentId, $malusIdx, -$malusPoints]);
                         jsonResponse(['success' => true, 'malus' => $malusPoints, 'studentId' => $targetStudentId]);
                         break;
                     case 'cancel':
