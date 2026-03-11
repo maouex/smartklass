@@ -2194,6 +2194,8 @@ function LoginScreen({ onLogin, data }) {
   const [pendingLogin, setPendingLogin] = useState(null);
   // Step: need password after identifier found
   const [needPwd, setNeedPwd] = useState(false);
+  // Remember me
+  const [rememberMe, setRememberMe] = useState(false);
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
@@ -2233,12 +2235,17 @@ function LoginScreen({ onLogin, data }) {
         } else {
           // Step 2: login with password
           const res = await api.post('auth', { type: 'student', identifier: studentId.trim(), password: studentPwd });
-          if (res.success) onLogin({ type: "student", student: res.student, news: res.news });
-          else { setError(res.error || "Mot de passe incorrect."); setShake(true); setTimeout(() => setShake(false), 500); }
+          if (res.success) {
+            if (rememberMe) localStorage.setItem('sk_session', JSON.stringify({ type: 'student', identifier: studentId.trim(), password: studentPwd, expiry: Date.now() + 7*24*60*60*1000 }));
+            onLogin({ type: "student", student: res.student, news: res.news });
+          } else { setError(res.error || "Mot de passe incorrect."); setShake(true); setTimeout(() => setShake(false), 500); }
         }
       } else {
         const res = await api.post('auth', { type: 'teacher', password: teacherPwd });
-        if (res.success) onLogin({ type: "teacher" });
+        if (res.success) {
+          if (rememberMe) localStorage.setItem('sk_session', JSON.stringify({ type: 'teacher', password: teacherPwd, expiry: Date.now() + 7*24*60*60*1000 }));
+          onLogin({ type: "teacher" });
+        }
         else { setError(res.error || "Mot de passe incorrect."); setShake(true); setTimeout(() => setShake(false), 500); }
       }
     } catch (e) { setError("Erreur de connexion au serveur."); }
@@ -2263,20 +2270,29 @@ function LoginScreen({ onLogin, data }) {
     setLoading(false);
   };
 
+  const saveRememberMe = () => {
+    if (rememberMe && firstLoginStudent) {
+      localStorage.setItem('sk_session', JSON.stringify({ type: 'student', identifier: firstLoginStudent.identifier, password: newPwd, expiry: Date.now() + 7*24*60*60*1000 }));
+    }
+  };
+
   const handleAvatarSave = async (avatarCfg) => {
     try {
       const res = await api.post('auth', { type: 'set-avatar', studentId: pendingLogin.student.id, avatar: avatarCfg });
+      saveRememberMe();
       if (res.success && res.student) {
         onLogin({ ...pendingLogin, student: res.student });
       } else {
         onLogin(pendingLogin);
       }
     } catch (e) {
+      saveRememberMe();
       onLogin(pendingLogin);
     }
   };
 
   const handleSkipAvatar = () => {
+    saveRememberMe();
     onLogin(pendingLogin);
   };
 
@@ -2353,6 +2369,10 @@ function LoginScreen({ onLogin, data }) {
               <div style={{ animation: shake ? "shake 0.5s" : "none" }}>
                 <Input icon={<Icon name="Lock" size={16} />} label="Mot de passe" value={teacherPwd} name="password" autoComplete="current-password" onChange={setTeacherPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe professeur" />
               </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 16px 0", cursor: "pointer", fontSize: 13, fontWeight: 600, color: C.textLight }}>
+                <div onClick={() => setRememberMe(!rememberMe)} style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${rememberMe ? C.primary : '#D0D0D0'}`, background: rememberMe ? C.primary : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer', flexShrink: 0 }}>{rememberMe && <Icon name="Check" size={13} color="#fff" />}</div>
+                Rester connecté (7 jours)
+              </label>
               {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
               <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : "Se connecter →"}</Btn>
             </form>
@@ -2364,6 +2384,10 @@ function LoginScreen({ onLogin, data }) {
                 <Input icon={<Icon name="Hash" size={16} />} label="Ton identifiant" value={studentId} name="username" autoComplete="username" onChange={v => { setStudentId(v); setNeedPwd(false); setStudentPwd(""); setError(""); }} onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Ex: STMG-1ÈRE-MART1" />
                 {needPwd && <Input icon={<Icon name="Lock" size={16} />} label="Ton mot de passe" value={studentPwd} name="password" autoComplete="current-password" onChange={setStudentPwd} type="password" onKeyDown={e => e.key === "Enter" && handleLogin()} placeholder="Mot de passe" />}
               </div>
+              {needPwd && <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 16px 0", cursor: "pointer", fontSize: 13, fontWeight: 600, color: C.textLight }}>
+                <div onClick={() => setRememberMe(!rememberMe)} style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${rememberMe ? C.primary : '#D0D0D0'}`, background: rememberMe ? C.primary : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer', flexShrink: 0 }}>{rememberMe && <Icon name="Check" size={13} color="#fff" />}</div>
+                Rester connecté (7 jours)
+              </label>}
               {error && <div style={{ background: "#FFE0E0", color: C.danger, padding: "10px 16px", borderRadius: 12, fontSize: 13, fontWeight: 600, marginBottom: 16 }}>{error}</div>}
               <Btn onClick={handleLogin} fullWidth size="lg" disabled={loading}>{loading ? "Connexion..." : needPwd ? "Se connecter →" : "Suivant →"}</Btn>
             </form>
@@ -3862,7 +3886,26 @@ function App() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  // Restauration session "Rester connecté"
+  const restoreSession = async () => {
+    try {
+      const raw = localStorage.getItem('sk_session');
+      if (!raw) return;
+      const session = JSON.parse(raw);
+      if (!session.expiry || session.expiry < Date.now()) { localStorage.removeItem('sk_session'); return; }
+      if (session.type === 'student' && session.identifier && session.password) {
+        const res = await api.post('auth', { type: 'student', identifier: session.identifier, password: session.password });
+        if (res.success && !res.needsPassword) setUser({ type: 'student', student: res.student, news: res.news });
+        else localStorage.removeItem('sk_session');
+      } else if (session.type === 'teacher' && session.password) {
+        const res = await api.post('auth', { type: 'teacher', password: session.password });
+        if (res.success) setUser({ type: 'teacher' });
+        else localStorage.removeItem('sk_session');
+      }
+    } catch (e) { localStorage.removeItem('sk_session'); }
+  };
+
+  useEffect(() => { loadData(); restoreSession(); }, []);
 
   const refreshData = () => loadData();
 
@@ -3891,8 +3934,9 @@ function App() {
   );
 
   if (!user) return <LoginScreen onLogin={u => { setUser(u); if (u.type === 'student') registerPush(u.student.id); }} data={data} />;
-  if (user.type === "teacher") return <TeacherDashboard data={data} refreshData={refreshData} onLogout={() => setUser(null)} />;
-  return <StudentDashboard student={user.student} data={data} news={user.news} onLogout={() => { unregisterPush(user.student?.id); setUser(null); }} onActivityComplete={handleActivityComplete} />;
+  const handleLogout = () => { localStorage.removeItem('sk_session'); if (user?.type === 'student') unregisterPush(user.student?.id); setUser(null); };
+  if (user.type === "teacher") return <TeacherDashboard data={data} refreshData={refreshData} onLogout={handleLogout} />;
+  return <StudentDashboard student={user.student} data={data} news={user.news} onLogout={handleLogout} onActivityComplete={handleActivityComplete} />;
 }
 
 // ============================================================================
