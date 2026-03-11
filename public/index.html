@@ -1181,9 +1181,11 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
   const [soundMuted, setSoundMuted] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [connectionTimeout, setConnectionTimeout] = useState(false);
+  const [malusNotif, setMalusNotif] = useState(null);
   const prevJoinedRef = React.useRef(0);
   const pollFailCount = React.useRef(0);
   const forceMutedByTeacher = React.useRef(false);
+  const prevMalusCount = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
   const labels = ["A", "B", "C", "D"];
 
@@ -1260,6 +1262,15 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         // Équipe
         if (data.myTeam) setMyTeam(data.myTeam);
         if (data.myStreak !== undefined) setStreak(data.myStreak);
+
+        // Détection malus
+        if (data.myMalusCount > prevMalusCount.current && prevMalusCount.current >= 0) {
+          const lastMalusPoints = data.myMalusTotal - (liveData?.myMalusTotal || 0);
+          setMalusNotif({ points: lastMalusPoints > 0 ? lastMalusPoints : data.myMalusTotal });
+          SoundEngine.wrong();
+          setTimeout(() => setMalusNotif(null), 4000);
+        }
+        prevMalusCount.current = data.myMalusCount || 0;
 
         // Force mute par le prof
         if (data.soundDisabled && !forceMutedByTeacher.current) {
@@ -1369,6 +1380,12 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
 
   return <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#F8F9FD", display: "flex", flexDirection: "column", fontFamily: "'Nunito',sans-serif", color: C.text }}>
     <ConfettiCanvas active={showConfetti} />
+
+    {/* Notification malus */}
+    {malusNotif && <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 2000, background: 'linear-gradient(135deg, #D63031 0%, #E17055 100%)', color: '#fff', padding: '14px 28px', borderRadius: 16, boxShadow: '0 8px 30px rgba(214,48,49,0.4)', animation: 'correctPop 0.5s ease', textAlign: 'center', maxWidth: '85vw' }}>
+      <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 2 }}>-{malusNotif.points} pts</div>
+      <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.9 }}>Malus du professeur</div>
+    </div>}
 
     {/* Top bar minimaliste */}
     <div style={{ position: "relative", zIndex: 1, background: "#fff", borderBottom: "1px solid #EEEEF5", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
