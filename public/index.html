@@ -2103,19 +2103,24 @@ function MascotGreeting({ studentName, news, onClose }) {
   if (news?.newActivities > 0) newsLines.push(`${news.newActivities} nouvelle${news.newActivities > 1 ? 's' : ''} activité${news.newActivities > 1 ? 's' : ''}`);
 
   return <div onClick={handleClose} style={{
-    position: "fixed", bottom: 20, left: 20, right: 20, zIndex: 1000,
-    display: "flex", alignItems: "flex-end", gap: 0,
-    animation: fadeOut ? "fadeOut 0.5s ease-out forwards" : "bounceIn 0.6s ease-out",
-    cursor: "pointer", maxWidth: 480, margin: "0 auto"
+    position: "fixed", inset: 0, zIndex: 1000,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+    animation: fadeOut ? "mascotOverlayOut 0.5s ease-out forwards" : "mascotOverlayIn 0.3s ease-out",
+    cursor: "pointer"
   }}>
     <style>{`
-      @keyframes bounceIn {
-        0% { opacity: 0; transform: translateY(40px) scale(0.9); }
-        50% { transform: translateY(-8px) scale(1.02); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
+      @keyframes mascotOverlayIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
-      @keyframes fadeOut {
-        to { opacity: 0; transform: translateY(20px); }
+      @keyframes mascotOverlayOut {
+        to { opacity: 0; }
+      }
+      @keyframes mascotBounceIn {
+        0% { opacity: 0; transform: scale(0.5) translateY(30px); }
+        60% { transform: scale(1.05) translateY(-5px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
       }
       @keyframes bubblePop {
         0% { transform: scale(0); opacity: 0; }
@@ -2123,32 +2128,38 @@ function MascotGreeting({ studentName, news, onClose }) {
         100% { transform: scale(1); opacity: 1; }
       }
     `}</style>
-    <img src="/mascot/salue.svg" alt="Mascotte" style={{
-      width: 100, height: 100, flexShrink: 0, marginRight: -8, zIndex: 1,
-      filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))"
-    }} />
     <div style={{
-      position: "relative", background: "#fff", borderRadius: 20,
-      padding: "14px 18px", boxShadow: "0 8px 32px rgba(108,92,231,0.18)",
-      border: `2px solid ${C.primary}30`, flex: 1,
-      animation: "bubblePop 0.4s ease-out 0.2s both"
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+      animation: fadeOut ? "none" : "mascotBounceIn 0.6s ease-out",
+      maxWidth: 400, width: "90%"
     }}>
-      {/* Queue de bulle BD */}
-      <div style={{
-        position: "absolute", left: -10, bottom: 18, width: 0, height: 0,
-        borderTop: "8px solid transparent", borderBottom: "8px solid transparent",
-        borderRight: "12px solid #fff", filter: "drop-shadow(-3px 0 2px rgba(108,92,231,0.1))"
+      <img src="/mascot/salue.svg" alt="Mascotte" style={{
+        width: 140, height: 140, marginBottom: -12, zIndex: 1,
+        filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.2))"
       }} />
-      <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: C.text }}>
-        Salut {studentName} ! 👋
-      </p>
-      {hasNews ? <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textLight, lineHeight: 1.5 }}>
-        Depuis ta dernière visite :<br />
-        <span style={{ color: C.primary, fontWeight: 700 }}>{newsLines.join(' et ')}</span> t'attendent !
-      </p> : <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textLight, lineHeight: 1.5 }}>
-        Content de te revoir ! Prêt à gagner des XP ?
-      </p>}
-      <p style={{ margin: "4px 0 0", fontSize: 10, color: C.textMuted, textAlign: "right" }}>Clique pour fermer</p>
+      <div style={{
+        position: "relative", background: "#fff", borderRadius: 24,
+        padding: "22px 26px", boxShadow: "0 12px 48px rgba(108,92,231,0.25)",
+        border: `2px solid ${C.primary}30`, width: "100%", textAlign: "center",
+        animation: "bubblePop 0.4s ease-out 0.3s both"
+      }}>
+        {/* Queue de bulle BD vers le haut */}
+        <div style={{
+          position: "absolute", top: -10, left: "50%", marginLeft: -8, width: 0, height: 0,
+          borderLeft: "10px solid transparent", borderRight: "10px solid transparent",
+          borderBottom: "12px solid #fff", filter: "drop-shadow(0 -3px 2px rgba(108,92,231,0.1))"
+        }} />
+        <p style={{ margin: 0, fontWeight: 800, fontSize: 18, color: C.text }}>
+          Salut {studentName} ! 👋
+        </p>
+        {hasNews ? <p style={{ margin: "10px 0 0", fontSize: 14, color: C.textLight, lineHeight: 1.6 }}>
+          Depuis ta dernière visite :<br />
+          <span style={{ color: C.primary, fontWeight: 700, fontSize: 15 }}>{newsLines.join(' et ')}</span> t'attendent !
+        </p> : <p style={{ margin: "10px 0 0", fontSize: 14, color: C.textLight, lineHeight: 1.6 }}>
+          Content de te revoir ! Prêt à gagner des XP ?
+        </p>}
+        <p style={{ margin: "10px 0 0", fontSize: 11, color: C.textMuted }}>Clique n'importe où pour continuer</p>
+      </div>
     </div>
   </div>;
 }
