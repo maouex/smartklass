@@ -615,6 +615,14 @@ function AvatarSetupScreen({ student, onSave, onSkip }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ maxWidth: 440, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <style>{`@keyframes kibouAvatarBounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }`}</style>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 6, marginBottom: 10 }}>
+            <img src="/mascot/salue.svg" alt="Kibou" style={{ width: 60, height: "auto", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))", animation: "kibouAvatarBounce 2s ease-in-out infinite" }} />
+            <div style={{ position: "relative", background: "#fff", borderRadius: 16, padding: "8px 14px", boxShadow: "0 4px 16px rgba(108,92,231,0.15)", border: `2px solid ${C.primary}20`, maxWidth: 220 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.text }}>Choisis un look qui te ressemble !</p>
+              <div style={{ position: "absolute", bottom: 6, left: -8, width: 0, height: 0, borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderRight: "8px solid #fff" }} />
+            </div>
+          </div>
           <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Crée ton avatar !</h1>
           <p style={{ color: C.textLight, fontSize: 14, margin: 0, fontWeight: 600 }}>{student.firstName}, personnalise ton look</p>
         </div>
@@ -2616,64 +2624,59 @@ function MascotMiniProgress({ value, max, color = C.primary, style }) {
 }
 
 // ============================================================================
-// KIBOU TUTORIAL — Tuto première connexion avec mascotte BD
+// KIBOU SPOTLIGHT TUTORIAL — Tuto première connexion avec spotlight sur les vrais éléments
 // ============================================================================
-function KibouTutorial({ studentName, onClose, onOpenAvatar }) {
+function KibouTutorial({ studentName, onClose, onOpenAvatar, isMobile }) {
   const [step, setStep] = useState(0);
-  const [fadeDir, setFadeDir] = useState(null); // 'in' or 'out'
+  const [rect, setRect] = useState(null);
+  const [bubbleKey, setBubbleKey] = useState(0);
 
   const steps = [
     {
       mascot: '/mascot/salue.svg',
       title: `Bienvenue ${studentName} !`,
-      text: "Je suis Kibou, ta mascotte ! Je vais te faire visiter SmartKlass en 2 minutes.",
+      text: "Je suis Kibou, ta mascotte ! Je vais te montrer ton dashboard. Suis-moi !",
       btn: "C'est parti !",
     },
     {
+      tutoId: 'avatar',
       mascot: '/mascot/salue.svg',
       title: "Ton avatar",
-      text: "Tu peux personnaliser ton avatar à tout moment en cliquant sur ta photo de profil en haut à gauche. Choisis ta coiffure, tes yeux, ta couleur de fond...",
+      text: "C'est toi ici ! Clique dessus à tout moment pour personnaliser ton look.",
       btn: "Compris !",
-      action: 'avatar',
     },
     {
+      tutoId: 'stats',
       mascot: '/mascot/marche.svg',
-      title: "L'accueil",
-      text: "Sur la page d'accueil, tu verras tes XP, ton rang dans la classe, tes badges débloqués et les activités à faire. C'est ton QG !",
+      title: "Tes statistiques",
+      text: "XP, rang dans ta classe, activités complétées et jours de suite... Tout est là d'un coup d'œil !",
       btn: "Suivant →",
-      highlight: 'home',
     },
     {
+      tutoId: 'badges',
       mascot: '/mascot/marche.svg',
-      title: "Les matières & cours",
-      text: "Dans l'onglet Matières, retrouve tous tes cours classés par matière. Chaque cours peut contenir des leçons et des activités liées.",
+      title: "Tes badges",
+      text: "Complète des activités pour débloquer des badges. Collectionne-les tous !",
       btn: "Suivant →",
-      highlight: 'courses',
     },
     {
+      tutoId: 'todo',
       mascot: '/mascot/marche.svg',
-      title: "Les activités",
-      text: "QCM, flashcards, vrai/faux, textes à trous, associations... Chaque activité complétée te rapporte des XP ! Plus tu es rapide, plus tu gagnes.",
+      title: "À faire",
+      text: "Voici les activités que ton prof t'a assignées. Clique dessus pour commencer !",
       btn: "Suivant →",
-      highlight: 'activities',
     },
     {
+      tutoId: 'tabs',
       mascot: '/mascot/Saute de joie.svg',
-      title: "Le classement",
-      text: "Affronte tes camarades ! Le classement se met à jour en temps réel. Accumule les XP et les streaks pour grimper au sommet !",
-      btn: "Suivant →",
-      highlight: 'leaderboard',
-    },
-    {
-      mascot: '/mascot/Saute de joie.svg',
-      title: "Le Live Quiz",
-      text: "Quand ton prof lance un quiz en direct, une notification apparaît automatiquement. Rejoins le live pour jouer avec toute ta classe en temps réel !",
+      title: "La navigation",
+      text: "Matières, activités, classement... Utilise ces onglets pour tout explorer !",
       btn: "Suivant →",
     },
     {
       mascot: '/mascot/Saute de joie.svg',
       title: "C'est parti !",
-      text: "Tu sais tout ! Amuse-toi bien, gagne des XP, débloque des badges et deviens le champion de ta classe !",
+      text: "Tu sais tout ! Amuse-toi, gagne des XP et deviens le champion de ta classe !",
       btn: "Commencer l'aventure !",
       last: true,
     },
@@ -2682,96 +2685,193 @@ function KibouTutorial({ studentName, onClose, onOpenAvatar }) {
   const current = steps[step];
   const progress = ((step + 1) / steps.length) * 100;
 
+  // Recalculate spotlight rect when step changes or on resize
+  const updateRect = React.useCallback(() => {
+    const target = steps[step]?.tutoId;
+    if (!target) { setRect(null); return; }
+    const el = document.querySelector(`[data-tuto="${target}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Small delay to let scroll finish
+      setTimeout(() => {
+        const r = el.getBoundingClientRect();
+        const pad = 8;
+        setRect({ top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+      }, 350);
+    } else {
+      setRect(null);
+    }
+  }, [step]);
+
+  React.useEffect(() => { updateRect(); }, [step, updateRect]);
+  React.useEffect(() => {
+    const h = () => updateRect();
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, [updateRect]);
+
   const goNext = () => {
-    if (current.action === 'avatar' && onOpenAvatar) onOpenAvatar();
     if (current.last) { onClose(); return; }
-    setFadeDir('out');
-    setTimeout(() => {
-      setStep(s => s + 1);
-      setFadeDir('in');
-      setTimeout(() => setFadeDir(null), 400);
-    }, 250);
+    setBubbleKey(k => k + 1);
+    setStep(s => s + 1);
   };
 
   const goBack = () => {
     if (step === 0) return;
-    setFadeDir('out');
-    setTimeout(() => {
-      setStep(s => s - 1);
-      setFadeDir('in');
-      setTimeout(() => setFadeDir(null), 400);
-    }, 250);
+    setBubbleKey(k => k + 1);
+    setStep(s => s - 1);
   };
 
-  return <div style={{
-    position: "fixed", inset: 0, zIndex: 1100,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-  }}>
-    <style>{`
-      @keyframes kibouSlideIn { 0% { opacity:0; transform:translateY(20px) scale(0.95); } 100% { opacity:1; transform:translateY(0) scale(1); } }
-      @keyframes kibouSlideOut { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-10px); } }
-      @keyframes kibouBounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
-    `}</style>
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      maxWidth: 420, width: "90%",
-      animation: fadeDir === 'out' ? 'kibouSlideOut 0.25s ease-in forwards' : fadeDir === 'in' ? 'kibouSlideIn 0.35s ease-out' : 'kibouSlideIn 0.5s ease-out',
-    }}>
-      {/* Mascotte */}
-      <img src={current.mascot} alt="Kibou" style={{
-        width: 160, height: "auto", marginBottom: -8, zIndex: 1,
-        filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.2))",
-        animation: "kibouBounce 2s ease-in-out infinite",
-      }} />
+  // Calculate bubble position relative to spotlight
+  const getBubbleStyle = () => {
+    const base = { position: 'fixed', zIndex: 1102, maxWidth: isMobile ? '92vw' : 400, width: '100%' };
+    if (!rect) {
+      // Center on screen for intro/outro steps
+      return { ...base, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+    }
+    const vH = window.innerHeight;
+    const vW = window.innerWidth;
+    const spotBottom = rect.top + rect.height;
+    const spotCenterX = rect.left + rect.width / 2;
+    const spaceBelow = vH - spotBottom;
+    const spaceAbove = rect.top;
 
-      {/* Bulle BD */}
-      <div style={{
-        position: "relative", background: "#fff", borderRadius: 24,
-        padding: "24px 28px 20px", boxShadow: "0 16px 48px rgba(108,92,231,0.25)",
-        border: `3px solid ${C.primary}30`, width: "100%",
-      }}>
-        {/* Queue de bulle vers le haut (pointe vers Kibou) */}
+    if (isMobile) {
+      // Mobile: center horizontally, above or below spotlight
+      if (spaceBelow > 280) {
+        return { ...base, top: spotBottom + 16, left: '50%', transform: 'translateX(-50%)' };
+      } else {
+        return { ...base, bottom: vH - rect.top + 16, left: '50%', transform: 'translateX(-50%)' };
+      }
+    } else {
+      // Desktop: try to place beside or below
+      if (spaceBelow > 300) {
+        return { ...base, top: spotBottom + 16, left: Math.max(16, Math.min(spotCenterX - 200, vW - 416)) };
+      } else if (spaceAbove > 300) {
+        return { ...base, bottom: vH - rect.top + 16, left: Math.max(16, Math.min(spotCenterX - 200, vW - 416)) };
+      } else {
+        return { ...base, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+      }
+    }
+  };
+
+  // Calculate mascot position (near the spotlight)
+  const getMascotStyle = () => {
+    const base = { position: 'fixed', zIndex: 1103, width: isMobile ? 80 : 120, height: 'auto', filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.2))', animation: 'kibouTutoBounce 2s ease-in-out infinite', pointerEvents: 'none' };
+    if (!rect) {
+      // No spotlight → mascot above bubble, centered
+      return { ...base, position: 'relative', margin: '0 auto -10px', display: 'block', width: isMobile ? 100 : 140 };
+    }
+    const vH = window.innerHeight;
+    const spotBottom = rect.top + rect.height;
+    const spaceBelow = vH - spotBottom;
+
+    if (isMobile) {
+      if (spaceBelow > 280) {
+        // Below spotlight, left of bubble
+        return { ...base, top: spotBottom + 8, left: 16 };
+      } else {
+        return { ...base, bottom: vH - rect.top + 8, left: 16 };
+      }
+    } else {
+      if (spaceBelow > 300) {
+        return { ...base, top: spotBottom + 6, left: Math.max(16, rect.left - 60) };
+      } else {
+        return { ...base, bottom: vH - rect.top + 6, left: Math.max(16, rect.left - 60) };
+      }
+    }
+  };
+
+  const bubbleStyle = getBubbleStyle();
+  const mascotStyle = getMascotStyle();
+  const isInline = !rect; // intro/outro = centered layout
+
+  return ReactDOM.createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1100 }}>
+      <style>{`
+        @keyframes kibouTutoBounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+        @keyframes kibouTutoBubbleIn { 0% { opacity:0; transform:scale(0.9) translateY(8px); } 100% { opacity:1; transform:scale(1) translateY(0); } }
+        @keyframes kibouTutoFadeIn { from { opacity:0; } to { opacity:1; } }
+      `}</style>
+
+      {/* Dark overlay with spotlight hole */}
+      {rect ? (
         <div style={{
-          position: "absolute", top: -12, left: "50%", marginLeft: -10, width: 0, height: 0,
-          borderLeft: "12px solid transparent", borderRight: "12px solid transparent",
-          borderBottom: "14px solid #fff", filter: "drop-shadow(0 -3px 2px rgba(108,92,231,0.1))"
+          position: 'fixed', top: rect.top, left: rect.left,
+          width: rect.width, height: rect.height,
+          borderRadius: 16, zIndex: 1101,
+          boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
+          transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: 'none',
         }} />
+      ) : (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1101, animation: 'kibouTutoFadeIn 0.4s ease' }} />
+      )}
 
-        {/* Barre de progression */}
-        <div style={{ height: 4, background: '#F0F0F8', borderRadius: 4, marginBottom: 16, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: C.g1, borderRadius: 4, transition: 'width 0.4s ease' }} />
-        </div>
-
-        {/* Compteur d'étapes */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>{step + 1}/{steps.length}</span>
-          {current.highlight && <span style={{ fontSize: 11, fontWeight: 800, color: C.primary, background: `${C.primary}15`, padding: '3px 10px', borderRadius: 8 }}>
-            {current.highlight === 'home' ? '🏠 Accueil' : current.highlight === 'courses' ? '📚 Matières' : current.highlight === 'activities' ? '🎮 Activités' : '🏆 Classement'}
-          </span>}
-        </div>
-
-        {/* Contenu */}
-        <h3 style={{ margin: "0 0 8px", fontWeight: 900, fontSize: 20, color: C.text }}>{current.title}</h3>
-        <p style={{ margin: "0 0 20px", fontSize: 14, color: C.textLight, lineHeight: 1.7, fontWeight: 500 }}>{current.text}</p>
-
-        {/* Boutons */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          {step > 0 && <button onClick={goBack} style={{
-            flex: '0 0 auto', padding: '10px 16px', borderRadius: 12, border: '2px solid #E0E0E0',
-            background: '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight,
-          }}>← Retour</button>}
-          <Btn onClick={goNext} fullWidth size="lg">{current.btn}</Btn>
-        </div>
-
-        {/* Skip */}
-        {!current.last && <button onClick={onClose} style={{
-          display: 'block', margin: '12px auto 0', background: 'none', border: 'none',
-          cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontSize: 11, color: C.textMuted, fontWeight: 600,
-        }}>Passer le tutoriel</button>}
+      {/* Clickable overlay to prevent interaction (except spotlight area) */}
+      <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', inset: 0, zIndex: 1101, pointerEvents: 'auto' }}>
+        {/* Transparent click-through zone over the spotlight */}
+        {rect && <div style={{ position: 'fixed', top: rect.top, left: rect.left, width: rect.width, height: rect.height, zIndex: 1102, pointerEvents: 'none' }} />}
       </div>
-    </div>
-  </div>;
+
+      {/* Kibou + Bubble container */}
+      <div key={bubbleKey} style={{ animation: 'kibouTutoBubbleIn 0.5s ease-out' }}>
+        {isInline ? (
+          // Centered layout for intro/outro
+          <div style={{ ...bubbleStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img src={current.mascot} alt="Kibou" style={{ width: isMobile ? 100 : 140, height: 'auto', marginBottom: -10, filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.2))', animation: 'kibouTutoBounce 2s ease-in-out infinite' }} />
+            <div style={{
+              position: 'relative', background: '#fff', borderRadius: 22,
+              padding: isMobile ? '18px 20px 16px' : '24px 28px 20px',
+              boxShadow: '0 16px 48px rgba(108,92,231,0.25)',
+              border: `3px solid ${C.primary}30`, width: '100%',
+            }}>
+              <div style={{ position: 'absolute', top: -11, left: '50%', marginLeft: -10, width: 0, height: 0, borderLeft: '11px solid transparent', borderRight: '11px solid transparent', borderBottom: '13px solid #fff' }} />
+              <div style={{ height: 4, background: '#F0F0F8', borderRadius: 4, marginBottom: 14, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: C.g1, borderRadius: 4, transition: 'width 0.4s ease' }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>{step + 1}/{steps.length}</span>
+              <h3 style={{ margin: '8px 0 6px', fontWeight: 900, fontSize: isMobile ? 18 : 20, color: C.text }}>{current.title}</h3>
+              <p style={{ margin: '0 0 18px', fontSize: isMobile ? 13 : 14, color: C.textLight, lineHeight: 1.7, fontWeight: 500 }}>{current.text}</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {step > 0 && <button onClick={goBack} style={{ flex: '0 0 auto', padding: '10px 16px', borderRadius: 12, border: '2px solid #E0E0E0', background: '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>←</button>}
+                <Btn onClick={goNext} fullWidth size="lg">{current.btn}</Btn>
+              </div>
+              {!current.last && <button onClick={onClose} style={{ display: 'block', margin: '12px auto 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Passer le tuto</button>}
+            </div>
+          </div>
+        ) : (
+          // Spotlight layout: mascot + bubble near the target element
+          <>
+            <img src={current.mascot} alt="Kibou" style={mascotStyle} />
+            <div style={bubbleStyle}>
+              <div style={{
+                background: '#fff', borderRadius: 22,
+                padding: isMobile ? '16px 18px 14px' : '22px 26px 18px',
+                boxShadow: '0 16px 48px rgba(108,92,231,0.25)',
+                border: `3px solid ${C.primary}30`,
+              }}>
+                <div style={{ height: 4, background: '#F0F0F8', borderRadius: 4, marginBottom: 12, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${progress}%`, background: C.g1, borderRadius: 4, transition: 'width 0.4s ease' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted }}>{step + 1}/{steps.length}</span>
+                </div>
+                <h3 style={{ margin: '0 0 6px', fontWeight: 900, fontSize: isMobile ? 16 : 18, color: C.text }}>{current.title}</h3>
+                <p style={{ margin: '0 0 16px', fontSize: isMobile ? 12 : 14, color: C.textLight, lineHeight: 1.6, fontWeight: 500 }}>{current.text}</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {step > 0 && <button onClick={goBack} style={{ flex: '0 0 auto', padding: '8px 14px', borderRadius: 12, border: '2px solid #E0E0E0', background: '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>←</button>}
+                  <Btn onClick={goNext} fullWidth>{current.btn}</Btn>
+                </div>
+                {!current.last && <button onClick={onClose} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Nunito',sans-serif", fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Passer le tuto</button>}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 // ============================================================================
@@ -2955,12 +3055,12 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
   return <AnimatedBg>
     {showAvatarEditor && <AvatarEditor avatar={currentStudent.avatar} studentName={currentStudent.firstName} onSave={handleAvatarUpdate} onClose={() => setShowAvatarEditor(false)} />}
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
-    {showTutorial && <KibouTutorial studentName={currentStudent.firstName} onClose={() => setShowTutorial(false)} onOpenAvatar={() => { setShowTutorial(false); setTimeout(() => setShowAvatarEditor(true), 400); }} />}
+    {showTutorial && <KibouTutorial studentName={currentStudent.firstName} isMobile={isMobile} onClose={() => setShowTutorial(false)} onOpenAvatar={() => { setShowTutorial(false); setTimeout(() => setShowAvatarEditor(true), 400); }} />}
     {showMascot && !showTutorial && <MascotGreeting studentName={currentStudent.firstName} news={news} onClose={() => setShowMascot(false)} />}
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><AvatarSVG avatar={currentStudent.avatar} size={36} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30` }}/><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div data-tuto="avatar" style={{ display: "flex", alignItems: "center", gap: 10 }}><AvatarSVG avatar={currentStudent.avatar} size={36} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30` }}/><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Flame" size={13} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
@@ -2969,22 +3069,22 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
     </div>}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}><AvatarSVG avatar={currentStudent.avatar} size={46} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30`, transition: 'transform 0.2s' }}/><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div data-tuto="avatar" style={{ display: "flex", alignItems: "center", gap: 12 }}><AvatarSVG avatar={currentStudent.avatar} size={46} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30`, transition: 'transform 0.2s' }}/><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404", display: "flex", alignItems: "center", gap: 5 }}><Icon name="Flame" size={14} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>}
-      {!isMobile && <Tabs tabs={studentTabs} active={view} onChange={handleTabChange} />}
+      {!isMobile && <div data-tuto="tabs"><Tabs tabs={studentTabs} active={view} onChange={handleTabChange} /></div>}
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
-        <BentoGrid style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        <div data-tuto="stats"><BentoGrid style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
           <StatCard icon={<Icon name="Zap" size={28} color={C.primary} />} label="XP Total" value={currentStudent.xp} color={C.primary} />
           <StatCard icon={<Icon name="Medal" size={28} color={C.secondary} />} label="Rang" value={`#${myRank}`} color={C.secondary} sub={`sur ${classStudents.length}`} />
           <StatCard icon={<Icon name="CheckCircle2" size={28} color={C.accent} />} label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
           <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
-        </BentoGrid>
-        <Card style={{ marginBottom: 20 }}>
+        </BentoGrid></div>
+        <div data-tuto="badges"><Card style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color="#FDCB6E" /> Mes badges</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
             {BADGES.map(b => { const earned = earnedBadges.includes(b); return <div key={b.id} title={b.desc} style={{ textAlign: "center", padding: "10px 14px", borderRadius: 14, background: earned ? `${C.warning}20` : "#F0F0F8", opacity: earned ? 1 : 0.4, cursor: "default", position: "relative", transition: "all 0.2s" }}>
@@ -2993,12 +3093,12 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
               <div style={{ fontSize: 9, color: earned ? C.secondary : C.textMuted, marginTop: 2, lineHeight: 1.3 }}>{earned ? "Débloqué !" : b.desc}</div>
             </div>; })}
           </div>
-        </Card>
-        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Target" size={16} color={C.accent} /> À faire</h3>
+        </Card></div>
+        <div data-tuto="todo"><h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Target" size={16} color={C.accent} /> À faire</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {myActivities.filter(a => !completedIds.includes(a.id)).slice(0, 4).map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: `${sub?.color || C.primary}20` }}><SubjectIcon icon={sub?.icon} size={22} color={sub?.color || C.primary} /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip></div></div><Icon name="ChevronRight" size={22} color={C.primary} /></Card>; })}
           {myActivities.filter(a => !completedIds.includes(a.id)).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><MascotCelebration message="Tout est fait !" sub="Tu as complété toutes les activités, champion !" /><p style={{ fontWeight: 700, color: C.secondary }}>Reviens bientôt pour de nouvelles activités !</p></Card>}
-        </div>
+        </div></div>
       </div>}
 
       {view === "courses" && <div style={{ animation: "fadeIn 0.4s" }}>
@@ -3077,7 +3177,7 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
           {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ position: 'relative' }}><AvatarSVG avatar={s.avatar} size={34} name={`${s.firstName} ${s.lastName}`}/>{i < 3 && <div style={{ position: 'absolute', top: -4, right: -4, background: '#fff', borderRadius: '50%', padding: 1 }}><Icon name="Medal" size={12} color={lbMedals[i]} /></div>}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
-      {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} />}
+      {isMobile && <div data-tuto="tabs"><BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} /></div>}
     </div>
   </AnimatedBg>;
 }
