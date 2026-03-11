@@ -2076,6 +2076,71 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
 }
 
 // ============================================================================
+// MASCOT PROGRESS BAR — Mascotte qui marche le long d'une barre de progression
+// ============================================================================
+function MascotProgressBar({ done, total, label, color }) {
+  const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0;
+  const isComplete = pct >= 100;
+  const barColor = color || C.primary;
+
+  return <div style={{ position: "relative", padding: "32px 0 10px" }}>
+    <style>{`
+      @keyframes mascotWalk {
+        0%, 100% { transform: translateY(0) scaleX(-1); }
+        50% { transform: translateY(-3px) scaleX(-1); }
+      }
+      @keyframes mascotDance {
+        0%, 100% { transform: translateY(0) scaleX(-1) rotate(0deg); }
+        25% { transform: translateY(-4px) scaleX(-1) rotate(-5deg); }
+        75% { transform: translateY(-4px) scaleX(-1) rotate(5deg); }
+      }
+    `}</style>
+    {/* Mascotte positionnée sur la barre */}
+    <div style={{
+      position: "absolute", top: 0, left: `calc(${pct}% - 16px)`,
+      transition: "left 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center"
+    }}>
+      <img src={isComplete ? "/mascot/salue.svg" : "/mascot/marche.svg"} alt=""
+        style={{
+          width: 32, height: 32,
+          animation: isComplete ? "mascotDance 0.8s ease-in-out infinite" : "mascotWalk 0.6s ease-in-out infinite",
+          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
+        }}
+      />
+    </div>
+    {/* Label + pourcentage */}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color: barColor }}>{done}/{total} — {pct}%</span>
+    </div>
+    {/* Barre de fond */}
+    <div style={{
+      position: "relative", height: 10, borderRadius: 10,
+      background: "#EEEEF5", overflow: "hidden"
+    }}>
+      {/* Remplissage */}
+      <div style={{
+        height: "100%", borderRadius: 10,
+        width: `${pct}%`, background: `linear-gradient(90deg, ${barColor}, ${barColor}CC)`,
+        transition: "width 1s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        boxShadow: pct > 0 ? `0 0 8px ${barColor}40` : "none"
+      }} />
+    </div>
+    {/* Petites étapes / jalons */}
+    {total <= 20 && total > 1 && <div style={{ position: "relative", height: 0 }}>
+      {Array.from({ length: total - 1 }, (_, i) => {
+        const pos = ((i + 1) / total) * 100;
+        return <div key={i} style={{
+          position: "absolute", top: -10, left: `${pos}%`,
+          width: 2, height: 10, background: "#fff", opacity: 0.6, marginLeft: -1
+        }} />;
+      })}
+    </div>}
+  </div>;
+}
+
+// ============================================================================
 // MASCOT GREETING — Bulle BD avec mascotte qui salue
 // ============================================================================
 function MascotGreeting({ studentName, news, onClose }) {
@@ -2273,6 +2338,14 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
           <StatCard icon={<Icon name="CheckCircle2" size={28} color={C.accent} />} label="Activités" value={completedIds.length} color={C.accent} sub={`sur ${myActivities.length}`} />
           <StatCard icon={<Icon name="Flame" size={28} color="#E67E22" />} label="Streak" value={`${currentStudent.streak}j`} color="#E67E22" />
         </BentoGrid>
+        <Card style={{ marginBottom: 20, padding: "16px 20px" }}>
+          <MascotProgressBar done={completedIds.length} total={myActivities.length} label="Progression globale" color={C.accent} />
+          {data.subjects.filter(s => myActivities.some(a => a.subjectId === s.id)).map(sub => {
+            const subActs = myActivities.filter(a => a.subjectId === sub.id);
+            const subDone = subActs.filter(a => completedIds.includes(a.id)).length;
+            return <MascotProgressBar key={sub.id} done={subDone} total={subActs.length} label={sub.name} color={sub.color || C.primary} />;
+          })}
+        </Card>
         <Card style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={16} color="#FDCB6E" /> Mes badges</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10 }}>
