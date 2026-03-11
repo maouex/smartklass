@@ -2004,10 +2004,42 @@ function LoginScreen({ onLogin, data }) {
   }
 
   return <AnimatedBg>
+    <style>{`
+      @keyframes mascotWave { 0%,100%{transform:rotate(0deg)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)} }
+      @keyframes landingBubble { 0%{opacity:0;transform:translateY(10px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)} }
+      @keyframes landingTitle { 0%{opacity:0;transform:translateY(-10px)}100%{opacity:1;transform:translateY(0)} }
+    `}</style>
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
-        <img src="/logo.png" alt="SmartKlass" style={{ width: 360, marginBottom: installPrompt ? 16 : 32, animation: "float 3s ease-in-out infinite" }} />
-        {installPrompt && !installed && <button onClick={handleInstall} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 auto 24px auto", padding: "10px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontFamily: "'Nunito',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.35)" }}><Icon name="Download" size={16} color="#fff" /> Installer l'application</button>}
+        {/* Mascotte hero avec bulle de bienvenue */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: installPrompt ? 12 : 24 }}>
+          <div style={{
+            position: "relative", background: "#fff", borderRadius: 22, padding: "12px 24px",
+            boxShadow: "0 8px 30px rgba(108,92,231,0.18)", border: `2px solid ${C.primary}20`,
+            textAlign: "center", maxWidth: "min(85vw, 320px)", marginBottom: -2,
+            animation: "landingBubble 0.7s ease-out 0.3s both"
+          }}>
+            <p style={{ margin: 0, fontWeight: 900, fontSize: "clamp(15px, 4vw, 20px)", color: C.text }}>Bienvenue sur SmartKlass !</p>
+            <p style={{ margin: "4px 0 0", fontSize: "clamp(11px, 2.8vw, 13px)", color: C.textLight, fontWeight: 600 }}>Ta plateforme d'apprentissage STMG</p>
+            <div style={{
+              position: "absolute", bottom: -10, left: "50%", marginLeft: -9, width: 0, height: 0,
+              borderLeft: "9px solid transparent", borderRight: "9px solid transparent",
+              borderTop: "11px solid #fff"
+            }} />
+          </div>
+          <img src="/mascot/salue.svg" alt="SmartKlass" style={{
+            width: "min(40vw, 160px)", height: "auto",
+            animation: "mascotWave 2s ease-in-out infinite, float 3s ease-in-out infinite",
+            filter: "drop-shadow(0 8px 20px rgba(108,92,231,0.25))"
+          }} />
+          <h1 style={{
+            fontSize: "clamp(28px, 7vw, 38px)", fontWeight: 900, margin: "8px 0 0", color: C.text,
+            background: C.g1, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            animation: "landingTitle 0.6s ease-out 0.5s both"
+          }}>SmartKlass</h1>
+        </div>
+
+        {installPrompt && !installed && <button onClick={handleInstall} style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 auto 20px auto", padding: "10px 20px", background: C.primary, color: "#fff", border: "none", borderRadius: 14, fontFamily: "'Nunito',sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.35)" }}><Icon name="Download" size={16} color="#fff" /> Installer l'application</button>}
         {installed && <p style={{ fontSize: 13, color: C.secondary, fontWeight: 700, marginBottom: 20 }}>Application installée !</p>}
 
         {mode === "teacher" ? (
@@ -2358,7 +2390,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 36 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Flame" size={13} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
@@ -2367,7 +2399,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
     </div>}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 44 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 46 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404", display: "flex", alignItems: "center", gap: 5 }}><Icon name="Flame" size={14} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
@@ -2699,7 +2731,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
   return <AnimatedBg>
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 34 }} /><p style={{ color: C.textLight, fontSize: 12, fontWeight: 700, margin: 0 }}>Panel Professeur</p></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 36 }} /><p style={{ color: C.textLight, fontSize: 12, fontWeight: 700, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 10px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="Key" size={16} color={C.textLight} /></button>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
@@ -2708,7 +2740,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
     </div>}
     <div style={{ maxWidth: 1050, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="SmartKlass" style={{ height: 48 }} /><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>Panel Professeur</p></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 50 }} /><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>Panel Professeur</p></div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setChangePwdData({ current: "", next: "", confirm: "" }); setChangePwdError(""); setModal("changeTeacherPwd"); }} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center", gap: 6 }}><Icon name="Key" size={14} color={C.textLight} /> Mot de passe</button>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight }}>Déconnexion</button>
