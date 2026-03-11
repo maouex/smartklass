@@ -2087,41 +2087,70 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
 // MASCOT CELEBRATION — Mascotte "saute de joie" avec bulle BD contextuelle
 // ============================================================================
 function MascotCelebration({ message, sub, visible = true }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => { if (visible) { const t = setTimeout(() => setShow(true), 100); return () => clearTimeout(t); } }, [visible]);
   if (!visible) return null;
-  return <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, marginBottom: 10, animation: "mascotCelebIn 0.6s ease-out" }}>
-    <style>{`
-      @keyframes mascotCelebIn {
-        0% { opacity: 0; transform: scale(0.5) translateY(20px); }
-        60% { transform: scale(1.08) translateY(-4px); }
-        100% { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      @keyframes mascotJump {
-        0%, 100% { transform: translateY(0) rotate(0deg); }
-        30% { transform: translateY(-12px) rotate(-3deg); }
-        60% { transform: translateY(-8px) rotate(3deg); }
-      }
-    `}</style>
-    {/* Bulle BD au-dessus */}
-    <div style={{
-      position: "relative", background: "#fff", borderRadius: 18, padding: "10px 16px",
-      boxShadow: "0 4px 20px rgba(108,92,231,0.15)", border: `2px solid ${C.primary}25`,
-      textAlign: "center", maxWidth: 280, marginBottom: -4
+  return ReactDOM.createPortal(
+    <div onClick={() => setShow(false)} style={{
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+      background: "rgba(0,0,0,0.35)",
+      opacity: show ? 1 : 0, transition: "opacity 0.4s ease",
+      pointerEvents: show ? "auto" : "none"
     }}>
-      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: C.text }}>{message}</p>
-      {sub && <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight, fontWeight: 600 }}>{sub}</p>}
-      {/* Queue vers le bas */}
-      <div style={{
-        position: "absolute", bottom: -9, left: "50%", marginLeft: -8, width: 0, height: 0,
-        borderLeft: "8px solid transparent", borderRight: "8px solid transparent",
-        borderTop: "10px solid #fff", filter: "drop-shadow(0 2px 1px rgba(108,92,231,0.08))"
-      }} />
-    </div>
-    <img src="/mascot/salue.svg" alt="" style={{
-      width: 100, height: "auto",
-      animation: "mascotJump 0.8s ease-in-out infinite",
-      filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.15))"
-    }} />
-  </div>;
+      <style>{`
+        @keyframes mascotCelebIn {
+          0% { opacity: 0; transform: scale(0.5) translateY(30px); }
+          60% { transform: scale(1.08) translateY(-6px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes mascotJump {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          30% { transform: translateY(-14px) rotate(-3deg); }
+          60% { transform: translateY(-8px) rotate(3deg); }
+        }
+        .mascot-celeb-inner { animation: mascotCelebIn 0.6s ease-out both; }
+        .mascot-celeb-img { width: min(28vw, 140px); }
+        .mascot-celeb-bubble { max-width: min(75vw, 300px); padding: 14px 22px; }
+        .mascot-celeb-bubble p.msg { font-size: clamp(14px, 3.5vw, 18px); }
+        .mascot-celeb-bubble p.sub { font-size: clamp(11px, 2.8vw, 14px); }
+        @media (max-width: 400px) {
+          .mascot-celeb-img { width: 26vw; }
+          .mascot-celeb-bubble { padding: 10px 16px; }
+        }
+      `}</style>
+      <div className="mascot-celeb-inner" onClick={e => e.stopPropagation()} style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 0
+      }}>
+        <div className="mascot-celeb-bubble" style={{
+          position: "relative", background: "#fff", borderRadius: 22,
+          boxShadow: "0 8px 32px rgba(108,92,231,0.25)", border: `2px solid ${C.primary}25`,
+          textAlign: "center", marginBottom: -4
+        }}>
+          <p className="msg" style={{ margin: 0, fontWeight: 800, color: C.text }}>{message}</p>
+          {sub && <p className="sub" style={{ margin: "6px 0 0", color: C.textLight, fontWeight: 600 }}>{sub}</p>}
+          <div style={{
+            position: "absolute", bottom: -10, left: "50%", marginLeft: -9, width: 0, height: 0,
+            borderLeft: "9px solid transparent", borderRight: "9px solid transparent",
+            borderTop: "11px solid #fff", filter: "drop-shadow(0 2px 2px rgba(108,92,231,0.1))"
+          }} />
+        </div>
+        <img src="/mascot/salue.svg" alt="" className="mascot-celeb-img" style={{
+          height: "auto",
+          animation: "mascotJump 0.8s ease-in-out infinite",
+          filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.2))"
+        }} />
+        <button onClick={() => setShow(false)} style={{
+          marginTop: 16, background: C.g1, color: "#fff", border: "none", borderRadius: 16,
+          padding: "10px 32px", fontSize: "clamp(14px, 3.5vw, 16px)", fontWeight: 800,
+          fontFamily: "'Nunito',sans-serif", cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(108,92,231,0.3)"
+        }}>OK !</button>
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 // ============================================================================
