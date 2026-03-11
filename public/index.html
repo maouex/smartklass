@@ -1947,7 +1947,7 @@ function LoginScreen({ onLogin, data }) {
         } else {
           // Step 2: login with password
           const res = await api.post('auth', { type: 'student', identifier: studentId.trim(), password: studentPwd });
-          if (res.success) onLogin({ type: "student", student: res.student });
+          if (res.success) onLogin({ type: "student", student: res.student, news: res.news });
           else { setError(res.error || "Mot de passe incorrect."); setShake(true); setTimeout(() => setShake(false), 500); }
         }
       } else {
@@ -1968,7 +1968,7 @@ function LoginScreen({ onLogin, data }) {
       if (!result.success) { setError(result.error || "Erreur lors de la sauvegarde du mot de passe."); setLoading(false); return; }
       // Re-login avec le nouveau mot de passe pour vérifier la sauvegarde et obtenir les données fraîches
       const loginRes = await api.post('auth', { type: 'student', identifier: firstLoginStudent.identifier, password: newPwd });
-      if (loginRes.success) onLogin({ type: "student", student: loginRes.student });
+      if (loginRes.success) onLogin({ type: "student", student: loginRes.student, news: loginRes.news });
       else setError("Mot de passe enregistré, mais connexion impossible. Réessaie.");
     } catch (e) { setError("Erreur serveur."); }
     setLoading(false);
@@ -2076,9 +2076,87 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
 }
 
 // ============================================================================
+// MASCOT GREETING — Bulle BD avec mascotte qui salue
+// ============================================================================
+function MascotGreeting({ studentName, news, onClose }) {
+  const [visible, setVisible] = useState(true);
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFadeOut(true);
+      setTimeout(() => { setVisible(false); onClose && onClose(); }, 600);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleClose = () => {
+    setFadeOut(true);
+    setTimeout(() => { setVisible(false); onClose && onClose(); }, 400);
+  };
+
+  if (!visible) return null;
+
+  const hasNews = news && (news.newCourses > 0 || news.newActivities > 0);
+  const newsLines = [];
+  if (news?.newCourses > 0) newsLines.push(`${news.newCourses} nouveau${news.newCourses > 1 ? 'x' : ''} cours`);
+  if (news?.newActivities > 0) newsLines.push(`${news.newActivities} nouvelle${news.newActivities > 1 ? 's' : ''} activité${news.newActivities > 1 ? 's' : ''}`);
+
+  return <div onClick={handleClose} style={{
+    position: "fixed", bottom: 20, left: 20, right: 20, zIndex: 1000,
+    display: "flex", alignItems: "flex-end", gap: 0,
+    animation: fadeOut ? "fadeOut 0.5s ease-out forwards" : "bounceIn 0.6s ease-out",
+    cursor: "pointer", maxWidth: 480, margin: "0 auto"
+  }}>
+    <style>{`
+      @keyframes bounceIn {
+        0% { opacity: 0; transform: translateY(40px) scale(0.9); }
+        50% { transform: translateY(-8px) scale(1.02); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes fadeOut {
+        to { opacity: 0; transform: translateY(20px); }
+      }
+      @keyframes bubblePop {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+    `}</style>
+    <img src="/mascot/salue.svg" alt="Mascotte" style={{
+      width: 100, height: 100, flexShrink: 0, marginRight: -8, zIndex: 1,
+      filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))"
+    }} />
+    <div style={{
+      position: "relative", background: "#fff", borderRadius: 20,
+      padding: "14px 18px", boxShadow: "0 8px 32px rgba(108,92,231,0.18)",
+      border: `2px solid ${C.primary}30`, flex: 1,
+      animation: "bubblePop 0.4s ease-out 0.2s both"
+    }}>
+      {/* Queue de bulle BD */}
+      <div style={{
+        position: "absolute", left: -10, bottom: 18, width: 0, height: 0,
+        borderTop: "8px solid transparent", borderBottom: "8px solid transparent",
+        borderRight: "12px solid #fff", filter: "drop-shadow(-3px 0 2px rgba(108,92,231,0.1))"
+      }} />
+      <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: C.text }}>
+        Salut {studentName} ! 👋
+      </p>
+      {hasNews ? <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textLight, lineHeight: 1.5 }}>
+        Depuis ta dernière visite :<br />
+        <span style={{ color: C.primary, fontWeight: 700 }}>{newsLines.join(' et ')}</span> t'attendent !
+      </p> : <p style={{ margin: "6px 0 0", fontSize: 13, color: C.textLight, lineHeight: 1.5 }}>
+        Content de te revoir ! Prêt à gagner des XP ?
+      </p>}
+      <p style={{ margin: "4px 0 0", fontSize: 10, color: C.textMuted, textAlign: "right" }}>Clique pour fermer</p>
+    </div>
+  </div>;
+}
+
+// ============================================================================
 // STUDENT DASHBOARD (uses data from props, API calls for results)
 // ============================================================================
-function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
+function StudentDashboard({ student, data, news, onLogout, onActivityComplete }) {
   const [view, setView] = useState("home");
   const [activeActivity, setActiveActivity] = useState(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -2086,6 +2164,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
   const [activeSubject, setActiveSubject] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(student);
   const [newBadge, setNewBadge] = useState(null);
+  const [showMascot, setShowMascot] = useState(true);
 
   const myClass = data.classes.find(c => c.id === currentStudent.classId);
   const classStudents = data.students.filter(s => s.classId === currentStudent.classId);
@@ -2155,6 +2234,7 @@ function StudentDashboard({ student, data, onLogout, onActivityComplete }) {
 
   return <AnimatedBg>
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
+    {showMascot && <MascotGreeting studentName={currentStudent.firstName} news={news} onClose={() => setShowMascot(false)} />}
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -3345,7 +3425,7 @@ function App() {
 
   if (!user) return <LoginScreen onLogin={u => { setUser(u); if (u.type === 'student') registerPush(u.student.id); }} data={data} />;
   if (user.type === "teacher") return <TeacherDashboard data={data} refreshData={refreshData} onLogout={() => setUser(null)} />;
-  return <StudentDashboard student={user.student} data={data} onLogout={() => { unregisterPush(user.student?.id); setUser(null); }} onActivityComplete={handleActivityComplete} />;
+  return <StudentDashboard student={user.student} data={data} news={user.news} onLogout={() => { unregisterPush(user.student?.id); setUser(null); }} onActivityComplete={handleActivityComplete} />;
 }
 
 // ============================================================================
