@@ -116,6 +116,17 @@ try {
                     $studentId = $body['studentId'] ?? '';
                     $db->prepare('UPDATE students SET password = NULL WHERE id = ?')->execute([$studentId]);
                     jsonResponse(['success' => true]);
+                } elseif ($type === 'set-avatar') {
+                    // Élève sauvegarde son avatar
+                    $studentId = $body['studentId'] ?? '';
+                    $avatar = $body['avatar'] ?? null;
+                    $stmt = $db->prepare('UPDATE students SET avatar = ? WHERE id = ?');
+                    $stmt->execute([json_encode($avatar), $studentId]);
+                    if ($stmt->rowCount() === 0) {
+                        jsonResponse(['success' => false, 'error' => 'Élève introuvable.'], 404);
+                    }
+                    $s2 = $db->prepare('SELECT * FROM students WHERE id = ?'); $s2->execute([$studentId]); $student = $s2->fetch();
+                    jsonResponse(['success' => true, 'student' => formatStudent($student)]);
                 } elseif ($type === 'change-teacher-password') {
                     // Prof change son propre mot de passe
                     $currentPassword = $body['currentPassword'] ?? '';
@@ -1371,5 +1382,6 @@ function formatStudent($s) {
         'streak' => (int)$s['streak'],
         'badges' => [],
         'lastActive' => $s['last_active'],
+        'avatar' => isset($s['avatar']) ? json_decode($s['avatar'], true) : null,
     ];
 }
