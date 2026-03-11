@@ -939,8 +939,8 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         const data = await api.get(`live-quiz/${sessionId}?studentId=${student.id}`);
         pollFailCount.current = 0;
 
-        // Session supprimée ou erreur
-        if (data.error || (!data.status && !data.currentQ && data.currentQ !== 0)) {
+        // Session supprimée, annulée ou erreur
+        if (data.error || data.status === 'cancelled' || (!data.status && !data.currentQ && data.currentQ !== 0)) {
           clearInterval(interval);
           setSessionEnded(true);
           SoundEngine.stopMusic();
@@ -1405,6 +1405,14 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     setLoading(false);
   };
 
+  const handleClose = async () => {
+    if (liveData && liveData.status !== 'finished') {
+      try { await api.put(`live-quiz/${sessionId}`, { action: 'cancel' }); } catch(e) {}
+    }
+    SoundEngine.stopMusic();
+    onClose();
+  };
+
   const toggleMute = () => {
     const v = !soundMuted; setSoundMuted(v); SoundEngine.setEnabled(!v); SoundEngine.setMusicEnabled(!v);
     if (v) SoundEngine.stopMusic(); else SoundEngine.startMusic();
@@ -1419,7 +1427,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
         <h3 style={{ fontWeight: 900, color: C.text, marginBottom: 8 }}>Erreur de connexion</h3>
         <p style={{ color: C.textLight, fontSize: 13, marginBottom: 8 }}>{initError}</p>
         <p style={{ color: C.textLight, fontSize: 12, marginBottom: 16, background: '#F0F0F8', borderRadius: 10, padding: '8px 12px' }}>Vérifiez que la migration v9 a été exécutée (table <code>live_teams</code>).</p>
-        <Btn onClick={onClose}>Fermer</Btn>
+        <Btn onClick={handleClose}>Fermer</Btn>
       </> : <>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${C.primary}15`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", animation: "float 1s ease-in-out infinite" }}>
           <Icon name="Radio" size={32} color={C.primary} />
@@ -1453,7 +1461,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           {status === 'active' ? 'EN DIRECT' : status === 'paused' ? 'PAUSE' : status === 'waiting' ? 'ATTENTE' : 'TERMINÉ'}
         </div>
         <button onClick={toggleMute} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
-        <button onClick={onClose} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
+        <button onClick={handleClose} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
     </div>
 
