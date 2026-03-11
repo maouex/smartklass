@@ -458,10 +458,35 @@ function avatarUrl(avatar, size) {
   return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`;
 }
 
-function AvatarSVG({ avatar, size = 40, style: extraStyle, onClick }) {
-  return <img src={avatarUrl(avatar, size > 100 ? 256 : 128)} width={size} height={size} alt="Avatar"
-    style={{ borderRadius: '50%', flexShrink: 0, cursor: onClick ? 'pointer' : 'default', objectFit: 'cover', background: '#b6e3f4', ...extraStyle }}
-    onClick={onClick} />;
+function AvatarSVG({ avatar, size = 40, style: extraStyle, onClick, name }) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const url = avatarUrl(avatar, size > 100 ? 256 : 128);
+
+  // Reset états quand l'URL change
+  const prevUrl = React.useRef(url);
+  if (prevUrl.current !== url) { prevUrl.current = url; setFailed(false); setLoaded(false); }
+
+  const initials = name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+  const hue = name ? name.charCodeAt(0) * 47 % 360 : 200;
+
+  // Fallback only: pas d'avatar configuré ou erreur de chargement
+  if (failed || !avatar) {
+    return <div onClick={onClick} style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: `hsl(${hue}, 60%, 55%)`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 800, fontSize: Math.round(size * 0.38), color: '#fff',
+      cursor: onClick ? 'pointer' : 'default', ...extraStyle,
+    }}>{initials}</div>;
+  }
+
+  return <div onClick={onClick} style={{ position: 'relative', width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default', background: '#b6e3f4', ...extraStyle }}>
+    {!loaded && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `hsl(${hue}, 60%, 55%)`, fontWeight: 800, fontSize: Math.round(size * 0.38), color: '#fff' }}>{initials}</div>}
+    <img src={url} width={size} height={size} alt=""
+      onLoad={() => setLoaded(true)}
+      onError={() => setFailed(true)}
+      style={{ borderRadius: '50%', objectFit: 'cover', display: loaded ? 'block' : 'block', opacity: loaded ? 1 : 0, transition: 'opacity 0.3s' }} />
+  </div>;
 }
 
 function AvatarOptionGrid({ options, value, onChange, type }) {
@@ -1376,7 +1401,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
             animation: `correctPop 0.4s ease ${i * 0.05}s both`,
             border: s.id === student.id ? '3px solid #fff' : '2px solid transparent',
             borderRadius: '50%', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}><AvatarSVG avatar={s.avatar} size={40}/></div>)}
+          }}><AvatarSVG avatar={s.avatar} size={40} name={`${s.firstName} ${s.lastName}`}/></div>)}
         </div>
         <p style={{ fontSize: 12, color: C.textLight, marginTop: 12 }}>{liveData.joinedCount} / {liveData.totalStudents} élèves</p>
         {myTeam && <div style={{ marginTop: 12, background: teamColor + '15', border: `2px solid ${teamColor}40`, borderRadius: 12, padding: '8px 16px', display: 'inline-block', color: teamColor, fontWeight: 700 }}>Équipe {myTeam}</div>}
@@ -1718,7 +1743,7 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
             : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {(joinedStudents || []).map((s, i) => <div key={s.id} title={`${s.firstName} ${s.lastName}`} style={{
                 animation: `correctPop 0.3s ease ${i*0.04}s both`,
-              }}><AvatarSVG avatar={s.avatar} size={30}/></div>)}
+              }}><AvatarSVG avatar={s.avatar} size={30} name={`${s.firstName} ${s.lastName}`}/></div>)}
             </div>}
         </div>
 
@@ -2663,7 +2688,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><AvatarSVG avatar={currentStudent.avatar} size={36} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30` }}/><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><AvatarSVG avatar={currentStudent.avatar} size={36} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30` }}/><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Flame" size={13} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
@@ -2672,7 +2697,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
     </div>}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}><AvatarSVG avatar={currentStudent.avatar} size={46} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30`, transition: 'transform 0.2s' }}/><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}><AvatarSVG avatar={currentStudent.avatar} size={46} name={`${currentStudent.firstName} ${currentStudent.lastName}`} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30`, transition: 'transform 0.2s' }}/><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404", display: "flex", alignItems: "center", gap: 5 }}><Icon name="Flame" size={14} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
@@ -2777,7 +2802,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
       {view === "leaderboard" && <div style={{ animation: "fadeIn 0.4s" }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={20} color="#FDCB6E" /> Classement — {myClass?.name}</h2>
         <Card>
-          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ position: 'relative' }}><AvatarSVG avatar={s.avatar} size={34}/>{i < 3 && <div style={{ position: 'absolute', top: -4, right: -4, background: '#fff', borderRadius: '50%', padding: 1 }}><Icon name="Medal" size={12} color={lbMedals[i]} /></div>}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
+          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ position: 'relative' }}><AvatarSVG avatar={s.avatar} size={34} name={`${s.firstName} ${s.lastName}`}/>{i < 3 && <div style={{ position: 'absolute', top: -4, right: -4, background: '#fff', borderRadius: '50%', padding: 1 }}><Icon name="Medal" size={12} color={lbMedals[i]} /></div>}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
       {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} />}
@@ -3103,7 +3128,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               {recentResults.length === 0
                 ? <p style={{ padding: "16px 18px", color: C.textMuted, fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune activité complétée pour l'instant.</p>
                 : recentResults.map((r, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: i > 0 ? "1px solid #F0F0F8" : "none" }}>
-                    <AvatarSVG avatar={r.student.avatar} size={28}/>
+                    <AvatarSVG avatar={r.student.avatar} size={28} name={`${r.student.firstName} ${r.student.lastName}`}/>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.student.firstName} {r.student.lastName}</div>
                       <div style={{ fontSize: 12, color: C.textLight, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.activity.title}</div>
@@ -3123,7 +3148,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                     {inactiveStudents.length > 0 && <>
                       <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Inactifs depuis + 7 jours ({inactiveStudents.length})</div>
                       {inactiveStudents.slice(0, 4).map(s => <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", borderTop: "1px solid #F0F0F8" }}>
-                        <AvatarSVG avatar={s.avatar} size={24}/>
+                        <AvatarSVG avatar={s.avatar} size={24} name={`${s.firstName} ${s.lastName}`}/>
                         <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{s.firstName} {s.lastName}</span>
                         <span style={{ fontSize: 12, color: C.danger, fontWeight: 700 }}>{s.lastActive ? relativeDate(s.lastActive) : "jamais connecté"}</span>
                       </div>)}
@@ -3179,7 +3204,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 : <Card><div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Nunito',sans-serif", fontSize: 13 }}>
                       <thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["", "Nom", "Prénom", "ID", "XP", "Actions"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead>
-                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", width: 36 }}><AvatarSVG avatar={s.avatar} size={28}/></td><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
+                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", width: 36 }}><AvatarSVG avatar={s.avatar} size={28} name={`${s.firstName} ${s.lastName}`}/></td><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
                     </table>
                   </div></Card>}
             </div>
