@@ -350,222 +350,212 @@ const C = {
 };
 
 // ============================================================================
-// AVATAR SYSTEM — Personnalisation SVG
+// AVATAR SYSTEM — DiceBear Adventurer (via HTTP API CDN)
 // ============================================================================
 const AVATAR_OPTIONS = {
-  skin: ['#FDDCB5','#F5C5A3','#E8A87C','#D08B5B','#A0674B','#6B4226'],
-  hair: [
-    { id: 'short', label: 'Court' },
-    { id: 'medium', label: 'Mi-long' },
-    { id: 'long', label: 'Long' },
-    { id: 'curly', label: 'Bouclé' },
-    { id: 'afro', label: 'Afro' },
-    { id: 'spiky', label: 'Hérissé' },
-    { id: 'buzz', label: 'Rasé' },
-    { id: 'none', label: 'Aucun' },
+  skinColor: [
+    { id: 'f2d3b1', label: 'Claire', color: '#f2d3b1' },
+    { id: 'ecad80', label: 'Dorée', color: '#ecad80' },
+    { id: 'd08b5b', label: 'Hâlée', color: '#d08b5b' },
+    { id: '9e5622', label: 'Brune', color: '#9e5622' },
+    { id: '763900', label: 'Foncée', color: '#763900' },
   ],
-  hairColor: ['#2C1810','#4A2C17','#8B6914','#D4A437','#C0392B','#E67E22','#1A1A2E','#AAAAAA'],
+  hair: [
+    { id: 'short01', label: 'Court 1' }, { id: 'short02', label: 'Court 2' },
+    { id: 'short03', label: 'Court 3' }, { id: 'short04', label: 'Court 4' },
+    { id: 'short05', label: 'Court 5' },
+    { id: 'long01', label: 'Long 1' }, { id: 'long02', label: 'Long 2' },
+    { id: 'long03', label: 'Long 3' }, { id: 'long04', label: 'Long 4' },
+    { id: 'long05', label: 'Long 5' }, { id: 'long06', label: 'Long 6' },
+    { id: 'long07', label: 'Long 7' }, { id: 'long08', label: 'Long 8' },
+    { id: 'long09', label: 'Long 9' }, { id: 'long10', label: 'Long 10' },
+    { id: 'long11', label: 'Long 11' }, { id: 'long12', label: 'Long 12' },
+    { id: 'long13', label: 'Long 13' }, { id: 'long14', label: 'Long 14' },
+    { id: 'long15', label: 'Long 15' }, { id: 'long16', label: 'Long 16' },
+    { id: 'long17', label: 'Long 17' }, { id: 'long18', label: 'Long 18' },
+    { id: 'long19', label: 'Long 19' }, { id: 'long20', label: 'Long 20' },
+  ],
+  hairColor: [
+    { id: '0e0e0e', label: 'Noir', color: '#0e0e0e' },
+    { id: '3a3a3a', label: 'Brun foncé', color: '#3a3a3a' },
+    { id: '6a4e35', label: 'Châtain', color: '#6a4e35' },
+    { id: 'b7856b', label: 'Noisette', color: '#b7856b' },
+    { id: 'd6b370', label: 'Blond', color: '#d6b370' },
+    { id: 'f2d082', label: 'Blond clair', color: '#f2d082' },
+    { id: 'c93305', label: 'Roux', color: '#c93305' },
+    { id: 'e8e1e1', label: 'Gris', color: '#e8e1e1' },
+  ],
   eyes: [
-    { id: 'normal', label: 'Normal' },
-    { id: 'happy', label: 'Content' },
-    { id: 'cool', label: 'Cool' },
-    { id: 'wink', label: 'Clin d\'oeil' },
-    { id: 'big', label: 'Grands' },
-    { id: 'sleepy', label: 'Endormi' },
+    { id: 'variant01', label: 'Style 1' }, { id: 'variant02', label: 'Style 2' },
+    { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
+    { id: 'variant05', label: 'Style 5' }, { id: 'variant06', label: 'Style 6' },
+    { id: 'variant07', label: 'Style 7' }, { id: 'variant08', label: 'Style 8' },
+    { id: 'variant09', label: 'Style 9' }, { id: 'variant10', label: 'Style 10' },
+    { id: 'variant11', label: 'Style 11' }, { id: 'variant12', label: 'Style 12' },
+    { id: 'variant13', label: 'Style 13' }, { id: 'variant14', label: 'Style 14' },
+    { id: 'variant15', label: 'Style 15' }, { id: 'variant16', label: 'Style 16' },
+    { id: 'variant17', label: 'Style 17' }, { id: 'variant20', label: 'Style 18' },
+    { id: 'variant23', label: 'Style 19' }, { id: 'variant24', label: 'Style 20' },
+    { id: 'variant25', label: 'Style 21' }, { id: 'variant26', label: 'Style 22' },
+  ],
+  eyebrows: [
+    { id: 'variant01', label: 'Style 1' }, { id: 'variant02', label: 'Style 2' },
+    { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
+    { id: 'variant05', label: 'Style 5' }, { id: 'variant06', label: 'Style 6' },
+    { id: 'variant07', label: 'Style 7' }, { id: 'variant08', label: 'Style 8' },
+    { id: 'variant09', label: 'Style 9' }, { id: 'variant10', label: 'Style 10' },
+    { id: 'variant11', label: 'Style 11' }, { id: 'variant12', label: 'Style 12' },
+    { id: 'variant13', label: 'Style 13' }, { id: 'variant15', label: 'Style 14' },
   ],
   mouth: [
-    { id: 'smile', label: 'Sourire' },
-    { id: 'grin', label: 'Grand sourire' },
-    { id: 'neutral', label: 'Neutre' },
-    { id: 'open', label: 'Ouvert' },
-    { id: 'smirk', label: 'Malin' },
+    { id: 'variant01', label: 'Style 1' }, { id: 'variant02', label: 'Style 2' },
+    { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
+    { id: 'variant05', label: 'Style 5' }, { id: 'variant06', label: 'Style 6' },
+    { id: 'variant07', label: 'Style 7' }, { id: 'variant08', label: 'Style 8' },
+    { id: 'variant09', label: 'Style 9' }, { id: 'variant10', label: 'Style 10' },
+    { id: 'variant11', label: 'Style 11' }, { id: 'variant12', label: 'Style 12' },
+    { id: 'variant13', label: 'Style 13' }, { id: 'variant14', label: 'Style 14' },
+    { id: 'variant15', label: 'Style 15' }, { id: 'variant16', label: 'Style 16' },
+    { id: 'variant17', label: 'Style 17' }, { id: 'variant18', label: 'Style 18' },
+    { id: 'variant19', label: 'Style 19' }, { id: 'variant20', label: 'Style 20' },
+    { id: 'variant21', label: 'Style 21' }, { id: 'variant22', label: 'Style 22' },
+    { id: 'variant23', label: 'Style 23' }, { id: 'variant24', label: 'Style 24' },
+    { id: 'variant25', label: 'Style 25' }, { id: 'variant26', label: 'Style 26' },
+    { id: 'variant27', label: 'Style 27' }, { id: 'variant28', label: 'Style 28' },
+    { id: 'variant29', label: 'Style 29' }, { id: 'variant30', label: 'Style 30' },
   ],
-  accessory: [
-    { id: 'none', label: 'Aucun' },
-    { id: 'glasses', label: 'Lunettes' },
-    { id: 'sunglasses', label: 'Solaires' },
-    { id: 'cap', label: 'Casquette' },
-    { id: 'headband', label: 'Bandeau' },
-    { id: 'earrings', label: 'Boucles d\'oreilles' },
+  glasses: [
+    { id: 'none', label: 'Aucune' },
+    { id: 'variant01', label: 'Style 1' }, { id: 'variant02', label: 'Style 2' },
+    { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
+    { id: 'variant05', label: 'Style 5' },
+  ],
+  earrings: [
+    { id: 'none', label: 'Aucune' },
+    { id: 'variant01', label: 'Style 1' }, { id: 'variant02', label: 'Style 2' },
+    { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
+    { id: 'variant05', label: 'Style 5' }, { id: 'variant06', label: 'Style 6' },
   ],
 };
 
-const DEFAULT_AVATAR = { skin: 0, hair: 0, hairColor: 0, eyes: 0, mouth: 0, accessory: 0 };
+const DEFAULT_AVATAR = { skinColor: 'f2d3b1', hair: 'short01', hairColor: '6a4e35', eyes: 'variant01', eyebrows: 'variant01', mouth: 'variant01', glasses: 'none', earrings: 'none' };
+
+function avatarUrl(avatar, size) {
+  const cfg = avatar || DEFAULT_AVATAR;
+  const params = new URLSearchParams();
+  params.set('skinColor', cfg.skinColor || 'f2d3b1');
+  params.set('hair', cfg.hair || 'short01');
+  params.set('hairColor', cfg.hairColor || '6a4e35');
+  params.set('eyes', cfg.eyes || 'variant01');
+  params.set('eyebrows', cfg.eyebrows || 'variant01');
+  params.set('mouth', cfg.mouth || 'variant01');
+  if (cfg.glasses && cfg.glasses !== 'none') { params.set('glasses', cfg.glasses); params.set('glassesProbability', '100'); }
+  else params.set('glassesProbability', '0');
+  if (cfg.earrings && cfg.earrings !== 'none') { params.set('earrings', cfg.earrings); params.set('earringsProbability', '100'); }
+  else params.set('earringsProbability', '0');
+  params.set('backgroundColor', 'b6e3f4');
+  if (size) params.set('size', size);
+  return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`;
+}
 
 function AvatarSVG({ avatar, size = 40, style: extraStyle, onClick }) {
-  const cfg = avatar || DEFAULT_AVATAR;
-  const skinColor = AVATAR_OPTIONS.skin[cfg.skin] || AVATAR_OPTIONS.skin[0];
-  const hColor = AVATAR_OPTIONS.hairColor[cfg.hairColor] || AVATAR_OPTIONS.hairColor[0];
-  const hairType = AVATAR_OPTIONS.hair[cfg.hair]?.id || 'short';
-  const eyeType = AVATAR_OPTIONS.eyes[cfg.eyes]?.id || 'normal';
-  const mouthType = AVATAR_OPTIONS.mouth[cfg.mouth]?.id || 'smile';
-  const accType = AVATAR_OPTIONS.accessory[cfg.accessory]?.id || 'none';
+  return <img src={avatarUrl(avatar, size > 100 ? 256 : 128)} width={size} height={size} alt="Avatar"
+    style={{ borderRadius: '50%', flexShrink: 0, cursor: onClick ? 'pointer' : 'default', objectFit: 'cover', background: '#b6e3f4', ...extraStyle }}
+    onClick={onClick} />;
+}
 
-  const renderHair = () => {
-    switch (hairType) {
-      case 'short': return <path d="M20 15C20 15 15 8 30 8C45 8 50 12 50 15C50 18 48 14 40 12C32 10 25 11 20 15Z" fill={hColor}/>;
-      case 'medium': return <><path d="M18 16C16 10 22 6 35 6C48 6 52 12 50 18C48 14 42 9 35 9C28 9 21 12 18 16Z" fill={hColor}/><path d="M16 20C15 26 14 32 16 36C15 30 15 24 16 20Z" fill={hColor}/><path d="M52 20C53 26 54 32 52 36C53 30 53 24 52 20Z" fill={hColor}/></>;
-      case 'long': return <><path d="M15 18C14 10 22 4 35 4C48 4 54 10 53 18C50 12 42 7 35 7C28 7 19 12 15 18Z" fill={hColor}/><path d="M14 20C12 30 11 40 14 50C13 42 12 32 14 20Z" fill={hColor}/><path d="M54 20C56 30 57 40 54 50C55 42 56 32 54 20Z" fill={hColor}/></>;
-      case 'curly': return <><path d="M18 17C16 10 23 5 35 5C47 5 52 10 50 17C48 12 42 8 35 8C28 8 21 12 18 17Z" fill={hColor}/><circle cx="16" cy="22" r="4" fill={hColor}/><circle cx="14" cy="30" r="3.5" fill={hColor}/><circle cx="52" cy="22" r="4" fill={hColor}/><circle cx="54" cy="30" r="3.5" fill={hColor}/><circle cx="20" cy="12" r="3" fill={hColor}/><circle cx="48" cy="12" r="3" fill={hColor}/><circle cx="35" cy="7" r="3.5" fill={hColor}/></>;
-      case 'afro': return <circle cx="35" cy="20" r="24" fill={hColor}/>;
-      case 'spiky': return <><path d="M20 16L17 4L27 12L25 2L35 11L38 1L42 12L48 3L47 14L54 6L50 17" fill={hColor}/><path d="M20 16C20 16 24 10 35 10C46 10 50 17 50 17C48 13 42 10 35 10C28 10 22 13 20 16Z" fill={hColor}/></>;
-      case 'buzz': return <path d="M19 18C18 14 24 9 35 9C46 9 50 14 49 18C47 14 42 11 35 11C28 11 21 14 19 18Z" fill={hColor}/>;
+function AvatarOptionGrid({ options, value, onChange, type }) {
+  if (type === 'color') {
+    return <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+      {options.map(o => <button key={o.id} onClick={() => onChange(o.id)} style={{
+        width: 42, height: 42, borderRadius: '50%', background: o.color, border: value === o.id ? `3px solid ${C.primary}` : '3px solid transparent',
+        cursor: 'pointer', boxShadow: value === o.id ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
+      }} title={o.label}/>)}
+    </div>;
+  }
+  return <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
+    {options.map(o => <button key={o.id} onClick={() => onChange(o.id)} style={{
+      padding: '6px 10px', borderRadius: 10, border: value === o.id ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+      background: value === o.id ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+      fontFamily: "'Nunito',sans-serif", color: value === o.id ? C.primary : C.text, transition: 'all 0.15s',
+    }}>{o.label}</button>)}
+  </div>;
+}
+
+function AvatarEditorInner({ cfg, setCfg, size }) {
+  const [activeTab, setActiveTab] = useState('skinColor');
+  const update = (key, val) => setCfg(prev => ({ ...prev, [key]: val }));
+
+  const tabs = [
+    { id: 'skinColor', label: 'Peau', icon: 'User' },
+    { id: 'hair', label: 'Cheveux', icon: 'Scissors' },
+    { id: 'eyes', label: 'Yeux', icon: 'Eye' },
+    { id: 'mouth', label: 'Bouche', icon: 'Smile' },
+    { id: 'extras', label: 'Extra', icon: 'Star' },
+  ];
+
+  const renderOptions = () => {
+    switch (activeTab) {
+      case 'skinColor':
+        return <AvatarOptionGrid options={AVATAR_OPTIONS.skinColor} value={cfg.skinColor} onChange={v => update('skinColor', v)} type="color"/>;
+      case 'hair':
+        return <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Coiffure</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.hair} value={cfg.hair} onChange={v => update('hair', v)}/>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, marginTop: 14 }}>Couleur</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.hairColor} value={cfg.hairColor} onChange={v => update('hairColor', v)} type="color"/>
+        </div>;
+      case 'eyes':
+        return <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Yeux</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.eyes} value={cfg.eyes} onChange={v => update('eyes', v)}/>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, marginTop: 14 }}>Sourcils</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.eyebrows} value={cfg.eyebrows} onChange={v => update('eyebrows', v)}/>
+        </div>;
+      case 'mouth':
+        return <AvatarOptionGrid options={AVATAR_OPTIONS.mouth} value={cfg.mouth} onChange={v => update('mouth', v)}/>;
+      case 'extras':
+        return <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Lunettes</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.glasses} value={cfg.glasses} onChange={v => update('glasses', v)}/>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, marginTop: 14 }}>Boucles d'oreilles</p>
+          <AvatarOptionGrid options={AVATAR_OPTIONS.earrings} value={cfg.earrings} onChange={v => update('earrings', v)}/>
+        </div>;
       default: return null;
     }
   };
 
-  const renderEyes = () => {
-    switch (eyeType) {
-      case 'normal': return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="43" cy="30" r="3" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><circle cx="44" cy="29" r="1" fill="#fff"/></>;
-      case 'happy': return <><path d="M24 30C24 28 27 26 30 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M40 30C40 28 43 26 46 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
-      case 'cool': return <><ellipse cx="27" cy="30" rx="3.5" ry="2.5" fill="#2D3436"/><ellipse cx="43" cy="30" rx="3.5" ry="2.5" fill="#2D3436"/><circle cx="28.5" cy="29.5" r="1" fill="#fff"/><circle cx="44.5" cy="29.5" r="1" fill="#fff"/></>;
-      case 'wink': return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><path d="M40 30C40 28 43 27 46 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
-      case 'big': return <><circle cx="27" cy="30" r="4.5" fill="#fff" stroke="#2D3436" strokeWidth="1.5"/><circle cx="27" cy="30" r="2.5" fill="#2D3436"/><circle cx="43" cy="30" r="4.5" fill="#fff" stroke="#2D3436" strokeWidth="1.5"/><circle cx="43" cy="30" r="2.5" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><circle cx="44" cy="29" r="1" fill="#fff"/></>;
-      case 'sleepy': return <><path d="M24 31C26 29 28 29 30 31" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M40 31C42 29 44 29 46 31" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
-      default: return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="43" cy="30" r="3" fill="#2D3436"/></>;
-    }
-  };
-
-  const renderMouth = () => {
-    switch (mouthType) {
-      case 'smile': return <path d="M28 40C30 44 40 44 42 40" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
-      case 'grin': return <path d="M26 39C28 45 42 45 44 39" stroke="#2D3436" strokeWidth="2" fill="#fff" strokeLinecap="round"/>;
-      case 'neutral': return <line x1="29" y1="41" x2="41" y2="41" stroke="#2D3436" strokeWidth="2" strokeLinecap="round"/>;
-      case 'open': return <ellipse cx="35" cy="42" rx="5" ry="4" fill="#2D3436"/>;
-      case 'smirk': return <path d="M30 41C34 44 40 42 43 39" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
-      default: return <path d="M28 40C30 44 40 44 42 40" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
-    }
-  };
-
-  const renderAccessory = () => {
-    switch (accType) {
-      case 'glasses': return <><circle cx="27" cy="30" r="7" fill="none" stroke="#2D3436" strokeWidth="2"/><circle cx="43" cy="30" r="7" fill="none" stroke="#2D3436" strokeWidth="2"/><line x1="34" y1="30" x2="36" y2="30" stroke="#2D3436" strokeWidth="2"/><line x1="20" y1="29" x2="16" y2="27" stroke="#2D3436" strokeWidth="2"/><line x1="50" y1="29" x2="54" y2="27" stroke="#2D3436" strokeWidth="2"/></>;
-      case 'sunglasses': return <><rect x="19" y="24" width="14" height="10" rx="3" fill="#2D3436"/><rect x="37" y="24" width="14" height="10" rx="3" fill="#2D3436"/><line x1="33" y1="29" x2="37" y2="29" stroke="#2D3436" strokeWidth="2"/><line x1="19" y1="28" x2="15" y2="26" stroke="#2D3436" strokeWidth="2"/><line x1="51" y1="28" x2="55" y2="26" stroke="#2D3436" strokeWidth="2"/><rect x="20" y="25" width="12" height="8" rx="2" fill="#1A1A2E" opacity="0.7"/><rect x="38" y="25" width="12" height="8" rx="2" fill="#1A1A2E" opacity="0.7"/></>;
-      case 'cap': return <><path d="M14 18C14 18 18 8 35 8C52 8 56 18 56 18L14 18Z" fill={C.primary}/><rect x="10" y="16" width="30" height="4" rx="2" fill={C.primary}/></>;
-      case 'headband': return <rect x="14" y="16" width="42" height="4" rx="2" fill={C.accent}/>;
-      case 'earrings': return <><circle cx="14" cy="36" r="2.5" fill="#F1C40F"/><circle cx="56" cy="36" r="2.5" fill="#F1C40F"/></>;
-      default: return null;
-    }
-  };
-
-  return <svg viewBox="0 0 70 70" width={size} height={size} style={{ borderRadius: '50%', background: `${C.primary}15`, flexShrink: 0, cursor: onClick ? 'pointer' : 'default', ...extraStyle }} onClick={onClick}>
-    {/* Face */}
-    <ellipse cx="35" cy="35" rx="22" ry="25" fill={skinColor}/>
-    {/* Ears */}
-    <ellipse cx="13" cy="33" rx="4" ry="5" fill={skinColor}/>
-    <ellipse cx="57" cy="33" rx="4" ry="5" fill={skinColor}/>
-    {/* Eyes */}
-    {renderEyes()}
-    {/* Mouth */}
-    {renderMouth()}
-    {/* Eyebrows */}
-    <path d="M23 24C25 22 29 22 31 24" stroke="#2D3436" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-    <path d="M39 24C41 22 45 22 47 24" stroke="#2D3436" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-    {/* Nose */}
-    <path d="M34 34C34 36 36 36 36 34" stroke="#2D3436" strokeWidth="1" fill="none" opacity="0.4"/>
-    {/* Hair (on top) */}
-    {renderHair()}
-    {/* Accessory */}
-    {renderAccessory()}
-  </svg>;
+  return <>
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+      <AvatarSVG avatar={cfg} size={size || 110} style={{ border: `3px solid ${C.primary}30`, boxShadow: '0 8px 24px rgba(108,92,231,0.15)' }}/>
+    </div>
+    <div style={{ display: 'flex', gap: 4, marginBottom: 14, overflowX: 'auto', justifyContent: 'center' }}>
+      {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+        padding: '5px 10px', borderRadius: 10, border: 'none', background: activeTab === t.id ? C.primary : '#F0F0F8',
+        color: activeTab === t.id ? '#fff' : C.textLight, cursor: 'pointer', fontSize: 11, fontWeight: 800,
+        fontFamily: "'Nunito',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4,
+      }}><Icon name={t.icon} size={12} color={activeTab === t.id ? '#fff' : C.textLight}/> {t.label}</button>)}
+    </div>
+    <div style={{ minHeight: 70, maxHeight: 220, overflowY: 'auto' }}>
+      {renderOptions()}
+    </div>
+  </>;
 }
 
 function AvatarEditor({ avatar, onSave, onClose, studentName }) {
   const [cfg, setCfg] = useState(avatar || { ...DEFAULT_AVATAR });
-  const [activeTab, setActiveTab] = useState('skin');
   const [saving, setSaving] = useState(false);
 
-  const update = (key, val) => setCfg(prev => ({ ...prev, [key]: val }));
-
-  const tabs = [
-    { id: 'skin', label: 'Peau', icon: 'User' },
-    { id: 'hair', label: 'Cheveux', icon: 'Scissors' },
-    { id: 'eyes', label: 'Yeux', icon: 'Eye' },
-    { id: 'mouth', label: 'Bouche', icon: 'Smile' },
-    { id: 'accessory', label: 'Accessoires', icon: 'Star' },
-  ];
-
-  const handleSave = async () => {
-    setSaving(true);
-    await onSave(cfg);
-    setSaving(false);
-  };
-
-  const renderOptions = () => {
-    switch (activeTab) {
-      case 'skin':
-        return <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.skin.map((color, i) => <button key={i} onClick={() => update('skin', i)} style={{
-            width: 48, height: 48, borderRadius: '50%', background: color, border: cfg.skin === i ? `3px solid ${C.primary}` : '3px solid transparent',
-            cursor: 'pointer', boxShadow: cfg.skin === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
-          }}/>)}
-        </div>;
-      case 'hair':
-        return <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Style</p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 16 }}>
-            {AVATAR_OPTIONS.hair.map((h, i) => <button key={h.id} onClick={() => update('hair', i)} style={{
-              padding: '8px 14px', borderRadius: 10, border: cfg.hair === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-              background: cfg.hair === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              fontFamily: "'Nunito',sans-serif", color: cfg.hair === i ? C.primary : C.text,
-            }}>{h.label}</button>)}
-          </div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Couleur</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {AVATAR_OPTIONS.hairColor.map((color, i) => <button key={i} onClick={() => update('hairColor', i)} style={{
-              width: 36, height: 36, borderRadius: '50%', background: color, border: cfg.hairColor === i ? `3px solid ${C.primary}` : '3px solid transparent',
-              cursor: 'pointer', boxShadow: cfg.hairColor === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
-            }}/>)}
-          </div>
-        </div>;
-      case 'eyes':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.eyes.map((e, i) => <button key={e.id} onClick={() => update('eyes', i)} style={{
-            padding: '8px 14px', borderRadius: 10, border: cfg.eyes === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.eyes === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.eyes === i ? C.primary : C.text,
-          }}>{e.label}</button>)}
-        </div>;
-      case 'mouth':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.mouth.map((m, i) => <button key={m.id} onClick={() => update('mouth', i)} style={{
-            padding: '8px 14px', borderRadius: 10, border: cfg.mouth === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.mouth === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.mouth === i ? C.primary : C.text,
-          }}>{m.label}</button>)}
-        </div>;
-      case 'accessory':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.accessory.map((a, i) => <button key={a.id} onClick={() => update('accessory', i)} style={{
-            padding: '8px 14px', borderRadius: 10, border: cfg.accessory === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.accessory === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.accessory === i ? C.primary : C.text,
-          }}>{a.label}</button>)}
-        </div>;
-      default: return null;
-    }
-  };
+  const handleSave = async () => { setSaving(true); await onSave(cfg); setSaving(false); };
 
   return <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn 0.3s' }} onClick={onClose}>
-    <div style={{ background: '#fff', borderRadius: 24, maxWidth: 420, width: '100%', maxHeight: '90vh', overflow: 'auto', padding: 0, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+    <div style={{ background: '#fff', borderRadius: 24, maxWidth: 440, width: '100%', maxHeight: '90vh', overflow: 'auto', padding: 0, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
       <div style={{ padding: '24px 24px 16px', textAlign: 'center', borderBottom: '1px solid #F0F0F8' }}>
         <h2 style={{ fontSize: 18, fontWeight: 900, margin: '0 0 4px', color: C.text }}>Personnalise ton avatar</h2>
         {studentName && <p style={{ fontSize: 13, color: C.textLight, margin: 0, fontWeight: 600 }}>{studentName}</p>}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 12px' }}>
-        <div style={{ position: 'relative' }}>
-          <AvatarSVG avatar={cfg} size={120} style={{ border: `3px solid ${C.primary}30`, boxShadow: '0 8px 24px rgba(108,92,231,0.2)' }}/>
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 4, padding: '0 16px 12px', overflowX: 'auto', justifyContent: 'center' }}>
-        {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-          padding: '6px 12px', borderRadius: 10, border: 'none', background: activeTab === t.id ? C.primary : '#F0F0F8',
-          color: activeTab === t.id ? '#fff' : C.textLight, cursor: 'pointer', fontSize: 11, fontWeight: 800,
-          fontFamily: "'Nunito',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4,
-        }}><Icon name={t.icon} size={13} color={activeTab === t.id ? '#fff' : C.textLight}/> {t.label}</button>)}
-      </div>
-      <div style={{ padding: '12px 24px 20px', minHeight: 80 }}>
-        {renderOptions()}
+      <div style={{ padding: '20px 24px' }}>
+        <AvatarEditorInner cfg={cfg} setCfg={setCfg} size={120}/>
       </div>
       <div style={{ padding: '0 24px 24px', display: 'flex', gap: 8 }}>
         <Btn onClick={onClose} variant="outline" fullWidth>Annuler</Btn>
@@ -577,79 +567,9 @@ function AvatarEditor({ avatar, onSave, onClose, studentName }) {
 
 function AvatarSetupScreen({ student, onSave, onSkip }) {
   const [cfg, setCfg] = useState({ ...DEFAULT_AVATAR });
-  const [activeTab, setActiveTab] = useState('skin');
   const [saving, setSaving] = useState(false);
 
-  const update = (key, val) => setCfg(prev => ({ ...prev, [key]: val }));
-
-  const tabs = [
-    { id: 'skin', label: 'Peau', icon: 'User' },
-    { id: 'hair', label: 'Cheveux', icon: 'Scissors' },
-    { id: 'eyes', label: 'Yeux', icon: 'Eye' },
-    { id: 'mouth', label: 'Bouche', icon: 'Smile' },
-    { id: 'accessory', label: 'Extra', icon: 'Star' },
-  ];
-
-  const handleSave = async () => {
-    setSaving(true);
-    await onSave(cfg);
-    setSaving(false);
-  };
-
-  const renderOptions = () => {
-    switch (activeTab) {
-      case 'skin':
-        return <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.skin.map((color, i) => <button key={i} onClick={() => update('skin', i)} style={{
-            width: 48, height: 48, borderRadius: '50%', background: color, border: cfg.skin === i ? `3px solid ${C.primary}` : '3px solid transparent',
-            cursor: 'pointer', boxShadow: cfg.skin === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
-          }}/>)}
-        </div>;
-      case 'hair':
-        return <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, textAlign: 'left' }}>Style</p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
-            {AVATAR_OPTIONS.hair.map((h, i) => <button key={h.id} onClick={() => update('hair', i)} style={{
-              padding: '7px 12px', borderRadius: 10, border: cfg.hair === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-              background: cfg.hair === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              fontFamily: "'Nunito',sans-serif", color: cfg.hair === i ? C.primary : C.text,
-            }}>{h.label}</button>)}
-          </div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, textAlign: 'left' }}>Couleur</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {AVATAR_OPTIONS.hairColor.map((color, i) => <button key={i} onClick={() => update('hairColor', i)} style={{
-              width: 34, height: 34, borderRadius: '50%', background: color, border: cfg.hairColor === i ? `3px solid ${C.primary}` : '3px solid transparent',
-              cursor: 'pointer', boxShadow: cfg.hairColor === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
-            }}/>)}
-          </div>
-        </div>;
-      case 'eyes':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.eyes.map((e, i) => <button key={e.id} onClick={() => update('eyes', i)} style={{
-            padding: '7px 12px', borderRadius: 10, border: cfg.eyes === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.eyes === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.eyes === i ? C.primary : C.text,
-          }}>{e.label}</button>)}
-        </div>;
-      case 'mouth':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.mouth.map((m, i) => <button key={m.id} onClick={() => update('mouth', i)} style={{
-            padding: '7px 12px', borderRadius: 10, border: cfg.mouth === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.mouth === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.mouth === i ? C.primary : C.text,
-          }}>{m.label}</button>)}
-        </div>;
-      case 'accessory':
-        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {AVATAR_OPTIONS.accessory.map((a, i) => <button key={a.id} onClick={() => update('accessory', i)} style={{
-            padding: '7px 12px', borderRadius: 10, border: cfg.accessory === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
-            background: cfg.accessory === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            fontFamily: "'Nunito',sans-serif", color: cfg.accessory === i ? C.primary : C.text,
-          }}>{a.label}</button>)}
-        </div>;
-      default: return null;
-    }
-  };
+  const handleSave = async () => { setSaving(true); await onSave(cfg); setSaving(false); };
 
   return <AnimatedBg>
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -659,20 +579,8 @@ function AvatarSetupScreen({ student, onSave, onSkip }) {
           <p style={{ color: C.textLight, fontSize: 14, margin: 0, fontWeight: 600 }}>{student.firstName}, personnalise ton look</p>
         </div>
         <Card style={{ padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <AvatarSVG avatar={cfg} size={110} style={{ border: `3px solid ${C.primary}30`, boxShadow: '0 8px 24px rgba(108,92,231,0.15)' }}/>
-          </div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 14, overflowX: 'auto', justifyContent: 'center' }}>
-            {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-              padding: '5px 10px', borderRadius: 10, border: 'none', background: activeTab === t.id ? C.primary : '#F0F0F8',
-              color: activeTab === t.id ? '#fff' : C.textLight, cursor: 'pointer', fontSize: 11, fontWeight: 800,
-              fontFamily: "'Nunito',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4,
-            }}><Icon name={t.icon} size={12} color={activeTab === t.id ? '#fff' : C.textLight}/> {t.label}</button>)}
-          </div>
-          <div style={{ minHeight: 70, marginBottom: 16 }}>
-            {renderOptions()}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <AvatarEditorInner cfg={cfg} setCfg={setCfg}/>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <Btn onClick={onSkip} variant="outline" fullWidth>Passer</Btn>
             <Btn onClick={handleSave} fullWidth disabled={saving}>{saving ? '...' : 'C\'est parti !'}</Btn>
           </div>
