@@ -1496,24 +1496,18 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           </div>
         </div>}
 
-        {/* Distribution des réponses */}
+        {/* Stats détaillées (active/pause) */}
         {(status === 'active' || status === 'paused') && question && <div style={{ background: "#fff", borderRadius: 16, padding: 14, border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 12 }}>
-          <h4 style={{ fontWeight: 800, fontSize: 13, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6, color: C.text }}><Icon name="BarChart3" size={14} color={C.primary} /> Réponses</h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 12, color: allAnswered ? "#00B894" : answeredCount > 0 ? '#E67E22' : C.textLight }}>{answeredCount}/{joinedCount} réponses</span>
-            {allAnswered && <Icon name="CheckCircle2" size={12} color="#00B894" />}
-          </div>
-          <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={status === 'paused'} />
-        </div>}
-
-        {/* Stats détaillées (pause) */}
-        {status === 'paused' && question && <div style={{ background: "#fff", borderRadius: 16, padding: 14, border: '1px solid #EEEEF5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 12 }}>
           <h4 style={{ fontWeight: 800, fontSize: 13, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6, color: C.text }}><Icon name="TrendingUp" size={14} color="#00B894" /> Stats</h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F0F0F8' }}>
+            <span style={{ fontSize: 12, color: C.textLight }}>Réponses</span>
+            <span style={{ fontWeight: 800, fontSize: 13, color: allAnswered ? '#00B894' : answeredCount > 0 ? '#E67E22' : C.textLight }}>{answeredCount}/{joinedCount}{allAnswered ? ' ✓' : ''}</span>
+          </div>
           {avgTimeMs != null && avgTimeMs > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F0F0F8' }}>
             <span style={{ fontSize: 12, color: C.textLight }}>Temps moyen</span>
             <span style={{ fontWeight: 800, fontSize: 13, color: C.text }}>{(avgTimeMs / 1000).toFixed(1)}s</span>
           </div>}
-          {(() => { const total = distribution.reduce((a, b) => a + b, 0); const correct = total > 0 ? distribution[question.answer] || 0 : 0; const pct = total > 0 ? Math.round((correct / total) * 100) : 0; return <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
+          {status === 'paused' && (() => { const total = distribution.reduce((a, b) => a + b, 0); const correct = total > 0 ? distribution[question.answer] || 0 : 0; const pct = total > 0 ? Math.round((correct / total) * 100) : 0; return <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
             <span style={{ fontSize: 12, color: C.textLight }}>Bonnes réponses</span>
             <span style={{ fontWeight: 800, fontSize: 13, color: pct >= 70 ? '#00B894' : pct >= 40 ? '#E67E22' : '#D63031' }}>{pct}%</span>
           </div>; })()}
@@ -1567,13 +1561,23 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
             <div style={{ width: `${((currentQ + 1) / totalQuestions) * 100}%`, height: "100%", background: C.primary, borderRadius: 10, transition: "width 0.4s" }} />
           </div>
 
-          {/* Question card */}
-          <div style={{ background: "#fff", borderRadius: 18, padding: '28px 24px', marginBottom: 16, textAlign: "center", border: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-            {question.isMatching && <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 8 }}>🔗 ASSOCIATION</div>}
-            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.5, color: C.text }}>{question.q}</p>
-            {status === 'paused' && question.answer !== undefined && <div style={{ marginTop: 12, padding: '8px 16px', background: '#00B89410', borderRadius: 12, display: 'inline-block' }}>
-              <span style={{ fontWeight: 800, fontSize: 13, color: '#00B894' }}>Réponse : {question.isTrueFalse ? (question.answer === 0 ? 'Vrai' : 'Faux') : (labels[question.answer] || '') + (question.choices?.[question.answer] ? ` — ${question.choices[question.answer]}` : '')}</span>
+          {/* Question card + Distribution */}
+          <div style={{ background: "#fff", borderRadius: 18, padding: '28px 24px', marginBottom: 16, border: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+            {question.isMatching && <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 8, textAlign: 'center' }}>🔗 ASSOCIATION</div>}
+            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.5, color: C.text, textAlign: 'center' }}>{question.q}</p>
+            {status === 'paused' && question.answer !== undefined && <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <div style={{ padding: '8px 16px', background: '#00B89410', borderRadius: 12, display: 'inline-block' }}>
+                <span style={{ fontWeight: 800, fontSize: 13, color: '#00B894' }}>Réponse : {question.isTrueFalse ? (question.answer === 0 ? 'Vrai' : 'Faux') : (labels[question.answer] || '') + (question.choices?.[question.answer] ? ` — ${question.choices[question.answer]}` : '')}</span>
+              </div>
             </div>}
+            {/* Distribution des réponses sous la question */}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F0F0F8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: 12, color: C.textLight, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="BarChart3" size={13} color={C.primary} /> Réponses en direct</span>
+                <span style={{ fontWeight: 700, fontSize: 12, color: allAnswered ? "#00B894" : answeredCount > 0 ? '#E67E22' : C.textLight }}>{answeredCount}/{joinedCount}{allAnswered ? ' ✓' : ''}</span>
+              </div>
+              <DistributionBar choices={question.choices} distribution={distribution} correctAnswer={question.answer} revealed={status === 'paused'} />
+            </div>
           </div>
 
           {/* Explication si pause */}
