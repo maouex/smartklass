@@ -797,22 +797,23 @@ function Modal({ open, onClose, title, children, wide }) {
   );
 }
 
-function Tabs({ tabs, active, onChange }) {
-  return React.createElement('div', { style: { display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 20, flexWrap: "wrap" } },
+function Tabs({ tabs, active, onChange, dataTuto }) {
+  return React.createElement('div', { 'data-tuto': dataTuto || undefined, style: { display: "flex", gap: 4, background: "#F0F0F8", borderRadius: 16, padding: 4, marginBottom: 20, flexWrap: "wrap" } },
     tabs.map(t => React.createElement('button', { key: t.id, onClick: () => onChange(t.id), style: { flex: 1, padding: "11px 12px", borderRadius: 12, border: "none", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: 13, fontWeight: 700, transition: "all 0.2s", background: active === t.id ? C.card : "transparent", color: active === t.id ? C.primary : C.textLight, boxShadow: active === t.id ? "0 2px 10px rgba(0,0,0,0.08)" : "none", minWidth: "fit-content", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 } }, t.icon, t.label))
   );
 }
 
-function BottomNav({ tabs, active, onChange }) {
+function BottomNav({ tabs, active, onChange, dataTuto }) {
   return React.createElement('div', {
-    style: { position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100, background: "#fff", borderTop: "1px solid #EEEEF5", display: "flex", boxShadow: "0 -4px 20px rgba(0,0,0,0.07)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }
+    'data-tuto': dataTuto || undefined,
+    style: { position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100, background: "#fff", borderTop: "1px solid #EEEEF5", display: "flex", boxShadow: "0 -4px 20px rgba(0,0,0,0.07)", paddingBottom: "env(safe-area-inset-bottom, 4px)" }
   },
     tabs.map(t => React.createElement('button', {
       key: t.id, onClick: () => onChange(t.id),
-      style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 2px 10px", border: "none", background: "transparent", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: tabs.length > 4 ? 9 : 10, fontWeight: 700, color: active === t.id ? C.primary : C.textLight, transition: "color 0.2s", minWidth: 0, position: "relative" }
+      style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 2px 12px", border: "none", background: "transparent", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontSize: tabs.length > 4 ? 10 : 11, fontWeight: 700, color: active === t.id ? C.primary : C.textLight, transition: "color 0.2s", minWidth: 0, position: "relative" }
     },
       active === t.id && React.createElement('div', { style: { position: "absolute", top: 0, left: "20%", right: "20%", height: 3, background: C.primary, borderRadius: "0 0 3px 3px" } }),
-      React.createElement('span', { style: { display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2, height: 24 } }, t.icon),
+      React.createElement('span', { style: { display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 3, height: 26 } }, t.icon),
       React.createElement('span', { style: { lineHeight: 1, whiteSpace: "nowrap" } }, t.label)
     ))
   );
@@ -2685,30 +2686,43 @@ function KibouTutorial({ studentName, onClose, onOpenAvatar, isMobile }) {
   const current = steps[step];
   const progress = ((step + 1) / steps.length) * 100;
 
-  // Recalculate spotlight rect when step changes or on resize
-  const updateRect = React.useCallback(() => {
-    const target = steps[step]?.tutoId;
-    if (!target) { setRect(null); return; }
-    const el = document.querySelector(`[data-tuto="${target}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      // Small delay to let scroll finish
-      setTimeout(() => {
-        const r = el.getBoundingClientRect();
-        const pad = 8;
-        setRect({ top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
-      }, 350);
-    } else {
-      setRect(null);
-    }
-  }, [step]);
+  // Measure element rect with padding
+  const measureEl = React.useCallback((el) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const pad = 10;
+    return { top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
+  }, []);
 
-  React.useEffect(() => { updateRect(); }, [step, updateRect]);
+  // Recalculate spotlight rect - follows element in real-time
+  const rafRef = React.useRef(null);
+  const currentElRef = React.useRef(null);
+
   React.useEffect(() => {
-    const h = () => updateRect();
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, [updateRect]);
+    const target = steps[step]?.tutoId;
+    if (!target) { setRect(null); currentElRef.current = null; return; }
+    const el = document.querySelector(`[data-tuto="${target}"]`);
+    if (!el) { setRect(null); currentElRef.current = null; return; }
+    currentElRef.current = el;
+
+    // Scroll element into view first
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Continuously track position via rAF loop
+    let active = true;
+    const track = () => {
+      if (!active) return;
+      const newRect = measureEl(currentElRef.current);
+      if (newRect) setRect(prev => {
+        if (!prev || Math.abs(prev.top - newRect.top) > 0.5 || Math.abs(prev.left - newRect.left) > 0.5 || Math.abs(prev.width - newRect.width) > 0.5) return newRect;
+        return prev;
+      });
+      rafRef.current = requestAnimationFrame(track);
+    };
+    rafRef.current = requestAnimationFrame(track);
+
+    return () => { active = false; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [step, measureEl]);
 
   const goNext = () => {
     if (current.last) { onClose(); return; }
@@ -2801,7 +2815,7 @@ function KibouTutorial({ studentName, onClose, onOpenAvatar, isMobile }) {
           width: rect.width, height: rect.height,
           borderRadius: 16, zIndex: 1101,
           boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
-          transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)',
+          transition: 'top 0.15s ease-out, left 0.15s ease-out, width 0.3s ease, height 0.3s ease',
           pointerEvents: 'none',
         }} />
       ) : (
@@ -3075,7 +3089,7 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
         </div>
       </div>}
-      {!isMobile && <div data-tuto="tabs"><Tabs tabs={studentTabs} active={view} onChange={handleTabChange} /></div>}
+      {!isMobile && <Tabs tabs={studentTabs} active={view} onChange={handleTabChange} dataTuto="tabs" />}
 
       {view === "home" && <div style={{ animation: "fadeIn 0.4s" }}>
         <div data-tuto="stats"><BentoGrid style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
@@ -3177,7 +3191,7 @@ function StudentDashboard({ student, data, news, isFirstLogin, onLogout, onActiv
           {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ position: 'relative' }}><AvatarSVG avatar={s.avatar} size={34} name={`${s.firstName} ${s.lastName}`}/>{i < 3 && <div style={{ position: 'absolute', top: -4, right: -4, background: '#fff', borderRadius: '50%', padding: 1 }}><Icon name="Medal" size={12} color={lbMedals[i]} /></div>}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
-      {isMobile && <div data-tuto="tabs"><BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} /></div>}
+      {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} dataTuto="tabs" />}
     </div>
   </AnimatedBg>;
 }
