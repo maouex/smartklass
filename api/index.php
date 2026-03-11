@@ -988,10 +988,10 @@ try {
                         jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ + 1]);
                         break;
                     case 'cancel':
-                        // Le prof quitte sans terminer proprement — marquer comme cancelled
+                        // Le prof quitte sans terminer proprement — marquer comme finished
                         if ($status === 'finished') jsonResponse(['success' => true, 'status' => 'finished']);
-                        $db->prepare("UPDATE live_sessions SET status = 'cancelled' WHERE id = ?")->execute([$sessionId]);
-                        jsonResponse(['success' => true, 'status' => 'cancelled']);
+                        $db->prepare("UPDATE live_sessions SET status = 'finished' WHERE id = ?")->execute([$sessionId]);
+                        jsonResponse(['success' => true, 'status' => 'finished']);
                         break;
                     default:
                         jsonResponse(['error' => 'Action inconnue'], 400);

@@ -939,8 +939,8 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         const data = await api.get(`live-quiz/${sessionId}?studentId=${student.id}`);
         pollFailCount.current = 0;
 
-        // Session supprimée, annulée ou erreur
-        if (data.error || data.status === 'cancelled' || (!data.status && !data.currentQ && data.currentQ !== 0)) {
+        // Session supprimée ou erreur
+        if (data.error || (!data.status && !data.currentQ && data.currentQ !== 0)) {
           clearInterval(interval);
           setSessionEnded(true);
           SoundEngine.stopMusic();
