@@ -349,6 +349,339 @@ const C = {
   g3: "linear-gradient(135deg, #E17055 0%, #FAB1A0 100%)",
 };
 
+// ============================================================================
+// AVATAR SYSTEM — Personnalisation SVG
+// ============================================================================
+const AVATAR_OPTIONS = {
+  skin: ['#FDDCB5','#F5C5A3','#E8A87C','#D08B5B','#A0674B','#6B4226'],
+  hair: [
+    { id: 'short', label: 'Court' },
+    { id: 'medium', label: 'Mi-long' },
+    { id: 'long', label: 'Long' },
+    { id: 'curly', label: 'Bouclé' },
+    { id: 'afro', label: 'Afro' },
+    { id: 'spiky', label: 'Hérissé' },
+    { id: 'buzz', label: 'Rasé' },
+    { id: 'none', label: 'Aucun' },
+  ],
+  hairColor: ['#2C1810','#4A2C17','#8B6914','#D4A437','#C0392B','#E67E22','#1A1A2E','#AAAAAA'],
+  eyes: [
+    { id: 'normal', label: 'Normal' },
+    { id: 'happy', label: 'Content' },
+    { id: 'cool', label: 'Cool' },
+    { id: 'wink', label: 'Clin d\'oeil' },
+    { id: 'big', label: 'Grands' },
+    { id: 'sleepy', label: 'Endormi' },
+  ],
+  mouth: [
+    { id: 'smile', label: 'Sourire' },
+    { id: 'grin', label: 'Grand sourire' },
+    { id: 'neutral', label: 'Neutre' },
+    { id: 'open', label: 'Ouvert' },
+    { id: 'smirk', label: 'Malin' },
+  ],
+  accessory: [
+    { id: 'none', label: 'Aucun' },
+    { id: 'glasses', label: 'Lunettes' },
+    { id: 'sunglasses', label: 'Solaires' },
+    { id: 'cap', label: 'Casquette' },
+    { id: 'headband', label: 'Bandeau' },
+    { id: 'earrings', label: 'Boucles d\'oreilles' },
+  ],
+};
+
+const DEFAULT_AVATAR = { skin: 0, hair: 0, hairColor: 0, eyes: 0, mouth: 0, accessory: 0 };
+
+function AvatarSVG({ avatar, size = 40, style: extraStyle, onClick }) {
+  const cfg = avatar || DEFAULT_AVATAR;
+  const skinColor = AVATAR_OPTIONS.skin[cfg.skin] || AVATAR_OPTIONS.skin[0];
+  const hColor = AVATAR_OPTIONS.hairColor[cfg.hairColor] || AVATAR_OPTIONS.hairColor[0];
+  const hairType = AVATAR_OPTIONS.hair[cfg.hair]?.id || 'short';
+  const eyeType = AVATAR_OPTIONS.eyes[cfg.eyes]?.id || 'normal';
+  const mouthType = AVATAR_OPTIONS.mouth[cfg.mouth]?.id || 'smile';
+  const accType = AVATAR_OPTIONS.accessory[cfg.accessory]?.id || 'none';
+
+  const renderHair = () => {
+    switch (hairType) {
+      case 'short': return <path d="M20 15C20 15 15 8 30 8C45 8 50 12 50 15C50 18 48 14 40 12C32 10 25 11 20 15Z" fill={hColor}/>;
+      case 'medium': return <><path d="M18 16C16 10 22 6 35 6C48 6 52 12 50 18C48 14 42 9 35 9C28 9 21 12 18 16Z" fill={hColor}/><path d="M16 20C15 26 14 32 16 36C15 30 15 24 16 20Z" fill={hColor}/><path d="M52 20C53 26 54 32 52 36C53 30 53 24 52 20Z" fill={hColor}/></>;
+      case 'long': return <><path d="M15 18C14 10 22 4 35 4C48 4 54 10 53 18C50 12 42 7 35 7C28 7 19 12 15 18Z" fill={hColor}/><path d="M14 20C12 30 11 40 14 50C13 42 12 32 14 20Z" fill={hColor}/><path d="M54 20C56 30 57 40 54 50C55 42 56 32 54 20Z" fill={hColor}/></>;
+      case 'curly': return <><path d="M18 17C16 10 23 5 35 5C47 5 52 10 50 17C48 12 42 8 35 8C28 8 21 12 18 17Z" fill={hColor}/><circle cx="16" cy="22" r="4" fill={hColor}/><circle cx="14" cy="30" r="3.5" fill={hColor}/><circle cx="52" cy="22" r="4" fill={hColor}/><circle cx="54" cy="30" r="3.5" fill={hColor}/><circle cx="20" cy="12" r="3" fill={hColor}/><circle cx="48" cy="12" r="3" fill={hColor}/><circle cx="35" cy="7" r="3.5" fill={hColor}/></>;
+      case 'afro': return <circle cx="35" cy="20" r="24" fill={hColor}/>;
+      case 'spiky': return <><path d="M20 16L17 4L27 12L25 2L35 11L38 1L42 12L48 3L47 14L54 6L50 17" fill={hColor}/><path d="M20 16C20 16 24 10 35 10C46 10 50 17 50 17C48 13 42 10 35 10C28 10 22 13 20 16Z" fill={hColor}/></>;
+      case 'buzz': return <path d="M19 18C18 14 24 9 35 9C46 9 50 14 49 18C47 14 42 11 35 11C28 11 21 14 19 18Z" fill={hColor}/>;
+      default: return null;
+    }
+  };
+
+  const renderEyes = () => {
+    switch (eyeType) {
+      case 'normal': return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="43" cy="30" r="3" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><circle cx="44" cy="29" r="1" fill="#fff"/></>;
+      case 'happy': return <><path d="M24 30C24 28 27 26 30 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M40 30C40 28 43 26 46 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
+      case 'cool': return <><ellipse cx="27" cy="30" rx="3.5" ry="2.5" fill="#2D3436"/><ellipse cx="43" cy="30" rx="3.5" ry="2.5" fill="#2D3436"/><circle cx="28.5" cy="29.5" r="1" fill="#fff"/><circle cx="44.5" cy="29.5" r="1" fill="#fff"/></>;
+      case 'wink': return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><path d="M40 30C40 28 43 27 46 30" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
+      case 'big': return <><circle cx="27" cy="30" r="4.5" fill="#fff" stroke="#2D3436" strokeWidth="1.5"/><circle cx="27" cy="30" r="2.5" fill="#2D3436"/><circle cx="43" cy="30" r="4.5" fill="#fff" stroke="#2D3436" strokeWidth="1.5"/><circle cx="43" cy="30" r="2.5" fill="#2D3436"/><circle cx="28" cy="29" r="1" fill="#fff"/><circle cx="44" cy="29" r="1" fill="#fff"/></>;
+      case 'sleepy': return <><path d="M24 31C26 29 28 29 30 31" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/><path d="M40 31C42 29 44 29 46 31" stroke="#2D3436" strokeWidth="2.5" fill="none" strokeLinecap="round"/></>;
+      default: return <><circle cx="27" cy="30" r="3" fill="#2D3436"/><circle cx="43" cy="30" r="3" fill="#2D3436"/></>;
+    }
+  };
+
+  const renderMouth = () => {
+    switch (mouthType) {
+      case 'smile': return <path d="M28 40C30 44 40 44 42 40" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
+      case 'grin': return <path d="M26 39C28 45 42 45 44 39" stroke="#2D3436" strokeWidth="2" fill="#fff" strokeLinecap="round"/>;
+      case 'neutral': return <line x1="29" y1="41" x2="41" y2="41" stroke="#2D3436" strokeWidth="2" strokeLinecap="round"/>;
+      case 'open': return <ellipse cx="35" cy="42" rx="5" ry="4" fill="#2D3436"/>;
+      case 'smirk': return <path d="M30 41C34 44 40 42 43 39" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
+      default: return <path d="M28 40C30 44 40 44 42 40" stroke="#2D3436" strokeWidth="2" fill="none" strokeLinecap="round"/>;
+    }
+  };
+
+  const renderAccessory = () => {
+    switch (accType) {
+      case 'glasses': return <><circle cx="27" cy="30" r="7" fill="none" stroke="#2D3436" strokeWidth="2"/><circle cx="43" cy="30" r="7" fill="none" stroke="#2D3436" strokeWidth="2"/><line x1="34" y1="30" x2="36" y2="30" stroke="#2D3436" strokeWidth="2"/><line x1="20" y1="29" x2="16" y2="27" stroke="#2D3436" strokeWidth="2"/><line x1="50" y1="29" x2="54" y2="27" stroke="#2D3436" strokeWidth="2"/></>;
+      case 'sunglasses': return <><rect x="19" y="24" width="14" height="10" rx="3" fill="#2D3436"/><rect x="37" y="24" width="14" height="10" rx="3" fill="#2D3436"/><line x1="33" y1="29" x2="37" y2="29" stroke="#2D3436" strokeWidth="2"/><line x1="19" y1="28" x2="15" y2="26" stroke="#2D3436" strokeWidth="2"/><line x1="51" y1="28" x2="55" y2="26" stroke="#2D3436" strokeWidth="2"/><rect x="20" y="25" width="12" height="8" rx="2" fill="#1A1A2E" opacity="0.7"/><rect x="38" y="25" width="12" height="8" rx="2" fill="#1A1A2E" opacity="0.7"/></>;
+      case 'cap': return <><path d="M14 18C14 18 18 8 35 8C52 8 56 18 56 18L14 18Z" fill={C.primary}/><rect x="10" y="16" width="30" height="4" rx="2" fill={C.primary}/></>;
+      case 'headband': return <rect x="14" y="16" width="42" height="4" rx="2" fill={C.accent}/>;
+      case 'earrings': return <><circle cx="14" cy="36" r="2.5" fill="#F1C40F"/><circle cx="56" cy="36" r="2.5" fill="#F1C40F"/></>;
+      default: return null;
+    }
+  };
+
+  return <svg viewBox="0 0 70 70" width={size} height={size} style={{ borderRadius: '50%', background: `${C.primary}15`, flexShrink: 0, cursor: onClick ? 'pointer' : 'default', ...extraStyle }} onClick={onClick}>
+    {/* Face */}
+    <ellipse cx="35" cy="35" rx="22" ry="25" fill={skinColor}/>
+    {/* Ears */}
+    <ellipse cx="13" cy="33" rx="4" ry="5" fill={skinColor}/>
+    <ellipse cx="57" cy="33" rx="4" ry="5" fill={skinColor}/>
+    {/* Eyes */}
+    {renderEyes()}
+    {/* Mouth */}
+    {renderMouth()}
+    {/* Eyebrows */}
+    <path d="M23 24C25 22 29 22 31 24" stroke="#2D3436" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    <path d="M39 24C41 22 45 22 47 24" stroke="#2D3436" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    {/* Nose */}
+    <path d="M34 34C34 36 36 36 36 34" stroke="#2D3436" strokeWidth="1" fill="none" opacity="0.4"/>
+    {/* Hair (on top) */}
+    {renderHair()}
+    {/* Accessory */}
+    {renderAccessory()}
+  </svg>;
+}
+
+function AvatarEditor({ avatar, onSave, onClose, studentName }) {
+  const [cfg, setCfg] = useState(avatar || { ...DEFAULT_AVATAR });
+  const [activeTab, setActiveTab] = useState('skin');
+  const [saving, setSaving] = useState(false);
+
+  const update = (key, val) => setCfg(prev => ({ ...prev, [key]: val }));
+
+  const tabs = [
+    { id: 'skin', label: 'Peau', icon: 'User' },
+    { id: 'hair', label: 'Cheveux', icon: 'Scissors' },
+    { id: 'eyes', label: 'Yeux', icon: 'Eye' },
+    { id: 'mouth', label: 'Bouche', icon: 'Smile' },
+    { id: 'accessory', label: 'Accessoires', icon: 'Star' },
+  ];
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(cfg);
+    setSaving(false);
+  };
+
+  const renderOptions = () => {
+    switch (activeTab) {
+      case 'skin':
+        return <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.skin.map((color, i) => <button key={i} onClick={() => update('skin', i)} style={{
+            width: 48, height: 48, borderRadius: '50%', background: color, border: cfg.skin === i ? `3px solid ${C.primary}` : '3px solid transparent',
+            cursor: 'pointer', boxShadow: cfg.skin === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
+          }}/>)}
+        </div>;
+      case 'hair':
+        return <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Style</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 16 }}>
+            {AVATAR_OPTIONS.hair.map((h, i) => <button key={h.id} onClick={() => update('hair', i)} style={{
+              padding: '8px 14px', borderRadius: 10, border: cfg.hair === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+              background: cfg.hair === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+              fontFamily: "'Nunito',sans-serif", color: cfg.hair === i ? C.primary : C.text,
+            }}>{h.label}</button>)}
+          </div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8 }}>Couleur</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {AVATAR_OPTIONS.hairColor.map((color, i) => <button key={i} onClick={() => update('hairColor', i)} style={{
+              width: 36, height: 36, borderRadius: '50%', background: color, border: cfg.hairColor === i ? `3px solid ${C.primary}` : '3px solid transparent',
+              cursor: 'pointer', boxShadow: cfg.hairColor === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
+            }}/>)}
+          </div>
+        </div>;
+      case 'eyes':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.eyes.map((e, i) => <button key={e.id} onClick={() => update('eyes', i)} style={{
+            padding: '8px 14px', borderRadius: 10, border: cfg.eyes === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.eyes === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.eyes === i ? C.primary : C.text,
+          }}>{e.label}</button>)}
+        </div>;
+      case 'mouth':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.mouth.map((m, i) => <button key={m.id} onClick={() => update('mouth', i)} style={{
+            padding: '8px 14px', borderRadius: 10, border: cfg.mouth === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.mouth === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.mouth === i ? C.primary : C.text,
+          }}>{m.label}</button>)}
+        </div>;
+      case 'accessory':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.accessory.map((a, i) => <button key={a.id} onClick={() => update('accessory', i)} style={{
+            padding: '8px 14px', borderRadius: 10, border: cfg.accessory === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.accessory === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.accessory === i ? C.primary : C.text,
+          }}>{a.label}</button>)}
+        </div>;
+      default: return null;
+    }
+  };
+
+  return <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn 0.3s' }} onClick={onClose}>
+    <div style={{ background: '#fff', borderRadius: 24, maxWidth: 420, width: '100%', maxHeight: '90vh', overflow: 'auto', padding: 0, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ padding: '24px 24px 16px', textAlign: 'center', borderBottom: '1px solid #F0F0F8' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 900, margin: '0 0 4px', color: C.text }}>Personnalise ton avatar</h2>
+        {studentName && <p style={{ fontSize: 13, color: C.textLight, margin: 0, fontWeight: 600 }}>{studentName}</p>}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 12px' }}>
+        <div style={{ position: 'relative' }}>
+          <AvatarSVG avatar={cfg} size={120} style={{ border: `3px solid ${C.primary}30`, boxShadow: '0 8px 24px rgba(108,92,231,0.2)' }}/>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 4, padding: '0 16px 12px', overflowX: 'auto', justifyContent: 'center' }}>
+        {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+          padding: '6px 12px', borderRadius: 10, border: 'none', background: activeTab === t.id ? C.primary : '#F0F0F8',
+          color: activeTab === t.id ? '#fff' : C.textLight, cursor: 'pointer', fontSize: 11, fontWeight: 800,
+          fontFamily: "'Nunito',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4,
+        }}><Icon name={t.icon} size={13} color={activeTab === t.id ? '#fff' : C.textLight}/> {t.label}</button>)}
+      </div>
+      <div style={{ padding: '12px 24px 20px', minHeight: 80 }}>
+        {renderOptions()}
+      </div>
+      <div style={{ padding: '0 24px 24px', display: 'flex', gap: 8 }}>
+        <Btn onClick={onClose} variant="outline" fullWidth>Annuler</Btn>
+        <Btn onClick={handleSave} fullWidth disabled={saving}>{saving ? '...' : 'Valider !'}</Btn>
+      </div>
+    </div>
+  </div>;
+}
+
+function AvatarSetupScreen({ student, onSave, onSkip }) {
+  const [cfg, setCfg] = useState({ ...DEFAULT_AVATAR });
+  const [activeTab, setActiveTab] = useState('skin');
+  const [saving, setSaving] = useState(false);
+
+  const update = (key, val) => setCfg(prev => ({ ...prev, [key]: val }));
+
+  const tabs = [
+    { id: 'skin', label: 'Peau', icon: 'User' },
+    { id: 'hair', label: 'Cheveux', icon: 'Scissors' },
+    { id: 'eyes', label: 'Yeux', icon: 'Eye' },
+    { id: 'mouth', label: 'Bouche', icon: 'Smile' },
+    { id: 'accessory', label: 'Extra', icon: 'Star' },
+  ];
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(cfg);
+    setSaving(false);
+  };
+
+  const renderOptions = () => {
+    switch (activeTab) {
+      case 'skin':
+        return <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.skin.map((color, i) => <button key={i} onClick={() => update('skin', i)} style={{
+            width: 48, height: 48, borderRadius: '50%', background: color, border: cfg.skin === i ? `3px solid ${C.primary}` : '3px solid transparent',
+            cursor: 'pointer', boxShadow: cfg.skin === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
+          }}/>)}
+        </div>;
+      case 'hair':
+        return <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, textAlign: 'left' }}>Style</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
+            {AVATAR_OPTIONS.hair.map((h, i) => <button key={h.id} onClick={() => update('hair', i)} style={{
+              padding: '7px 12px', borderRadius: 10, border: cfg.hair === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+              background: cfg.hair === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+              fontFamily: "'Nunito',sans-serif", color: cfg.hair === i ? C.primary : C.text,
+            }}>{h.label}</button>)}
+          </div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, textAlign: 'left' }}>Couleur</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {AVATAR_OPTIONS.hairColor.map((color, i) => <button key={i} onClick={() => update('hairColor', i)} style={{
+              width: 34, height: 34, borderRadius: '50%', background: color, border: cfg.hairColor === i ? `3px solid ${C.primary}` : '3px solid transparent',
+              cursor: 'pointer', boxShadow: cfg.hairColor === i ? `0 0 0 2px ${C.primary}40` : 'none', transition: 'all 0.2s',
+            }}/>)}
+          </div>
+        </div>;
+      case 'eyes':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.eyes.map((e, i) => <button key={e.id} onClick={() => update('eyes', i)} style={{
+            padding: '7px 12px', borderRadius: 10, border: cfg.eyes === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.eyes === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.eyes === i ? C.primary : C.text,
+          }}>{e.label}</button>)}
+        </div>;
+      case 'mouth':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.mouth.map((m, i) => <button key={m.id} onClick={() => update('mouth', i)} style={{
+            padding: '7px 12px', borderRadius: 10, border: cfg.mouth === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.mouth === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.mouth === i ? C.primary : C.text,
+          }}>{m.label}</button>)}
+        </div>;
+      case 'accessory':
+        return <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {AVATAR_OPTIONS.accessory.map((a, i) => <button key={a.id} onClick={() => update('accessory', i)} style={{
+            padding: '7px 12px', borderRadius: 10, border: cfg.accessory === i ? `2px solid ${C.primary}` : '2px solid #E0E0E0',
+            background: cfg.accessory === i ? `${C.primary}15` : '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+            fontFamily: "'Nunito',sans-serif", color: cfg.accessory === i ? C.primary : C.text,
+          }}>{a.label}</button>)}
+        </div>;
+      default: return null;
+    }
+  };
+
+  return <AnimatedBg>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ maxWidth: 440, width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Crée ton avatar !</h1>
+          <p style={{ color: C.textLight, fontSize: 14, margin: 0, fontWeight: 600 }}>{student.firstName}, personnalise ton look</p>
+        </div>
+        <Card style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <AvatarSVG avatar={cfg} size={110} style={{ border: `3px solid ${C.primary}30`, boxShadow: '0 8px 24px rgba(108,92,231,0.15)' }}/>
+          </div>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 14, overflowX: 'auto', justifyContent: 'center' }}>
+            {tabs.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              padding: '5px 10px', borderRadius: 10, border: 'none', background: activeTab === t.id ? C.primary : '#F0F0F8',
+              color: activeTab === t.id ? '#fff' : C.textLight, cursor: 'pointer', fontSize: 11, fontWeight: 800,
+              fontFamily: "'Nunito',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4,
+            }}><Icon name={t.icon} size={12} color={activeTab === t.id ? '#fff' : C.textLight}/> {t.label}</button>)}
+          </div>
+          <div style={{ minHeight: 70, marginBottom: 16 }}>
+            {renderOptions()}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={onSkip} variant="outline" fullWidth>Passer</Btn>
+            <Btn onClick={handleSave} fullWidth disabled={saving}>{saving ? '...' : 'C\'est parti !'}</Btn>
+          </div>
+        </Card>
+      </div>
+    </div>
+  </AnimatedBg>;
+}
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
   React.useEffect(() => {
@@ -1132,14 +1465,10 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         {/* Avatars des joueurs connectés */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, maxWidth: 400, margin: '0 auto' }}>
           {(liveData.joinedStudents || []).map((s, i) => <div key={s.id} style={{
-            width: 40, height: 40, borderRadius: '50%',
-            background: `hsl(${(i * 47) % 360}, 65%, 55%)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, fontSize: 13, color: '#fff',
             animation: `correctPop 0.4s ease ${i * 0.05}s both`,
             border: s.id === student.id ? '3px solid #fff' : '2px solid transparent',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}>{s.firstName?.[0]}{s.lastName?.[0]}</div>)}
+            borderRadius: '50%', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          }}><AvatarSVG avatar={s.avatar} size={40}/></div>)}
         </div>
         <p style={{ fontSize: 12, color: C.textLight, marginTop: 12 }}>{liveData.joinedCount} / {liveData.totalStudents} élèves</p>
         {myTeam && <div style={{ marginTop: 12, background: teamColor + '15', border: `2px solid ${teamColor}40`, borderRadius: 12, padding: '8px 16px', display: 'inline-block', color: teamColor, fontWeight: 700 }}>Équipe {myTeam}</div>}
@@ -1480,10 +1809,8 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           {joinedCount === 0 ? <p style={{ color: C.textLight, fontSize: 12, margin: 0, textAlign: 'center' }}>En attente...</p>
             : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {(joinedStudents || []).map((s, i) => <div key={s.id} title={`${s.firstName} ${s.lastName}`} style={{
-                width: 30, height: 30, borderRadius: '50%', background: `hsl(${(i*47)%360},60%,50%)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, fontSize: 10, color: '#fff', animation: `correctPop 0.3s ease ${i*0.04}s both`,
-              }}>{s.firstName?.[0]}{s.lastName?.[0]}</div>)}
+                animation: `correctPop 0.3s ease ${i*0.04}s both`,
+              }}><AvatarSVG avatar={s.avatar} size={30}/></div>)}
             </div>}
         </div>
 
@@ -1914,6 +2241,9 @@ function LoginScreen({ onLogin, data }) {
   const [firstLoginStudent, setFirstLoginStudent] = useState(null);
   const [newPwd, setNewPwd] = useState("");
   const [newPwdConfirm, setNewPwdConfirm] = useState("");
+  // Avatar setup step (after password)
+  const [avatarStep, setAvatarStep] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState(null);
   // Step: need password after identifier found
   const [needPwd, setNeedPwd] = useState(false);
   // PWA install prompt
@@ -1974,13 +2304,38 @@ function LoginScreen({ onLogin, data }) {
     try {
       const result = await api.post('auth', { type: 'set-password', studentId: firstLoginStudent.id, newPassword: newPwd });
       if (!result.success) { setError(result.error || "Erreur lors de la sauvegarde du mot de passe."); setLoading(false); return; }
-      // Re-login avec le nouveau mot de passe pour vérifier la sauvegarde et obtenir les données fraîches
+      // Re-login to get fresh data, then go to avatar step
       const loginRes = await api.post('auth', { type: 'student', identifier: firstLoginStudent.identifier, password: newPwd });
-      if (loginRes.success) onLogin({ type: "student", student: loginRes.student, news: loginRes.news });
-      else setError("Mot de passe enregistré, mais connexion impossible. Réessaie.");
+      if (loginRes.success) {
+        setPendingLogin({ type: "student", student: loginRes.student, news: loginRes.news });
+        setAvatarStep(true);
+        setFirstLogin(false);
+      } else setError("Mot de passe enregistré, mais connexion impossible. Réessaie.");
     } catch (e) { setError("Erreur serveur."); }
     setLoading(false);
   };
+
+  const handleAvatarSave = async (avatarCfg) => {
+    try {
+      const res = await api.post('auth', { type: 'set-avatar', studentId: pendingLogin.student.id, avatar: avatarCfg });
+      if (res.success && res.student) {
+        onLogin({ ...pendingLogin, student: res.student });
+      } else {
+        onLogin(pendingLogin);
+      }
+    } catch (e) {
+      onLogin(pendingLogin);
+    }
+  };
+
+  const handleSkipAvatar = () => {
+    onLogin(pendingLogin);
+  };
+
+  // Avatar setup step (first login) — inline version
+  if (avatarStep && pendingLogin) {
+    return <AvatarSetupScreen student={pendingLogin.student} onSave={handleAvatarSave} onSkip={handleSkipAvatar} />;
+  }
 
   // First login: set password screen
   if (firstLogin && firstLoginStudent) {
@@ -2317,6 +2672,15 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
   const [currentStudent, setCurrentStudent] = useState(student);
   const [newBadge, setNewBadge] = useState(null);
   const [showMascot, setShowMascot] = useState(true);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+
+  const handleAvatarUpdate = async (avatarCfg) => {
+    try {
+      const res = await api.post('auth', { type: 'set-avatar', studentId: currentStudent.id, avatar: avatarCfg });
+      if (res.success && res.student) setCurrentStudent(res.student);
+    } catch (e) { console.error(e); }
+    setShowAvatarEditor(false);
+  };
 
   const myClass = data.classes.find(c => c.id === currentStudent.classId);
   const classStudents = data.students.filter(s => s.classId === currentStudent.classId);
@@ -2385,12 +2749,13 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
   }
 
   return <AnimatedBg>
+    {showAvatarEditor && <AvatarEditor avatar={currentStudent.avatar} studentName={currentStudent.firstName} onSave={handleAvatarUpdate} onClose={() => setShowAvatarEditor(false)} />}
     {newBadge && <BadgeUnlock badge={newBadge} onClose={() => setNewBadge(null)} />}
     {showMascot && <MascotGreeting studentName={currentStudent.firstName} news={news} onClose={() => setShowMascot(false)} />}
     {liveSession && !inLive && <LiveQuizBanner session={liveSession} onJoin={() => setInLive(true)} onDismiss={() => { setLiveDismissed(liveSession.id); setLiveSession(null); }} />}
     {isMobile && <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "rgba(248,249,253,0.97)", backdropFilter: "blur(10px)", padding: "10px 16px", borderBottom: "1px solid #EEEEF5", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 36 }} /><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><AvatarSVG avatar={currentStudent.avatar} size={36} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30` }}/><div><p style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</p><p style={{ color: C.textLight, fontSize: 11, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ background: `${C.warning}30`, padding: "5px 10px", borderRadius: 10, fontWeight: 800, fontSize: 12, color: "#856404", display: "flex", alignItems: "center", gap: 4 }}><Icon name="Flame" size={13} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "7px 12px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, color: C.textLight, display: "flex", alignItems: "center" }}><Icon name="LogOut" size={16} color={C.textLight} /></button>
@@ -2399,7 +2764,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
     </div>}
     <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "76px 16px 90px" : "20px 16px" }}>
       {!isMobile && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/mascot/salue.svg" alt="SmartKlass" style={{ height: 46 }} /><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}><AvatarSVG avatar={currentStudent.avatar} size={46} onClick={() => setShowAvatarEditor(true)} style={{ border: `2px solid ${C.primary}30`, transition: 'transform 0.2s' }}/><div><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Salut {currentStudent.firstName} !</h1><p style={{ color: C.textLight, fontSize: 13, fontWeight: 600, margin: 0 }}>{myClass?.name}</p></div></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ background: `${C.warning}30`, padding: "6px 14px", borderRadius: 10, fontWeight: 800, fontSize: 13, color: "#856404", display: "flex", alignItems: "center", gap: 5 }}><Icon name="Flame" size={14} color="#E17055" /> {currentStudent.streak}j</div>
           <button onClick={onLogout} style={{ background: "#F0F0F8", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 12, color: C.textLight }}>Déconnexion</button>
@@ -2504,7 +2869,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
       {view === "leaderboard" && <div style={{ animation: "fadeIn 0.4s" }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Trophy" size={20} color="#FDCB6E" /> Classement — {myClass?.name}</h2>
         <Card>
-          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i < 3 ? `${C.warning}30` : "#F0F0F8", fontWeight: 800, fontSize: 13 }}>{i < 3 ? <Icon name="Medal" size={18} color={lbMedals[i]} /> : i + 1}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
+          {leaderboard.map((s, i) => { const isMe = s.id === currentStudent.id; const lbMedals = ["#F1C40F","#BDC3C7","#CD7F32"]; return <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isMe ? `${C.primary}10` : i % 2 === 0 ? "#F8F9FD" : "transparent", border: isMe ? `2px solid ${C.primary}40` : "2px solid transparent", marginBottom: 2 }}><div style={{ position: 'relative' }}><AvatarSVG avatar={s.avatar} size={34}/>{i < 3 && <div style={{ position: 'absolute', top: -4, right: -4, background: '#fff', borderRadius: '50%', padding: 1 }}><Icon name="Medal" size={12} color={lbMedals[i]} /></div>}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{s.firstName} {s.lastName} {isMe ? "(moi)" : ""}</div><div style={{ fontSize: 11, color: C.textLight, display: "flex", alignItems: "center", gap: 3 }}><Icon name="Flame" size={11} color="#E17055" /> {s.streak}j</div></div><div style={{ fontWeight: 800, color: C.primary, fontSize: 15 }}>{s.xp} XP</div></div>; })}
         </Card>
       </div>}
       {isMobile && <BottomNav tabs={studentTabs} active={view} onChange={handleTabChange} />}
@@ -2830,6 +3195,7 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
               {recentResults.length === 0
                 ? <p style={{ padding: "16px 18px", color: C.textMuted, fontSize: 13, fontWeight: 600, margin: 0 }}>Aucune activité complétée pour l'instant.</p>
                 : recentResults.map((r, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderTop: i > 0 ? "1px solid #F0F0F8" : "none" }}>
+                    <AvatarSVG avatar={r.student.avatar} size={28}/>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.student.firstName} {r.student.lastName}</div>
                       <div style={{ fontSize: 12, color: C.textLight, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.activity.title}</div>
@@ -2848,8 +3214,9 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 : <div>
                     {inactiveStudents.length > 0 && <>
                       <div style={{ padding: "10px 16px 4px", fontSize: 12, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Inactifs depuis + 7 jours ({inactiveStudents.length})</div>
-                      {inactiveStudents.slice(0, 4).map(s => <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 16px", borderTop: "1px solid #F0F0F8" }}>
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>{s.firstName} {s.lastName}</span>
+                      {inactiveStudents.slice(0, 4).map(s => <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", borderTop: "1px solid #F0F0F8" }}>
+                        <AvatarSVG avatar={s.avatar} size={24}/>
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{s.firstName} {s.lastName}</span>
                         <span style={{ fontSize: 12, color: C.danger, fontWeight: 700 }}>{s.lastActive ? relativeDate(s.lastActive) : "jamais connecté"}</span>
                       </div>)}
                       {inactiveStudents.length > 4 && <div style={{ padding: "6px 16px", fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>+ {inactiveStudents.length - 4} autres</div>}
@@ -2903,8 +3270,8 @@ function TeacherDashboard({ data, refreshData, onLogout }) {
                 ? <Card style={{ textAlign: "center", padding: 20 }}><p style={{ color: C.textLight, fontWeight: 700, margin: 0 }}>Aucun élève dans cette classe.</p></Card>
                 : <Card><div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Nunito',sans-serif", fontSize: 13 }}>
-                      <thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["Nom", "Prénom", "ID", "XP", "Actions"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead>
-                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
+                      <thead><tr style={{ borderBottom: "2px solid #F0F0F8" }}>{["", "Nom", "Prénom", "ID", "XP", "Actions"].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: C.textLight, fontSize: 11, textTransform: "uppercase" }}>{h}</th>)}</tr></thead>
+                      <tbody>{classStudents.map(s => <tr key={s.id} style={{ borderBottom: "1px solid #F0F0F8" }}><td style={{ padding: "6px 8px", width: 36 }}><AvatarSVG avatar={s.avatar} size={28}/></td><td style={{ padding: "10px 12px", fontWeight: 700 }}>{s.lastName}</td><td style={{ padding: "10px 12px" }}>{s.firstName}</td><td style={{ padding: "10px 12px" }}><code style={{ background: "#F0F0F8", padding: "3px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>{s.identifier}</code></td><td style={{ padding: "10px 12px", fontWeight: 700, color: C.primary }}>{s.xp}</td><td style={{ padding: "10px 12px" }}><div style={{ display: "flex", gap: 4 }}><Btn onClick={() => { setModalData(s.id); setModal("studentResults"); }} variant="outline" size="xs"><Icon name="BarChart2" size={12} /></Btn><Btn onClick={() => { setEditStudentData({ ...s }); setModal("editStudent"); }} variant="outline" size="xs"><Icon name="Pencil" size={12} /></Btn><Btn onClick={() => resetPassword(s.id, s.firstName)} variant="outline" size="xs" style={{ color: "#E67E22" }}><Icon name="Key" size={12} /></Btn><Btn onClick={() => deleteStudent(s.id)} variant="danger" size="xs"><Icon name="Trash2" size={12} /></Btn></div></td></tr>)}</tbody>
                     </table>
                   </div></Card>}
             </div>
