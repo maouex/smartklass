@@ -436,9 +436,20 @@ const AVATAR_OPTIONS = {
     { id: 'variant03', label: 'Style 3' }, { id: 'variant04', label: 'Style 4' },
     { id: 'variant05', label: 'Style 5' }, { id: 'variant06', label: 'Style 6' },
   ],
+  backgroundColor: [
+    { id: 'b6e3f4', label: 'Bleu ciel', color: '#b6e3f4' },
+    { id: 'c0aede', label: 'Lavande', color: '#c0aede' },
+    { id: 'ffdfbf', label: 'Pêche', color: '#ffdfbf' },
+    { id: 'd1f4d1', label: 'Menthe', color: '#d1f4d1' },
+    { id: 'ffd5dc', label: 'Rose', color: '#ffd5dc' },
+    { id: 'fff4c1', label: 'Jaune', color: '#fff4c1' },
+    { id: 'fce4ec', label: 'Saumon', color: '#fce4ec' },
+    { id: 'e0e0e0', label: 'Gris', color: '#e0e0e0' },
+    { id: 'ffffff', label: 'Blanc', color: '#ffffff' },
+  ],
 };
 
-const DEFAULT_AVATAR = { skinColor: 'f2d3b1', hair: 'short01', hairColor: '6a4e35', eyes: 'variant01', eyebrows: 'variant01', mouth: 'variant01', glasses: 'none', earrings: 'none' };
+const DEFAULT_AVATAR = { skinColor: 'f2d3b1', hair: 'short01', hairColor: '6a4e35', eyes: 'variant01', eyebrows: 'variant01', mouth: 'variant01', glasses: 'none', earrings: 'none', backgroundColor: 'b6e3f4' };
 
 function avatarUrl(avatar, size) {
   const cfg = avatar || DEFAULT_AVATAR;
@@ -453,7 +464,7 @@ function avatarUrl(avatar, size) {
   else params.set('glassesProbability', '0');
   if (cfg.earrings && cfg.earrings !== 'none') { params.set('earrings', cfg.earrings); params.set('earringsProbability', '100'); }
   else params.set('earringsProbability', '0');
-  params.set('backgroundColor', 'b6e3f4');
+  params.set('backgroundColor', cfg.backgroundColor || 'b6e3f4');
   if (size) params.set('size', size);
   return `https://api.dicebear.com/9.x/adventurer/svg?${params.toString()}`;
 }
@@ -480,7 +491,8 @@ function AvatarSVG({ avatar, size = 40, style: extraStyle, onClick, name }) {
     }}>{initials}</div>;
   }
 
-  return <div onClick={onClick} style={{ position: 'relative', width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default', background: '#b6e3f4', ...extraStyle }}>
+  const bgColor = avatar && avatar.backgroundColor ? `#${avatar.backgroundColor}` : '#b6e3f4';
+  return <div onClick={onClick} style={{ position: 'relative', width: size, height: size, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', cursor: onClick ? 'pointer' : 'default', background: bgColor, ...extraStyle }}>
     {!loaded && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `hsl(${hue}, 60%, 55%)`, fontWeight: 800, fontSize: Math.round(size * 0.38), color: '#fff' }}>{initials}</div>}
     <img src={url} width={size} height={size} alt=""
       onLoad={() => setLoaded(true)}
@@ -517,6 +529,7 @@ function AvatarEditorInner({ cfg, setCfg, size }) {
     { id: 'eyes', label: 'Yeux', icon: 'Eye' },
     { id: 'mouth', label: 'Bouche', icon: 'Smile' },
     { id: 'extras', label: 'Extra', icon: 'Star' },
+    { id: 'backgroundColor', label: 'Fond', icon: 'Palette' },
   ];
 
   const renderOptions = () => {
@@ -546,6 +559,8 @@ function AvatarEditorInner({ cfg, setCfg, size }) {
           <p style={{ fontSize: 12, fontWeight: 700, color: C.textLight, marginBottom: 8, marginTop: 14 }}>Boucles d'oreilles</p>
           <AvatarOptionGrid options={AVATAR_OPTIONS.earrings} value={cfg.earrings} onChange={v => update('earrings', v)}/>
         </div>;
+      case 'backgroundColor':
+        return <AvatarOptionGrid options={AVATAR_OPTIONS.backgroundColor} value={cfg.backgroundColor} onChange={v => update('backgroundColor', v)} type="color"/>;
       default: return null;
     }
   };
