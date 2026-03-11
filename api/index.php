@@ -571,11 +571,19 @@ try {
             if ($method === 'GET' && $id === null) {
                 $classId = $_GET['classId'] ?? null;
                 if (!$classId) jsonResponse(['error' => 'classId requis'], 400);
+                // Auto-fermer les sessions abandonnées (pas d'update depuis 2h)
+                $db->prepare(
+                    "UPDATE live_sessions SET status = 'finished'
+                     WHERE class_id = ? AND status IN ('waiting','active','paused')
+                       AND updated_at < NOW() - INTERVAL 2 HOUR"
+                )->execute([$classId]);
                 $stmt = $db->prepare(
                     "SELECT ls.id, ls.status, ls.current_q, ls.updated_at, ls.mode, a.title AS activity_title
                      FROM live_sessions ls
                      JOIN activities a ON a.id = ls.activity_id
                      WHERE ls.class_id = ? AND ls.status IN ('waiting','active','paused')
+                       AND ls.updated_at >= NOW() - INTERVAL 2 HOUR
+                     ORDER BY ls.updated_at DESC
                      LIMIT 1"
                 );
                 $stmt->execute([$classId]);
