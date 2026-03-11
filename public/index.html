@@ -1672,13 +1672,21 @@ function Confirm({ message, onYes, onNo }) {
 }
 
 function BadgeUnlock({ badge, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
-  return <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-    <div style={{ background: C.card, borderRadius: 28, padding: "36px 48px", textAlign: "center", boxShadow: "0 25px 60px rgba(108,92,231,0.45)", animation: "fadeIn 0.5s", border: `3px solid ${C.warning}60` }}>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, animation: "float 1s ease-in-out infinite" }}><Icon name={badge.icon} size={64} color={badge.color || "#FDCB6E"} /></div>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.warning, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Badge débloqué !</div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>{badge.name}</div>
-      <div style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{badge.desc}</div>
+  useEffect(() => { const t = setTimeout(onClose, 4500); return () => clearTimeout(t); }, []);
+  return <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", background: "rgba(0,0,0,0.25)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", animation: "fadeIn 0.5s" }}>
+      <div style={{ background: C.card, borderRadius: 28, padding: "32px 44px", textAlign: "center", boxShadow: "0 25px 60px rgba(108,92,231,0.45)", border: `3px solid ${C.warning}60`, position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, animation: "float 1s ease-in-out infinite" }}><Icon name={badge.icon} size={64} color={badge.color || "#FDCB6E"} /></div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.warning, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Badge débloqué !</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 4 }}>{badge.name}</div>
+        <div style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{badge.desc}</div>
+      </div>
+      <img src="/mascot/saute.svg" alt="" style={{
+        width: 72, height: 72, marginTop: -8,
+        animation: "mascotJump 0.8s ease-in-out infinite",
+        filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.15))"
+      }} />
+      <style>{`@keyframes mascotJump { 0%, 100% { transform: translateY(0) rotate(0deg); } 30% { transform: translateY(-12px) rotate(-3deg); } 60% { transform: translateY(-8px) rotate(3deg); } }`}</style>
     </div>
   </div>;
 }
@@ -1712,10 +1720,11 @@ function QCMActivity({ activity, onComplete }) {
   if (finished) {
     const pct = Math.round(score / questions.length * 100);
     return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Trophy" size={72} color="#FDCB6E" /> : pct >= 50 ? <Icon name="ThumbsUp" size={72} color={C.secondary} /> : <Icon name="Dumbbell" size={72} color={C.accent} />}</div>
+      {pct >= 80 ? <MascotCelebration message={pct === 100 ? "Sans faute ! Tu gères !" : "Excellent travail !"} sub={`${score}/${questions.length} bonnes réponses`} />
+        : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 50 ? <Icon name="ThumbsUp" size={72} color={C.secondary} /> : <Icon name="Dumbbell" size={72} color={C.accent} />}</div>}
       <h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Excellent !" : pct >= 50 ? "Bien joué !" : "Continue !"}</h2>
       <div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>
-      <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length} bonnes réponses</p>
+      {pct < 80 && <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length} bonnes réponses</p>}
       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{activity.xpReward || activity.xp_reward} XP <Icon name="Zap" size={14} color={C.accent} /></div><br />
       <Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn>
     </div>;
@@ -1747,7 +1756,7 @@ function FlashcardsActivity({ activity, onComplete }) {
   const cards = activity.data.cards; const card = cards[current];
   const xp = activity.xpReward || activity.xp_reward;
   const handleKnow = (d) => { if (d) setKnown(k => [...k, current]); if (current + 1 >= cards.length) setFinished(true); else { setCurrent(c => c + 1); setFlipped(false); } };
-  if (finished) { const pct = Math.round(known.length / cards.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Star" size={72} color="#FDCB6E" /> : <Icon name="BookOpen" size={72} color={C.primary} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>Révision terminée !</h2><p style={{ fontSize: 18, color: C.textLight, marginBottom: 8 }}>Tu connaissais <strong style={{ color: C.secondary }}>{known.length}</strong> cartes sur {cards.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(known.length / cards.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Toutes les cartes maîtrisées !" : "Belle mémoire !"} sub={`${known.length}/${cards.length} cartes connues`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="BookOpen" size={72} color={C.primary} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>Révision terminée !</h2>{pct < 80 && <p style={{ fontSize: 18, color: C.textLight, marginBottom: 8 }}>Tu connaissais <strong style={{ color: C.secondary }}>{known.length}</strong> cartes sur {cards.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{cards.length}</span><ProgressBar value={current + 1} max={cards.length} style={{ flex: 1 }} /></div>
     <div onClick={() => setFlipped(!flipped)} style={{ background: flipped ? C.g2 : C.g1, borderRadius: 24, padding: 40, minHeight: 220, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", textAlign: "center", transition: "all 0.4s", boxShadow: "0 12px 40px rgba(108,92,231,0.3)" }}>
@@ -1765,7 +1774,7 @@ function TrueFalseActivity({ activity, onComplete }) {
   const xp = activity.xpReward || activity.xp_reward;
   const handleAnswer = (a) => { setSelected(a); setShowResult(true); if (a === q.answer) setScore(s => s + 1); };
   const next = () => { if (current + 1 >= questions.length) setFinished(true); else { setCurrent(c => c + 1); setSelected(null); setShowResult(false); } };
-  if (finished) { const pct = Math.round(score / questions.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="PartyPopper" size={72} color="#FDCB6E" /> : <Icon name="Dumbbell" size={72} color={C.accent} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(score / questions.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Parfait, aucune erreur !" : "Tu assures en vrai/faux !"} sub={`${score}/${questions.length} bonnes réponses`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Dumbbell" size={72} color={C.accent} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Bravo !" : pct >= 50 ? "Pas mal !" : "Continue !"}</h2><div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>{pct < 80 && <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{questions.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{questions.length}</span><ProgressBar value={current + 1} max={questions.length} style={{ flex: 1 }} /></div>
     <Card style={{ textAlign: "center", padding: 32, marginBottom: 20 }}><h3 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.5 }}>{q.q}</h3></Card>
@@ -1780,7 +1789,7 @@ function FillBlankActivity({ activity, onComplete }) {
   const xp = activity.xpReward || activity.xp_reward;
   const handleCheck = () => { const c = input.trim().toLowerCase() === s.answer.toLowerCase(); setIsCorrect(c); if (c) setScore(sc => sc + 1); setShowResult(true); };
   const next = () => { if (current + 1 >= sentences.length) setFinished(true); else { setCurrent(c => c + 1); setInput(""); setShowResult(false); setShowHint(false); } };
-  if (finished) { const pct = Math.round(score / sentences.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>{pct >= 80 ? <Icon name="Sparkles" size={72} color="#FDCB6E" /> : <Icon name="BookOpen" size={72} color={C.primary} />}</div><h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct}%</h2><p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{sentences.length}</p><div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
+  if (finished) { const pct = Math.round(score / sentences.length * 100); return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>{pct >= 80 ? <MascotCelebration message={pct === 100 ? "Tous les trous remplis parfaitement !" : "Super boulot !"} sub={`${score}/${sentences.length} bonnes réponses`} /> : <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="BookOpen" size={72} color={C.primary} /></div>}<h2 style={{ fontSize: 28, fontWeight: 900 }}>{pct >= 80 ? "Bravo !" : pct >= 50 ? "Pas mal !" : "Continue !"}</h2><div style={{ fontSize: 48, fontWeight: 900, color: pct >= 80 ? C.secondary : pct >= 50 ? C.primary : C.accent, marginBottom: 8 }}>{pct}%</div>{pct < 80 && <p style={{ color: C.textLight, marginBottom: 8 }}>{score}/{sentences.length}</p>}<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div><br /><Btn onClick={() => onComplete(pct)} size="lg">Terminer</Btn></div>; }
   const parts = s.text.split("___");
   return <div style={{ animation: "fadeIn 0.3s" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}><span style={{ fontSize: 13, fontWeight: 700, color: C.textLight }}>{current + 1}/{sentences.length}</span><ProgressBar value={current + 1} max={sentences.length} style={{ flex: 1 }} /></div>
@@ -1814,8 +1823,8 @@ function MatchingActivity({ activity, onComplete }) {
   const isRM = (t) => matched.some(m => m.right === t);
 
   if (finished) return <div style={{ textAlign: "center", animation: "fadeIn 0.5s" }}>
-    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><Icon name="Target" size={72} color={C.secondary} /></div>
-    <h2 style={{ fontSize: 28, fontWeight: 900 }}>Toutes les paires trouvées !</h2>
+    <MascotCelebration message="Toutes les paires trouvées !" sub="Rien ne t'échappe !" />
+    <h2 style={{ fontSize: 28, fontWeight: 900 }}>Parfait !</h2>
     <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.warning}30`, padding: "8px 20px", borderRadius: 12, fontWeight: 700, color: C.accent, marginBottom: 24 }}>+{xp} XP <Icon name="Zap" size={14} color={C.accent} /></div>
     <br /><Btn onClick={() => onComplete(100)} size="lg">Terminer</Btn>
   </div>;
@@ -1979,9 +1988,9 @@ function LoginScreen({ onLogin, data }) {
     return <AnimatedBg>
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Icon name="PartyPopper" size={56} color={C.primary} /></div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Bienvenue {firstLoginStudent.firstName} !</h1>
-          <p style={{ color: C.textLight, fontSize: 15, margin: "0 0 24px 0", fontWeight: 600 }}>C'est ta première connexion. Choisis un mot de passe pour sécuriser ton compte.</p>
+          <MascotCelebration message={`Bienvenue ${firstLoginStudent.firstName} !`} sub="On va bien s'amuser ensemble !" />
+          <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 4px 0", color: C.primary }}>Première connexion</h1>
+          <p style={{ color: C.textLight, fontSize: 15, margin: "0 0 24px 0", fontWeight: 600 }}>Choisis un mot de passe pour sécuriser ton compte.</p>
           <Card style={{ padding: 32, textAlign: "left" }}>
             <form onSubmit={e => { e.preventDefault(); handleSetPassword(); }} autoComplete="on">
               <Input icon={<Icon name="Lock" size={16} />} label="Choisis un mot de passe" value={newPwd} name="new-password" autoComplete="new-password" onChange={setNewPwd} type="password" onKeyDown={e => e.key === "Enter" && handleSetPassword()} placeholder="Minimum 4 caractères" />
@@ -2072,6 +2081,47 @@ function CourseReader({ course, data, completedIds, myResults, onLaunchActivity,
         </div>
       </div>
     </div>}
+  </div>;
+}
+
+// ============================================================================
+// MASCOT CELEBRATION — Mascotte "saute de joie" avec bulle BD contextuelle
+// ============================================================================
+function MascotCelebration({ message, sub, visible = true }) {
+  if (!visible) return null;
+  return <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, marginBottom: 10, animation: "mascotCelebIn 0.6s ease-out" }}>
+    <style>{`
+      @keyframes mascotCelebIn {
+        0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+        60% { transform: scale(1.08) translateY(-4px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      @keyframes mascotJump {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        30% { transform: translateY(-12px) rotate(-3deg); }
+        60% { transform: translateY(-8px) rotate(3deg); }
+      }
+    `}</style>
+    {/* Bulle BD au-dessus */}
+    <div style={{
+      position: "relative", background: "#fff", borderRadius: 18, padding: "10px 16px",
+      boxShadow: "0 4px 20px rgba(108,92,231,0.15)", border: `2px solid ${C.primary}25`,
+      textAlign: "center", maxWidth: 280, marginBottom: -4
+    }}>
+      <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: C.text }}>{message}</p>
+      {sub && <p style={{ margin: "4px 0 0", fontSize: 12, color: C.textLight, fontWeight: 600 }}>{sub}</p>}
+      {/* Queue vers le bas */}
+      <div style={{
+        position: "absolute", bottom: -9, left: "50%", marginLeft: -8, width: 0, height: 0,
+        borderLeft: "8px solid transparent", borderRight: "8px solid transparent",
+        borderTop: "10px solid #fff", filter: "drop-shadow(0 2px 1px rgba(108,92,231,0.08))"
+      }} />
+    </div>
+    <img src="/mascot/saute.svg" alt="" style={{
+      width: 80, height: 80,
+      animation: "mascotJump 0.8s ease-in-out infinite",
+      filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.15))"
+    }} />
   </div>;
 }
 
@@ -2359,7 +2409,7 @@ function StudentDashboard({ student, data, news, onLogout, onActivityComplete })
         <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><Icon name="Target" size={16} color={C.accent} /> À faire</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {myActivities.filter(a => !completedIds.includes(a.id)).slice(0, 4).map(a => { const sub = data.subjects.find(s => s.id === a.subjectId); const xp = a.xpReward || a.xp_reward; return <Card key={a.id} hover onClick={() => setActiveActivity(a)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, cursor: "pointer" }}><div style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: `${sub?.color || C.primary}20` }}><SubjectIcon icon={sub?.icon} size={22} color={sub?.color || C.primary} /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div><div style={{ display: "flex", gap: 6, marginTop: 4 }}><Chip color={sub?.color}>{sub?.name}</Chip><Chip color={C.warning}>+{xp} XP</Chip></div></div><Icon name="ChevronRight" size={22} color={C.primary} /></Card>; })}
-          {myActivities.filter(a => !completedIds.includes(a.id)).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><Icon name="PartyPopper" size={44} color={C.secondary} /></div><p style={{ fontWeight: 700 }}>Tout est fait !</p></Card>}
+          {myActivities.filter(a => !completedIds.includes(a.id)).length === 0 && <Card style={{ textAlign: "center", padding: 28 }}><MascotCelebration message="Tout est fait !" sub="Tu as complété toutes les activités, champion !" /><p style={{ fontWeight: 700, color: C.secondary }}>Reviens bientôt pour de nouvelles activités !</p></Card>}
         </div>
       </div>}
 
