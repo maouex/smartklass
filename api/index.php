@@ -772,10 +772,18 @@ try {
                     $hasAnswered = (bool)$haRow;
                     $myLastScore = $haRow ? (int)$haRow['score'] : 0;
 
+                    // Malus reçus par l'élève
+                    $malusStmt = $db->prepare(
+                        "SELECT COUNT(*) AS cnt, COALESCE(SUM(ABS(score)), 0) AS total
+                         FROM live_responses WHERE session_id = ? AND student_id = ? AND question_idx = 255"
+                    );
+                    $malusStmt->execute([$sessionId, $studentId]);
+                    $malusRow = $malusStmt->fetch();
+
                     // Calculer le streak actuel de l'élève
                     $streakStmt = $db->prepare(
                         "SELECT is_correct FROM live_responses
-                         WHERE session_id = ? AND student_id = ?
+                         WHERE session_id = ? AND student_id = ? AND question_idx < 255
                          ORDER BY question_idx DESC"
                     );
                     $streakStmt->execute([$sessionId, $studentId]);
@@ -868,6 +876,8 @@ try {
                     'mode'               => $mode,
                     'myLastScore'        => $myLastScore,
                     'myStreak'           => $myStreak,
+                    'myMalusCount'       => isset($malusRow) ? (int)$malusRow['cnt'] : 0,
+                    'myMalusTotal'       => isset($malusRow) ? (int)$malusRow['total'] : 0,
                     'teams'              => $teams,
                     'myTeam'             => ($mode === 'team' && $studentId && isset($myTeamRow)) ? ($myTeamRow['team'] ?? null) : null,
                     'avgTimeMs'          => $avgTimeMs,
