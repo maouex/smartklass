@@ -1183,6 +1183,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
   const [connectionTimeout, setConnectionTimeout] = useState(false);
   const prevJoinedRef = React.useRef(0);
   const pollFailCount = React.useRef(0);
+  const forceMutedByTeacher = React.useRef(false);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
   const labels = ["A", "B", "C", "D"];
 
@@ -1260,6 +1261,14 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         if (data.myTeam) setMyTeam(data.myTeam);
         if (data.myStreak !== undefined) setStreak(data.myStreak);
 
+        // Force mute par le prof
+        if (data.soundDisabled && !forceMutedByTeacher.current) {
+          setSoundMuted(true); SoundEngine.setEnabled(false); SoundEngine.setMusicEnabled(false); SoundEngine.stopMusic();
+        } else if (!data.soundDisabled && forceMutedByTeacher.current) {
+          setSoundMuted(false); SoundEngine.setEnabled(true); SoundEngine.setMusicEnabled(true); SoundEngine.startMusic();
+        }
+        forceMutedByTeacher.current = !!data.soundDisabled;
+
         setLiveData(data);
         if (data.status === 'finished') {
           clearInterval(interval);
@@ -1317,6 +1326,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
   };
 
   const toggleMute = () => {
+    if (forceMutedByTeacher.current) return; // Le prof a coupé le son
     const newVal = !soundMuted;
     setSoundMuted(newVal);
     SoundEngine.setEnabled(!newVal);
@@ -1368,7 +1378,7 @@ function LiveQuizStudent({ sessionId, student, onExit }) {
         {myTeam && <span style={{ background: teamColor + '20', color: teamColor, padding: '2px 10px', borderRadius: 20, fontWeight: 700, fontSize: 11 }}>Éq. {myTeam}</span>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <button onClick={toggleMute} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
+        <button onClick={toggleMute} title={forceMutedByTeacher.current ? "Son coupé par le prof" : ""} style={{ background: forceMutedByTeacher.current ? '#D6303115' : "#F0F0F8", color: forceMutedByTeacher.current ? '#D63031' : C.textLight, border: "none", borderRadius: 8, padding: "5px 8px", cursor: forceMutedByTeacher.current ? 'not-allowed' : "pointer", fontSize: 14, opacity: forceMutedByTeacher.current ? 0.7 : 1 }}>{soundMuted ? '🔇' : '🔊'}</button>
         <button onClick={onExit} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "5px 10px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>✕</button>
       </div>
     </div>
@@ -1623,6 +1633,10 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
   const [countdown, setCountdown] = useState(null);
   const [soundMuted, setSoundMuted] = useState(false);
   const [initError, setInitError] = useState(null);
+  const [malusTarget, setMalusTarget] = useState(null); // {studentId, firstName, lastName}
+  const [malusPoints, setMalusPoints] = useState(200);
+  const [malusSending, setMalusSending] = useState(false);
+  const [malusFlash, setMalusFlash] = useState(null); // studentId qui vient de recevoir un malus
   const prevJoinedRef = React.useRef(0);
   const pollFailRef = React.useRef(0);
   const colors = ["#0984E3", C.primary, "#E17055", "#00B894"];
@@ -1690,6 +1704,23 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
     onClose();
   };
 
+  const toggleStudentSound = async () => {
+    try { const res = await api.put(`live-quiz/${sessionId}`, { action: 'toggle-sound' }); }
+    catch(e) {}
+  };
+
+  const sendMalus = async () => {
+    if (!malusTarget || malusSending) return;
+    setMalusSending(true);
+    try {
+      await api.put(`live-quiz/${sessionId}`, { action: 'malus', studentId: malusTarget.studentId, points: malusPoints });
+      setMalusFlash(malusTarget.studentId);
+      setTimeout(() => setMalusFlash(null), 1500);
+      setMalusTarget(null);
+    } catch(e) {}
+    setMalusSending(false);
+  };
+
   const toggleMute = () => {
     const v = !soundMuted; setSoundMuted(v); SoundEngine.setEnabled(!v); SoundEngine.setMusicEnabled(!v);
     if (v) SoundEngine.stopMusic(); else SoundEngine.startMusic();
@@ -1737,7 +1768,8 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
         <div style={{ background: status === 'active' ? "#00B894" : status === 'paused' ? C.warning : status === 'waiting' ? C.primaryLight : "#636E72", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, color: '#fff' }}>
           {status === 'active' ? 'EN DIRECT' : status === 'paused' ? 'PAUSE' : status === 'waiting' ? 'ATTENTE' : 'TERMINÉ'}
         </div>
-        <button onClick={toggleMute} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
+        <button onClick={toggleStudentSound} title={liveData.soundDisabled ? "Remettre le son aux élèves" : "Couper le son des élèves"} style={{ background: liveData.soundDisabled ? '#D6303120' : "#F0F0F8", color: liveData.soundDisabled ? '#D63031' : C.textLight, border: liveData.soundDisabled ? '2px solid #D6303140' : "2px solid transparent", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "'Nunito',sans-serif", display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}><Icon name="Users" size={12} color={liveData.soundDisabled ? '#D63031' : C.textLight} />{liveData.soundDisabled ? '🔇' : '🔊'}</button>
+        <button onClick={toggleMute} title="Mon son" style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 14 }}>{soundMuted ? '🔇' : '🔊'}</button>
         <button onClick={handleClose} style={{ background: "#F0F0F8", color: C.textLight, border: "none", borderRadius: 10, padding: "8px 14px", fontFamily: "'Nunito',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>✕</button>
       </div>
     </div>
@@ -1915,17 +1947,40 @@ function LiveQuizTeacher({ sessionId, activityTitle, totalQuestions: initTotal, 
           {(!leaderboard || leaderboard.length === 0) && <p style={{ color: C.textLight, fontSize: 12, margin: 0, textAlign: 'center' }}>En attente des réponses...</p>}
           {(leaderboard || []).map((l, i) => {
             const lbMedalColors = ["#F1C40F","#BDC3C7","#CD7F32"];
-            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 10, background: i === 0 ? `${C.warning}10` : "transparent", marginBottom: 2, transition: 'all 0.3s' }}>
+            const isFlash = malusFlash === l.studentId;
+            return <div key={l.studentId} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 10, background: isFlash ? '#D6303115' : i === 0 ? `${C.warning}10` : "transparent", marginBottom: 2, transition: 'all 0.3s' }}>
               <span style={{ width: 20, display: "flex", justifyContent: "center", flexShrink: 0 }}>{i < 3 ? <Icon name="Medal" size={14} color={lbMedalColors[i]} /> : <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight }}>{i + 1}</span>}</span>
               <span style={{ flex: 1, fontWeight: 600, fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.firstName} {l.lastName}</span>
-              <span style={{ fontWeight: 800, color: C.primary, fontSize: 12, flexShrink: 0 }}>{l.score}</span>
+              <span style={{ fontWeight: 800, color: l.score < 0 ? '#D63031' : C.primary, fontSize: 12, flexShrink: 0 }}>{l.score}</span>
               {l.correctCount !== undefined && <span style={{ fontSize: 9, color: C.textLight, flexShrink: 0 }}>({l.correctCount}✓)</span>}
+              <button onClick={() => setMalusTarget({ studentId: l.studentId, firstName: l.firstName, lastName: l.lastName })} title="Donner un malus" style={{ width: 20, height: 20, borderRadius: 6, border: 'none', background: '#D6303115', color: '#D63031', cursor: 'pointer', fontSize: 12, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.2s' }}>−</button>
             </div>;
           })}
         </div>
       </div>
     </div>
     </div>
+    {/* Modale malus */}
+    {malusTarget && <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setMalusTarget(null)}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 28, maxWidth: 360, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+        <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#D6303115', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+          <Icon name="AlertTriangle" size={26} color="#D63031" />
+        </div>
+        <h3 style={{ fontWeight: 900, fontSize: 17, margin: '0 0 6px', color: C.text }}>Malus de points</h3>
+        <p style={{ fontSize: 13, color: C.textLight, margin: '0 0 18px', fontWeight: 600 }}>Retirer des points à <strong>{malusTarget.firstName} {malusTarget.lastName}</strong></p>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+          {[100, 200, 500, 1000].map(v => <button key={v} onClick={() => setMalusPoints(v)} style={{
+            padding: '8px 16px', borderRadius: 10, border: malusPoints === v ? '2px solid #D63031' : '2px solid #E0E0E0',
+            background: malusPoints === v ? '#D6303115' : '#fff', cursor: 'pointer', fontFamily: "'Nunito',sans-serif",
+            fontWeight: 800, fontSize: 14, color: malusPoints === v ? '#D63031' : C.text, transition: 'all 0.15s',
+          }}>-{v}</button>)}
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Btn onClick={() => setMalusTarget(null)} variant="ghost" fullWidth>Annuler</Btn>
+          <Btn onClick={sendMalus} variant="danger" fullWidth disabled={malusSending}>{malusSending ? '...' : `Retirer ${malusPoints} pts`}</Btn>
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 

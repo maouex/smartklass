@@ -871,6 +871,7 @@ try {
                     'teams'              => $teams,
                     'myTeam'             => ($mode === 'team' && $studentId && isset($myTeamRow)) ? ($myTeamRow['team'] ?? null) : null,
                     'avgTimeMs'          => $avgTimeMs,
+                    'soundDisabled'      => (bool)(int)($session['sound_disabled'] ?? 0),
                 ];
                 jsonResponse($response);
             }
@@ -976,7 +977,7 @@ try {
                         $xpReward = (int)($session['xp_reward'] ?? 40);
                         $scoresStmt = $db->prepare(
                             "SELECT student_id, SUM(score) AS total_score, SUM(is_correct) AS correct_count
-                             FROM live_responses WHERE session_id = ? GROUP BY student_id"
+                             FROM live_responses WHERE session_id = ? AND question_idx < 255 GROUP BY student_id"
                         );
                         $scoresStmt->execute([$sessionId]);
                         $maxPossibleScore = $totalQ * 1000; // Score max théorique
@@ -1013,6 +1014,27 @@ try {
                         $db->prepare("DELETE FROM live_responses WHERE session_id = ? AND question_idx = ?")->execute([$sessionId, $currentQ]);
                         $db->prepare("UPDATE live_sessions SET current_q = current_q + 1, status = 'active', question_started_at = NOW() WHERE id = ?")->execute([$sessionId]);
                         jsonResponse(['success' => true, 'status' => 'active', 'currentQ' => $currentQ + 1]);
+                        break;
+                    case 'toggle-sound':
+                        // Le prof coupe/remet le son pour tous les élèves
+                        $current = (int)($session['sound_disabled'] ?? 0);
+                        $newVal = $current ? 0 : 1;
+                        $db->prepare("UPDATE live_sessions SET sound_disabled = ? WHERE id = ?")->execute([$newVal, $sessionId]);
+                        jsonResponse(['success' => true, 'soundDisabled' => (bool)$newVal]);
+                        break;
+                    case 'malus':
+                        // Le prof donne un malus de points à un élève
+                        $targetStudentId = $body['studentId'] ?? '';
+                        $malusPoints = abs((int)($body['points'] ?? 200));
+                        if (!$targetStudentId) jsonResponse(['error' => 'studentId requis'], 400);
+                        if ($malusPoints < 1 || $malusPoints > 5000) jsonResponse(['error' => 'Points invalides (1-5000)'], 400);
+                        // Insérer une réponse malus (question_idx = 255 = malus marker)
+                        $malusId = generateId();
+                        $db->prepare(
+                            "INSERT INTO live_responses (id, session_id, student_id, question_idx, answer_idx, is_correct, score)
+                             VALUES (?, ?, ?, 255, 0, 0, ?)"
+                        )->execute([$malusId, $sessionId, $targetStudentId, -$malusPoints]);
+                        jsonResponse(['success' => true, 'malus' => $malusPoints, 'studentId' => $targetStudentId]);
                         break;
                     case 'cancel':
                         // Le prof quitte sans terminer proprement — marquer comme finished
